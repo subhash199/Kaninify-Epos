@@ -1,0 +1,56 @@
+﻿@page "/checkout"
+<h3 class="text-center">Checkout Dashboard</h3>
+<div class="container mt-4">
+    <div class="col-md-6 row">
+        <div class="mb-4">
+            <input type="text" class="form-control" placeholder="Search for products..." />
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Qty</th>
+                        <th>Product Name</th>
+                        <th>Promotion</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2</td>
+                        <td>T-Shirt</td>
+                        <td>Buy 1 Get 1</td>
+                        <td>$25.00</td>
+                        <td>$50.00</td>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>Sneakers</td>
+                        <td>10% Off</td>
+                        <td>$60.00</td>
+                        <td>$54.00</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Cap</td>
+                        <td>-</td>
+                        <td>$15.00</td>
+                        <td>$45.00</td>
+                    </tr>
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Grand Total:</td>
+                        <td class="fw-bold">$149.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+
+}
