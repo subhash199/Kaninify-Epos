@@ -1,56 +1,321 @@
-﻿@page "/checkout"
-<h3 class="text-center">Checkout Dashboard</h3>
-<div class="container mt-4">
-    <div class="col-md-6 row">
-        <div class="mb-4">
-            <input type="text" class="form-control" placeholder="Search for products..." />
+﻿@page "/"
+@* <h3 class="text-center">Checkout Dashboard</h3> *@
+<div class="d-flex flex-column vh-100">
+    <div class="container-fluid mt-4">
+        <!-- Make the row full height and align items to the start -->
+        <div class="d-flex align-items-start">
+            <div class="col-md-6 row">
+                <div class="mb-2">
+                    <input type="text" class="form-control" placeholder="Search for products..." />
+                </div>
+
+                <div class="table-responsive" style=@tableStyle>
+                    <table class="table table-bordered table-striped align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Qty</th>
+                                <th>Product Name</th>
+                                <th>Promotion</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="4" class="text-end fw-bold">Grand Total:</td>
+                                <td class="fw-bold">$149.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="col-md-12 mb-2">
+                    <div class="d-flex gap-2 mb-2">
+                        <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
+                            <img src="images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <span class="fw-bold">Card</span>
+                        </button>
+                        <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
+                            <img src="images/icons/liquor.png" class="img-fluid mb-2" />
+                            <span class="fw-bold">Qty</span>
+                        </button>
+                        <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
+                            <img src="images/icons/money_bag_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <span class="fw-bold">Cash</span>
+                        </button>
+                        <button class="col-md-3 btn-light d-flex flex-column align-items-center flex-fill" @onclick="MoreSalesButtonClick">
+                            <img src="images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <span class="fw-bold">@leftPanelLabel</span>
+                        </button>
+                    </div>
+                    <div class="@moreSalesButtonsClass">
+                        <div class="col-md-12 mb-2">
+                            <div class="d-flex gap-2 mb-2">
+                                <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
+                                    <img src="images/icons/remove_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                    <span class="fw-bold">Void Line</span>
+                                </button>
+                                <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
+                                    <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                    <span class="fw-bold">Hold</span>
+                                </button>
+                                <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
+                                    <img src="images/icons/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                    <span class="fw-bold">Void Basket</span>
+                                </button>
+                                <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
+                                    <img src="images/icons/receipt_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                    <span class="fw-bold">Receipt</span>
+                                </button>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <div class="d-flex gap-2 mb-2">
+                                    <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
+                                        <img src="images/icons/search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                        <span class="fw-bold">Enquiry</span>
+                                    </button>
+                                    <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
+                                        <img src="images/icons/send_money_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                        <span class="fw-bold">Refund</span>
+                                    </button>
+                                    <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
+                                        <img src="images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                        <span class="fw-bold">New Product</span>
+                                    </button>
+                                    <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
+                                        <img src="images/icons/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                                        <span class="fw-bold">Office</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+            </div>
+
+            <div class="row col-md-12 mb-2">
+                <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
+                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/liquor.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Alcohol</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/grocery_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Tobacco</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/smoking_rooms_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Grocery</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Fruit & Veg</span>
+                    </button>
+
+                </div>
+
+                <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
+                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Lottery</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Scratch Card</span>
+                    </button>
+
+                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/weather_hail_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Chilled</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/mode_cool_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Frozen</span>
+                    </button>
+                </div>
+
+                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 mb-2">
+                    <button class="btn btn-light background-colour-light-pink d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/volunteer_activism_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Lottery Payout</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-pink d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Scratch Card Payout</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-pink d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Other Payout</span>
+                    </button>
+
+                </div>
+
+
+                <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
+                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">£1</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">£5</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">£10</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">£20</span>
+                    </button>
+                </div>
+
+                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
+
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">7</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">8</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">9</span>
+                    </button>
+
+                </div>
+                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
+
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">4</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">5</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">6</span>
+                    </button>
+
+                </div>
+                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
+
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">1</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">2</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">3</span>
+                    </button>
+
+                </div>
+                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
+
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">0</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">00</span>
+                    </button>
+                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/clear_all_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+
+                        <span class="fw-bold">Clear</span>
+                    </button>
+
+                </div>
+
+
+
+
+            </div>
+
+
+        </div>
+        <div class="col-md-12">
+            <!-- Make cards horizontal using flex and grid columns for consistent width -->
+            <div class="row me-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex background-colour-light-green flex-column align-items-center">
+                            <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <p class="card-text text-center">Refill Products Count: 12</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex background-colour-light-yellow flex-column align-items-center">
+                            <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <p class="card-text text-center">Expiry Products Count: 12</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex background-colour-light-red flex-column align-items-center">
+                            <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <p class="card-text text-center">Shortage Products Count: 12</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped align-middle">
-                <thead class="table-primary">
-                    <tr>
-                        <th>Qty</th>
-                        <th>Product Name</th>
-                        <th>Promotion</th>
-                        <th>Unit Price</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>2</td>
-                        <td>T-Shirt</td>
-                        <td>Buy 1 Get 1</td>
-                        <td>$25.00</td>
-                        <td>$50.00</td>
-                    </tr>
-                    <tr>
-                        <td>1</td>
-                        <td>Sneakers</td>
-                        <td>10% Off</td>
-                        <td>$60.00</td>
-                        <td>$54.00</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>Cap</td>
-                        <td>-</td>
-                        <td>$15.00</td>
-                        <td>$45.00</td>
-                    </tr>
-                </tbody>
-                <tfoot class="table-light">
-                    <tr>
-                        <td colspan="4" class="text-end fw-bold">Grand Total:</td>
-                        <td class="fw-bold">$149.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+
     </div>
 </div>
 
-@code {
 
+
+
+@code {
+    string tableStyle = "height: 602px; overflow-y: auto";
+    string leftPanelLabel = "More";
+    string moreSalesButtonsClass = "d-none";
+
+    private void MoreSalesButtonClick()
+    {
+        if (moreSalesButtonsClass == "d-none")
+        {
+            moreSalesButtonsClass = "";
+            leftPanelLabel = "Collapse";
+            tableStyle = "height: 425px; overflow-y: auto";
+
+        }
+        else
+        {
+            moreSalesButtonsClass = "d-none";
+            leftPanelLabel = "More";
+            tableStyle = "height: 602px; overflow-y: auto";
+        }
+
+    }
 }
