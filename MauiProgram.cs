@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using EposRetail.Services;
+using Microsoft.Extensions.Logging;
 
 namespace EposRetail;
 
@@ -7,7 +8,8 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
-		builder
+        builder.Services.AddSingleton<ScreenInfoService>();
+        builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
 			{

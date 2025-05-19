@@ -1,0 +1,20 @@
+﻿body {
+}
+
+.Card-box {
+    margin: 0 auto 30px;
+    padding: 40px 15px;
+    text-align: center;
+    border: 1px solid #ccb5f6;
+    background: #ffffff;
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    border-radius: 20px;
+    -webkit-transition: all ease 0.3s;
+    -moz-transition: all ease 0.3s;
+    transition: all ease 0.3s;
+}
+    .Card-box.thumb {
+        margin-bottom: 30px;
+        height: 100px;
+    }

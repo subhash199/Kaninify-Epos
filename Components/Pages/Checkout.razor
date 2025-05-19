@@ -1,12 +1,15 @@
 ﻿@page "/"
+@using EposRetail.Models
+@using EposRetail.Services
+@inject ScreenInfoService ScreenInfoService
 @* <h3 class="text-center">Checkout Dashboard</h3> *@
 <div class="d-flex flex-column vh-100">
-    <div class="container-fluid mt-4">
+    <div class="container-fluid">
         <!-- Make the row full height and align items to the start -->
         <div class="d-flex align-items-start">
             <div class="col-md-6 row">
                 <div class="mb-2">
-                    <input type="text" class="form-control" placeholder="Search for products..." />
+                    <input type="text" class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
 
                 <div class="table-responsive" style=@tableStyle>
@@ -46,7 +49,7 @@
                             <span class="fw-bold">Cash</span>
                         </button>
                         <button class="col-md-3 btn-light d-flex flex-column align-items-center flex-fill" @onclick="MoreSalesButtonClick">
-                            <img src="images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <img src=@leftCollapseButtonPanel class="img-fluid mb-2" />
                             <span class="fw-bold">@leftPanelLabel</span>
                         </button>
                     </div>
@@ -99,83 +102,58 @@
 
             </div>
 
+
+
             <div class="row col-md-12 mb-2">
                 <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/liquor.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Alcohol</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/grocery_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Tobacco</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/smoking_rooms_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Grocery</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Fruit & Veg</span>
-                    </button>
+                    @if (screenModel.Height < 800 && displayGenericButtons)
+                    {
+                        <EposRetail.Components.Pages.RepeatComponents.GenericGambleButtons></EposRetail.Components.Pages.RepeatComponents.GenericGambleButtons>
+                        //gamble buttons
+                    }
+                    else if (screenModel.Height < 800 && !displayGenericButtons)
+                    {
+                        <EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents></EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents>
+                    }
+                    else if (screenModel.Height > 800)
+                    {
+                        <EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents></EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents>
 
+                    }
+
+
+
+                    @if (screenModel.Height < 800)
+                    {
+                        <button @onclick="DisplayGenericButtonClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
+                            <img src="@collapseButtonImage" class="img-fluid mb-2" />
+                            <span class="fw-bold">@collapseButtonLabel</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+                            <img src="images/icons/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                            <span class="fw-bold">Fruit & Veg</span>
+                        </button>
+                    }
                 </div>
 
-                <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Lottery</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Scratch Card</span>
-                    </button>
+                @if (screenModel.Height < 800 && displayGenericButtons)
+                {
+                    <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents></EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents>
+                }
 
-                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/weather_hail_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Chilled</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/mode_cool_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Frozen</span>
-                    </button>
-                </div>
+                @if (screenModel.Height < 800 && !displayGenericButtons)
+                {
+                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent></EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent>
+                }
 
-                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 mb-2">
-                    <button class="btn btn-light background-colour-light-pink d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/volunteer_activism_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Lottery Payout</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-pink d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Scratch Card Payout</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-pink d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">Other Payout</span>
-                    </button>
-
-                </div>
-
-
-                <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">£1</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">£5</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">£10</span>
-                    </button>
-                    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">£20</span>
-                    </button>
-                </div>
-
+                @if (screenModel.Height > 800)
+                {
+                    <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents></EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents>
+                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent></EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent>
+                }
                 <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
 
                     <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
@@ -259,6 +237,7 @@
 
 
         </div>
+        @* <div class="@cardsDisplayClass"> *@
         <div class="col-md-12">
             <!-- Make cards horizontal using flex and grid columns for consistent width -->
             <div class="row me-4">
@@ -289,32 +268,88 @@
             </div>
         </div>
 
-
     </div>
+
+
+    @* </div> *@
 </div>
 
 
 
 
 @code {
-    string tableStyle = "height: 602px; overflow-y: auto";
+    string tableStyle = "height: 512px; overflow-y: auto";
     string leftPanelLabel = "More";
     string moreSalesButtonsClass = "d-none";
+    // string cardsDisplayClass = "d-none";
+
+
+    string leftCollapseButtonPanel = "images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+    string collapseButtonLabel = "More";
+    string collapseButtonImage = "images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+
+    bool displayGenericButtons = true;
+
+    ScreenModel screenModel = new ScreenModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        screenModel = ScreenInfoService.GetScreenSize();
+        if (screenModel.Height < 800)
+        {
+            displayGenericButtons = false;
+            tableStyle = "height: 425px; overflow-y: auto";
+            collapseButtonLabel = "More";
+        }
+        else
+        {
+            displayGenericButtons = true;
+            tableStyle = "height: 512px; overflow-y: auto";
+            collapseButtonLabel = "Collapse";
+        }
+    }
+
+    private void DisplayGenericButtonClick()
+    {
+        if (displayGenericButtons)
+        {
+            displayGenericButtons = false;
+            collapseButtonLabel = "More";
+            collapseButtonImage = "images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+        }
+        else
+        {
+            displayGenericButtons = true;
+            collapseButtonLabel = "Collapse";
+            collapseButtonImage = "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+        }
+    }
 
     private void MoreSalesButtonClick()
     {
         if (moreSalesButtonsClass == "d-none")
         {
             moreSalesButtonsClass = "";
+            //cardsDisplayClass = "";
             leftPanelLabel = "Collapse";
-            tableStyle = "height: 425px; overflow-y: auto";
+            leftCollapseButtonPanel = "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+            if (screenModel.Height > 800)
+                tableStyle = "height: 335px; overflow-y: auto";
+            else
+                tableStyle = "height: 225px; overflow-y: auto";
 
         }
         else
         {
             moreSalesButtonsClass = "d-none";
+            //cardsDisplayClass = "d-none";
             leftPanelLabel = "More";
-            tableStyle = "height: 602px; overflow-y: auto";
+            leftCollapseButtonPanel = "images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+            if (screenModel.Height > 800)
+                tableStyle = "height:512px; overflow-y: auto";
+            else
+                tableStyle = "height: 425px; overflow-y: auto";
+
         }
 
     }
