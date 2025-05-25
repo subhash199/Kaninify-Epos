@@ -70,4 +70,8 @@
       <Folder Include="wwwroot\images\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\subhash199\EposDataHandler\DataHandlerLibrary.csproj" />
+    </ItemGroup>
+
 </Project>

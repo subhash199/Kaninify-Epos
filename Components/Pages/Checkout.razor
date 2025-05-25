@@ -1,34 +1,77 @@
 ﻿@page "/"
+@using DataHandlerLibrary.Models
+@using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Models
 @using EposRetail.Services
+@using EposRetail.Components.Pages.RepeatComponents
+@using DataHandlerLibrary.Services
 @inject ScreenInfoService ScreenInfoService
+@inject ProductServices productServices
+@inject IJSRuntime JS
+
 @* <h3 class="text-center">Checkout Dashboard</h3> *@
-<div class="d-flex flex-column vh-100">
+<div class="d-flex flex-column vh-100 mt-1">
     <div class="container-fluid">
         <!-- Make the row full height and align items to the start -->
         <div class="d-flex align-items-start">
             <div class="col-md-6 row">
                 <div class="mb-2">
-                    <input type="text" class="form-control" placeholder="Search for products or enter amount..." />
+                    <input type="text" @ref=searchBox @bind-value="searchText" @bind-value:event="oninput" @onkeydown="SearchKeyDown" class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
 
-                <div class="table-responsive" style=@tableStyle>
-                    <table class="table table-bordered table-striped align-middle">
+                <div id="checkoutTable" class="table-responsive" style=@tableStyle>
+                    <table class="table table-bordered table-striped align-middle" style="table-layout:fixed; width:100%;">
+                        <colgroup>
+                            <col style="width: 10%;">
+                            <col style="width: 40%;">
+                            <col style="width: 20%;">
+                            <col style="width: 15%;">
+                            <col style="width: 15%;">
+                        </colgroup>
                         <thead class="table-primary">
                             <tr>
-                                <th>Qty</th>
-                                <th>Product Name</th>
-                                <th>Promotion</th>
-                                <th>Unit Price</th>
-                                <th>Total</th>
+                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Qty</th>
+                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Product Name</th>
+                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Promotion</th>
+                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Unit Price</th>
+                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Total</th>
                             </tr>
                         </thead>
                         <tbody>
+                            @if (salesBaskets.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList != null)
+                            {
+
+                                foreach (var item in salesBaskets[holdBasketIndex].SalesItemsList)
+                                {
+
+                                    <tr>
+                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Product_QTY</td>
+                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Product.Product_Name</td>
+                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Promotion</td>
+                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Product_Amount.ToString("C2")</td>
+                                        <td class="text-truncate fw-bold fs-5" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            @item.Product_Total_Amount.ToString("C2")
+                                        </td>
+                                    </tr>
+                                }
+
+
+
+
+                            }
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
                                 <td colspan="4" class="text-end fw-bold">Grand Total:</td>
-                                <td class="fw-bold">$149.00</td>
+                                <td class="fw-bold fs-5">
+                                    @(
+                                        salesBaskets != null && salesBaskets.Count > 0
+                                        ? (salesBaskets[holdBasketIndex].SalesItemsList != null && salesBaskets[holdBasketIndex].SalesItemsList.Count > 0
+                                        ? salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount).ToString("C2")
+                                        : "0.00")
+                                        : "0.00"
+                                        )
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -151,7 +194,7 @@
 
                 @if (screenModel.Height > 800)
                 {
-                    <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents></EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents>
+                    <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents PayoutClick="@payoutActionModel" />
                     <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent></EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent>
                 }
                 <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
@@ -269,7 +312,13 @@
         </div>
 
     </div>
-
+    <GenericMessageModal IsVisible="@showModal"
+                         Title="@modalTitle"
+                         Message="@modalMessage"
+                         PrimaryButtonText="OK"
+                         PrimaryAction="@OnModalOk"
+                         SecondaryButtonText="Cancel"
+                         OnClose="@OnModalClose" />
 
     @* </div> *@
 </div>
@@ -277,7 +326,12 @@
 
 
 
+
 @code {
+    ElementReference searchBox;
+
+    string searchText = "";
+
     string tableStyle = "height: 512px; overflow-y: auto";
     string leftPanelLabel = "More";
     string moreSalesButtonsClass = "d-none";
@@ -291,6 +345,42 @@
     bool displayGenericButtons = true;
 
     ScreenModel screenModel = new ScreenModel();
+
+    private bool showModal = false;
+    private string modalTitle = "Notice";
+    private string modalMessage = "This is a message.";
+
+
+    //Checkout Objects
+    int holdBasketIndex = 0;
+    List<SalesBasket> salesBaskets = new List<SalesBasket>();
+
+    // Method to show the modal
+    private void ShowModal(string title, string message)
+    {
+        modalTitle = title;
+        modalMessage = message;
+        showModal = true;
+    }
+
+    // Modal button/callback handlers
+    private Task OnModalOk()
+    {
+        showModal = false;
+        return Task.CompletedTask;
+    }
+
+    private Task OnModalClose()
+    {
+        showModal = false;
+        return Task.CompletedTask;
+    }
+
+    private void SetFocusOnSearchBox()
+    {
+        searchText = "";
+        searchBox.FocusAsync();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -307,6 +397,145 @@
             tableStyle = "height: 512px; overflow-y: auto";
             collapseButtonLabel = "Collapse";
         }
+    }
+
+
+
+    private async void SearchKeyDown(KeyboardEventArgs e)
+    {
+        try
+        {
+            if (e.Key == "Enter")
+            {
+                if (!string.IsNullOrEmpty(searchText))
+                {
+                    if (salesBaskets.Count < 1)
+                    {
+                        InitializeSalesTransaction(false);
+                    }
+
+                    var product = await productServices.GetProductByBarcode(searchText);
+                    if (product != null)
+                    {
+                        if (product.Is_activated == false)
+                        {
+                            ShowModal("Product Not Activated", "This product is not activated. Please activate it before adding to the basket.");
+                            SetFocusOnSearchBox();
+                            return;
+                        }
+                        else
+                        {
+                            AddProductToBasket(product);
+
+                        }
+                    }
+                    StateHasChanged();
+                    await Task.Yield();
+                    await JS.InvokeVoidAsync("scrollTableToBottom");
+
+                }
+
+                else
+                {
+                    SetFocusOnSearchBox();
+                    return;
+                }
+            }
+            else
+            {
+                searchBox.FocusAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+    }
+
+
+    private async void AddProductToBasket(Product fetchProduct)
+    {
+        if (salesBaskets[holdBasketIndex].SalesItemsList == null)
+        {
+            salesBaskets[holdBasketIndex].SalesItemsList = new();
+        }
+        if (salesBaskets[holdBasketIndex].SalesItemsList.Exists(x => x.Product_ID == fetchProduct.Product_ID))
+        {
+            SalesItemTransaction item = salesBaskets[holdBasketIndex].SalesItemsList.Find(x => x.Product_ID == fetchProduct.Product_ID);
+            if (item != null)
+            {
+                item.Product_QTY += 1;
+                item.Product_Total_Amount = item.Product_QTY * fetchProduct.Product_Selling_Price;
+            }
+        }
+        else
+        {
+            salesBaskets[holdBasketIndex].SalesItemsList.Add(new SalesItemTransaction
+            {
+                Product_ID = fetchProduct.Product_ID,
+                Product = fetchProduct,
+                Product_QTY = 1,
+                Product_Amount = fetchProduct.Product_Selling_Price,
+                Product_Total_Amount = fetchProduct.Product_Selling_Price,
+            });
+        }
+    
+        SetFocusOnSearchBox();
+    }
+
+    private void InitializeSalesTransaction(bool isRefund)
+    {
+
+        if (salesBaskets.Count < 1)
+        {
+            salesBaskets.Add(new SalesBasket());
+        }
+        if (salesBaskets[holdBasketIndex].Transaction == null)
+        {
+            // if (dayLog == null)
+            // {
+            //     dayLog = InitializeProgramService.GetDayLog();
+            // }
+
+            salesBaskets[holdBasketIndex].Transaction = new SalesTransaction
+                {
+                    Date_Created = DateTime.Now,
+                    Sale_Start_Date = DateTime.Now,
+                    Is_Refund = 0,
+                    Till_ID = 0,
+                    User_ID = 0,
+                    DayLog_ID = 0,
+                    Is_Printed = 0,
+                    SaleTransaction_Discount = 0,
+                    SaleTransaction_Promotion = 0,
+                    SaleTransaction_Change = 0,
+                    SaleTransaction_Payout = 0,
+                    SaleTransaction_CashBack = 0,
+                    SaleTransaction_Cash = 0,
+
+                };
+            if (isRefund)
+            {
+                salesBaskets[holdBasketIndex].Transaction.Is_Refund = 1;
+            }
+
+            salesBaskets[holdBasketIndex].SalesItemsList = new();
+        }
+
+    }
+
+    private void HandleGenericItemClick()
+    {
+        int i = 0;
+        // Your logic here
+    }
+
+    private void payoutActionModel(PayoutActionModel payoutActionModel)
+    {
+        int i = 0;
+        // Your logic here
     }
 
     private void DisplayGenericButtonClick()
