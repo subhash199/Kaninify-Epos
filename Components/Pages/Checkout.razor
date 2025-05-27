@@ -16,10 +16,10 @@
         <div class="d-flex align-items-start">
             <div class="col-md-6 row">
                 <div class="mb-2">
-                    <input type="text" @ref=searchBox @bind-value="searchText" @bind-value:event="oninput" @onkeydown="SearchKeyDown" class="form-control" placeholder="Search for products or enter amount..." />
+                    <input type="text" @ref="searchBox" @bind-value="searchText" @bind-value:event="oninput" @onkeydown="SearchKeyDown" class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
 
-                <div id="checkoutTable" class="table-responsive" style=@tableStyle>
+                <div id="checkoutTable" class="table-responsive" style="@tableStyle">
                     <table class="table table-bordered table-striped align-middle" style="table-layout:fixed; width:100%;">
                         <colgroup>
                             <col style="width: 10%;">
@@ -30,11 +30,11 @@
                         </colgroup>
                         <thead class="table-primary">
                             <tr>
-                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Qty</th>
-                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Product Name</th>
-                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Promotion</th>
-                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Unit Price</th>
-                                <th class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Total</th>
+                                <th class="text-truncate">Qty</th>
+                                <th class="text-truncate">Product Name</th>
+                                <th class="text-truncate">Promotion</th>
+                                <th class="text-truncate">Unit Price</th>
+                                <th class="text-truncate">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -45,13 +45,11 @@
                                 {
 
                                     <tr>
-                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Product_QTY</td>
-                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Product.Product_Name</td>
-                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Promotion</td>
-                                        <td class="text-truncate" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@item.Product_Amount.ToString("C2")</td>
-                                        <td class="text-truncate fw-bold fs-5" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                            @item.Product_Total_Amount.ToString("C2")
-                                        </td>
+                                        <td class="text-truncate">@item.Product_QTY</td>
+                                        <td class="text-truncate">@item.Product.Product_Name</td>
+                                        <td class="text-truncate">@item.Promotion</td>
+                                        <td class="text-truncate">@item.Product_Amount.ToString("C2")</td>
+                                        <td class="text-truncate fw-bold fs-5">@item.Product_Total_Amount.ToString("C2")</td>
                                     </tr>
                                 }
 
@@ -65,10 +63,8 @@
                                 <td colspan="4" class="text-end fw-bold">Grand Total:</td>
                                 <td class="fw-bold fs-5">
                                     @(
-                                        salesBaskets != null && salesBaskets.Count > 0
-                                        ? (salesBaskets[holdBasketIndex].SalesItemsList != null && salesBaskets[holdBasketIndex].SalesItemsList.Count > 0
+                                        salesBaskets?.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList?.Count > 0
                                         ? salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount).ToString("C2")
-                                        : "0.00")
                                         : "0.00"
                                         )
                                 </td>
@@ -140,9 +136,6 @@
                     </div>
                 </div>
 
-
-
-
             </div>
 
 
@@ -189,26 +182,27 @@
 
                 @if (screenModel.Height < 800 && !displayGenericButtons)
                 {
-                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent></EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent>
+                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent SecondRoundupCashSuggestion="@secondRoundupCashSuggestion" RoundupCashSuggestion="@roundupCashSuggestion" OnCashSuggestionClicked="HandleCashSuggestion" />
                 }
 
                 @if (screenModel.Height > 800)
                 {
                     <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents PayoutClick="@payoutActionModel" />
-                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent></EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent>
+                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent SecondRoundupCashSuggestion="@secondRoundupCashSuggestion" RoundupCashSuggestion="@roundupCashSuggestion" OnCashSuggestionClicked="HandleCashSuggestion" />
+
                 }
                 <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
 
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(7)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">7</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(8)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">8</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(9)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">9</span>
@@ -217,17 +211,17 @@
                 </div>
                 <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
 
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(4)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">4</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(5)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">5</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(6)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">6</span>
@@ -236,17 +230,17 @@
                 </div>
                 <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
 
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(1)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">1</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(2)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">2</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(3)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">3</span>
@@ -255,17 +249,17 @@
                 </div>
                 <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
 
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>NumberPadClick(0)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">0</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=>DoubleZeroPadClick()" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">00</span>
                     </button>
-                    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button @onclick="()=> SetFocusOnSearchBoxAsync()" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/clear_all_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
 
                         <span class="fw-bold">Clear</span>
@@ -280,47 +274,53 @@
 
 
         </div>
-        @* <div class="@cardsDisplayClass"> *@
         <div class="col-md-12">
-            <!-- Make cards horizontal using flex and grid columns for consistent width -->
             <div class="row me-4">
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body d-flex background-colour-light-green flex-column align-items-center">
-                            <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                            <p class="card-text text-center">Refill Products Count: 12</p>
-                        </div>
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-green">
+                        <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="text-center">Refill Products Count: 12</span>
+                    </button>
                 </div>
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body d-flex background-colour-light-yellow flex-column align-items-center">
-                            <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                            <p class="card-text text-center">Expiry Products Count: 12</p>
-                        </div>
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-yellow">
+                        <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="text-center">Expiry Products Count: 12</span>
+                    </button>
                 </div>
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body d-flex background-colour-light-red flex-column align-items-center">
-                            <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                            <p class="card-text text-center">Shortage Products Count: 12</p>
-                        </div>
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-red">
+                        <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="text-center">Shortage Products Count: 12</span>
+                    </button>
                 </div>
             </div>
         </div>
 
     </div>
-    <GenericMessageModal IsVisible="@showModal"
-                         Title="@modalTitle"
-                         Message="@modalMessage"
-                         PrimaryButtonText="OK"
-                         PrimaryAction="@OnModalOk"
-                         SecondaryButtonText="Cancel"
-                         OnClose="@OnModalClose" />
+    @if (modalSettings.ModalEnum == ModalEnum.Error)
+    {
+        <GenericMessageModal IsVisible="@modalSettings.ShowModal"
+                             Title="@modalSettings.ModalTitle"
+                             Message="@modalSettings.ModalMessage"
+                             PrimaryButtonText="OK"
+                             PrimaryAction="@OnModalOk"
+                             SecondaryButtonText="Cancel"
+                             OnClose="@OnModalClose" />
+    }
+    @if (modalSettings.ModalEnum == ModalEnum.ProductActivate || modalSettings.ModalEnum == ModalEnum.ProductNotFound)
+    {
+        <ProductModal IsVisible="@modalSettings.ShowModal"
+                      Title="@modalSettings.ModalTitle"
+                      Product="@modalProduct"
+                      OnSave="@OnModalProductUpserted"
+                      OnClose="@OnModalClose">
 
-    @* </div> *@
+        </ProductModal>
+    }
+
+
+
 </div>
 
 
@@ -346,40 +346,116 @@
 
     ScreenModel screenModel = new ScreenModel();
 
-    private bool showModal = false;
-    private string modalTitle = "Notice";
-    private string modalMessage = "This is a message.";
+    Product modalProduct { get; set; } = new Product();
 
+    // Modal objects
+    ModalSettings modalSettings = new ModalSettings();
 
     //Checkout Objects
     int holdBasketIndex = 0;
     List<SalesBasket> salesBaskets = new List<SalesBasket>();
 
-    // Method to show the modal
-    private void ShowModal(string title, string message)
+    //Generic Cash Suggestion
+    int roundupCashSuggestion = 1;
+    int secondRoundupCashSuggestion = 5;
+
+    //Services
+    GeneralServices generalServices = new GeneralServices();
+
+    private void HandleCashSuggestion(int value)
     {
-        modalTitle = title;
-        modalMessage = message;
-        showModal = true;
+        if (int.TryParse(searchText, out int currentValue))
+        {
+            int newValue = currentValue + value;
+            searchText = newValue > 0 ? newValue.ToString() : "0";
+        }
+        else
+        {
+            // If parsing fails, treat as zero and add the value
+            int newValue = value;
+            searchText = newValue > 0 ? newValue.ToString() : "0";
+        }
+    }
+
+    private void ProvideRoundedUpCashSuggestion(decimal value)
+    {
+        decimal roundedValue = Math.Ceiling(value);
+        roundupCashSuggestion = int.Parse(roundedValue.ToString("0"));
+    }
+
+
+    private void ProvideSecondRoundedUpCashSuggestion(decimal value)
+    {
+        // Always round up to the next whole number before rounding to nearest five
+        int intValue = (int)Math.Ceiling(value);
+        secondRoundupCashSuggestion = generalServices.RoundUpToNearestFive(intValue);
+    }
+
+
+
+    private void NumberPadClick(int num)
+    {
+        searchText += num.ToString();
+    }
+
+    private void DoubleZeroPadClick()
+    {
+        searchText += "00";
+    }
+
+
+    // Method to show the modal
+    private void ShowModal()
+    {
+        switch (modalSettings.ModalEnum)
+        {
+            case ModalEnum.ProductActivate:
+                modalSettings.ModalTitle = "Product Activation";
+                modalSettings.ModalMessage = "This product is not activated. Would you like to activate this product?";
+                modalSettings.ShowModal = true;
+                break;
+            case ModalEnum.ProductNotFound:
+                modalSettings.ModalTitle = "Product Not Found";
+                modalSettings.ModalMessage = "The product you scanned was not found in the system. Please check the barcode or enter the product manually.";
+                modalSettings.ShowModal = true;
+                break;
+            default:
+                break;
+        }
+        StateHasChanged();
     }
 
     // Modal button/callback handlers
     private Task OnModalOk()
     {
-        showModal = false;
+        modalSettings.ShowModal = false;
         return Task.CompletedTask;
     }
 
     private Task OnModalClose()
     {
-        showModal = false;
+        modalSettings.ShowModal = false;
         return Task.CompletedTask;
     }
 
-    private void SetFocusOnSearchBox()
+    private Task OnModalProductUpserted()
+    {
+        modalSettings.ShowModal = false;
+        salesBaskets[holdBasketIndex].SalesItemsList.Add(new SalesItemTransaction
+            {
+                Product_ID = modalProduct.Product_ID,
+                Product = modalProduct,
+                Product_QTY = 1,
+                Product_Amount = modalProduct.Product_Selling_Price,
+                Product_Total_Amount = modalProduct.Product_Selling_Price,
+            });
+        return Task.CompletedTask;
+    }
+
+    private async Task SetFocusOnSearchBoxAsync()
     {
         searchText = "";
-        searchBox.FocusAsync();
+        await searchBox.FocusAsync();
     }
 
     protected override async Task OnInitializedAsync()
@@ -417,72 +493,76 @@
                     var product = await productServices.GetProductByBarcode(searchText);
                     if (product != null)
                     {
-                        if (product.Is_activated == false)
+                        if (!product.Is_activated)
                         {
-                            ShowModal("Product Not Activated", "This product is not activated. Please activate it before adding to the basket.");
-                            SetFocusOnSearchBox();
+                            modalSettings.ModalEnum = ModalEnum.ProductActivate;
+                            modalProduct = product;
+                            ShowModal();
+                            await SetFocusOnSearchBoxAsync();
                             return;
                         }
                         else
                         {
-                            AddProductToBasket(product);
-
+                            await AddProductToBasketAsync(product);
                         }
                     }
-                    StateHasChanged();
+                    else
+                    {
+                        modalSettings.ModalEnum = ModalEnum.ProductNotFound;
+                        modalProduct.Product_Barcode = searchText;
+                        modalProduct.Expiry_Date = DateTime.Now;
+                        ShowModal();
+                    }
                     await Task.Yield();
                     await JS.InvokeVoidAsync("scrollTableToBottom");
-
                 }
-
                 else
                 {
-                    SetFocusOnSearchBox();
-                    return;
+                    await SetFocusOnSearchBoxAsync();
                 }
+                StateHasChanged();
             }
             else
             {
-                searchBox.FocusAsync();
+                await searchBox.FocusAsync();
             }
         }
         catch (Exception ex)
         {
-            // Handle exception
+            modalSettings.ModalEnum = ModalEnum.Error;
             Console.WriteLine($"Error: {ex.Message}");
         }
 
     }
 
 
-    private async void AddProductToBasket(Product fetchProduct)
+    private async Task AddProductToBasketAsync(Product fetchProduct)
     {
         if (salesBaskets[holdBasketIndex].SalesItemsList == null)
         {
             salesBaskets[holdBasketIndex].SalesItemsList = new();
         }
-        if (salesBaskets[holdBasketIndex].SalesItemsList.Exists(x => x.Product_ID == fetchProduct.Product_ID))
+        var item = salesBaskets[holdBasketIndex].SalesItemsList.FirstOrDefault(x => x.Product_ID == fetchProduct.Product_ID);
+        if (item != null)
         {
-            SalesItemTransaction item = salesBaskets[holdBasketIndex].SalesItemsList.Find(x => x.Product_ID == fetchProduct.Product_ID);
-            if (item != null)
-            {
-                item.Product_QTY += 1;
-                item.Product_Total_Amount = item.Product_QTY * fetchProduct.Product_Selling_Price;
-            }
+            item.Product_QTY += 1;
+            item.Product_Total_Amount = item.Product_QTY * fetchProduct.Product_Selling_Price;
         }
         else
         {
             salesBaskets[holdBasketIndex].SalesItemsList.Add(new SalesItemTransaction
-            {
-                Product_ID = fetchProduct.Product_ID,
-                Product = fetchProduct,
-                Product_QTY = 1,
-                Product_Amount = fetchProduct.Product_Selling_Price,
-                Product_Total_Amount = fetchProduct.Product_Selling_Price,
-            });
+                {
+                    Product_ID = fetchProduct.Product_ID,
+                    Product = fetchProduct,
+                    Product_QTY = 1,
+                    Product_Amount = fetchProduct.Product_Selling_Price,
+                    Product_Total_Amount = fetchProduct.Product_Selling_Price,
+                });
         }
-    
-        SetFocusOnSearchBox();
+        decimal totalAmount = salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount);
+        ProvideRoundedUpCashSuggestion(totalAmount);
+        ProvideSecondRoundedUpCashSuggestion(totalAmount);
+        await SetFocusOnSearchBoxAsync();
     }
 
     private void InitializeSalesTransaction(bool isRefund)
@@ -494,16 +574,11 @@
         }
         if (salesBaskets[holdBasketIndex].Transaction == null)
         {
-            // if (dayLog == null)
-            // {
-            //     dayLog = InitializeProgramService.GetDayLog();
-            // }
-
             salesBaskets[holdBasketIndex].Transaction = new SalesTransaction
                 {
                     Date_Created = DateTime.Now,
                     Sale_Start_Date = DateTime.Now,
-                    Is_Refund = 0,
+                    Is_Refund = isRefund ? 1 : 0,
                     Till_ID = 0,
                     User_ID = 0,
                     DayLog_ID = 0,
@@ -514,13 +589,7 @@
                     SaleTransaction_Payout = 0,
                     SaleTransaction_CashBack = 0,
                     SaleTransaction_Cash = 0,
-
                 };
-            if (isRefund)
-            {
-                salesBaskets[holdBasketIndex].Transaction.Is_Refund = 1;
-            }
-
             salesBaskets[holdBasketIndex].SalesItemsList = new();
         }
 
@@ -540,18 +609,11 @@
 
     private void DisplayGenericButtonClick()
     {
-        if (displayGenericButtons)
-        {
-            displayGenericButtons = false;
-            collapseButtonLabel = "More";
-            collapseButtonImage = "images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-        }
-        else
-        {
-            displayGenericButtons = true;
-            collapseButtonLabel = "Collapse";
-            collapseButtonImage = "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-        }
+        displayGenericButtons = !displayGenericButtons;
+        collapseButtonLabel = displayGenericButtons ? "Collapse" : "More";
+        collapseButtonImage = displayGenericButtons
+            ? "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png"
+            : "images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
     }
 
     private void MoreSalesButtonClick()
@@ -559,27 +621,20 @@
         if (moreSalesButtonsClass == "d-none")
         {
             moreSalesButtonsClass = "";
-            //cardsDisplayClass = "";
             leftPanelLabel = "Collapse";
             leftCollapseButtonPanel = "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            if (screenModel.Height > 800)
-                tableStyle = "height: 335px; overflow-y: auto";
-            else
-                tableStyle = "height: 225px; overflow-y: auto";
-
+            tableStyle = screenModel.Height > 800
+                ? "height: 335px; overflow-y: auto"
+                : "height: 225px; overflow-y: auto";
         }
         else
         {
             moreSalesButtonsClass = "d-none";
-            //cardsDisplayClass = "d-none";
             leftPanelLabel = "More";
             leftCollapseButtonPanel = "images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            if (screenModel.Height > 800)
-                tableStyle = "height:512px; overflow-y: auto";
-            else
-                tableStyle = "height: 425px; overflow-y: auto";
-
+            tableStyle = screenModel.Height > 800
+                ? "height:512px; overflow-y: auto"
+                : "height: 425px; overflow-y: auto";
         }
-
     }
 }

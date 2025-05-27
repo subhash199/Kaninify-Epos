@@ -1,22 +1,39 @@
 ﻿<div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill"
+            @onclick="() => HandleClick(RoundupCashSuggestion)">
         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-        <span class="fw-bold">£1</span>
+        <span class="fw-bold">£@RoundupCashSuggestion</span>
     </button>
-    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill"
+            @onclick="() => HandleClick(SecondRoundupCashSuggestion)">
         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-        <span class="fw-bold">£5</span>
+        <span class="fw-bold">£@SecondRoundupCashSuggestion</span>
     </button>
-    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill"
+            @onclick="() => HandleClick(10)">
         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
         <span class="fw-bold">£10</span>
     </button>
-    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill"
+            @onclick="() => HandleClick(20)">
         <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
         <span class="fw-bold">£20</span>
     </button>
 </div>
-
 @code {
 
+    [Parameter]
+    public int RoundupCashSuggestion { get; set; } = 1;
+
+    [Parameter]
+    public int SecondRoundupCashSuggestion { get; set; } = 5;
+
+    [Parameter]
+    public EventCallback<int> OnCashSuggestionClicked { get; set; }
+
+    private async Task HandleClick(int value)
+    {
+        if (OnCashSuggestionClicked.HasDelegate)
+            await OnCashSuggestionClicked.InvokeAsync(value);
+    } 
 }

@@ -18,7 +18,7 @@ a, .btn-link {
 }
 
     .btn-light:hover {
-        background-color: #d0d0d0;
+        background-color: #ffffff !important;
     }
 
 thead.table-primary th {

@@ -13,6 +13,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ScreenInfoService>();
 		builder.Services.AddSingleton<DatabaseInitialization>();
 		builder.Services.AddSingleton<ProductServices>();
+		builder.Services.AddSingleton<DepartmentServices>();
+        builder.Services.AddSingleton<VatServices>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
