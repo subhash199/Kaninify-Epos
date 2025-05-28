@@ -29,8 +29,8 @@
                     <label class="col-sm-4 col-form-label">Selling Price:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control"
-                        value="@Product.Product_Selling_Price"
-                        @oninput="OnSellingPriceInput" />
+                               value="@Product.Product_Selling_Price"
+                               @oninput="OnSellingPriceInput" />
                     </div>
                 </div>
                 <div class="mb-3 row">
@@ -114,8 +114,8 @@
                 <label class="col-sm-4 col-form-label">Cost Per Case:</label>
                 <div class="col-sm-8">
                     <input type="text" class="form-control"
-                    value="@Product.Product_Cost_Per_Case"
-                    @oninput="OnCostPerCaseInput" />
+                           value="@Product.Product_Cost_Per_Case"
+                           @oninput="OnCostPerCaseInput" />
 
                 </div>
                 <div class="m-2 row">
@@ -123,8 +123,8 @@
                     <div class="col-sm-8">
 
                         <input type="number" class="form-control"
-                        value="@Product.Product_Unit_Per_Case"
-                        @oninput="OnUnitPerCaseInput" />
+                               value="@Product.Product_Unit_Per_Case"
+                               @oninput="OnUnitPerCaseInput" />
                     </div>
                 </div>
 
@@ -359,28 +359,32 @@
                 JSRuntime.InvokeVoidAsync("alert", error);
                 return;
             }
-
-            if (UnchangedProduct.Product_Selling_Price != Product.Product_Selling_Price)
-            {
-                Product.Priced_Changed_On = DateTime.Now;
-                Product.Is_Price_Changed = true;
-            }
+           
             Product.Department_ID = Product.Department_ID ?? (await departmentServices.GetDefaultDepartment()).Department_ID;
-            Product.VAT_ID = Product.VAT_ID ==0 ? (await vatServices.GetDefaultVatAsync()).VAT_ID : 0;
-            Product.Is_activated = true;
-            Product.Last_Modified = DateTime.Now;
+            Product.VAT_ID = Product.VAT_ID == 0 ? (await vatServices.GetDefaultVatAsync()).VAT_ID : 0;
 
-            await productServices.AddAsync(Product);
+            if (Product.Product_ID == 0) // If it's a new product
+            {
+                // Remove any explicit ID assignment for new products
+                Product.Is_activated = true;
+                Product.Last_Modified = DateTime.Now;
+                await productServices.AddAsync(Product);
+            }
+            else // If it's an existing product
+            {
+                Product.Last_Modified = DateTime.Now;
+                await productServices.UpdateAsync(Product);
+            }
+
             await OnSave.InvokeAsync(Product);
-
         }
         catch (Exception ex)
         {
-            JSRuntime.InvokeVoidAsync("alert", $"Error saving product: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving product: {ex.Message}");
             return;
         }
-
     }
+
 
     private bool ShowOptional { get; set; } = false;
 

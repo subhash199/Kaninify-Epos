@@ -8,3 +8,7 @@ window.scrollTableToBottom = function () {
         container.scrollTop = container.scrollHeight;
     }
 };
+
+window.focusElement = function (element) {
+    element.focus();
+};

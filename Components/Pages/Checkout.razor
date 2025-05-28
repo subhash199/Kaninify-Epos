@@ -36,15 +36,15 @@
                                 <th class="text-truncate">Unit Price</th>
                                 <th class="text-truncate">Total</th>
                             </tr>
-                        </thead>
+                        </thead>                    
+
                         <tbody>
                             @if (salesBaskets.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList != null)
                             {
-
-                                foreach (var item in salesBaskets[holdBasketIndex].SalesItemsList)
+                                @for (int index = 0; index < salesBaskets[holdBasketIndex].SalesItemsList.Count; index++)
                                 {
-
-                                    <tr>
+                                    var item = salesBaskets[holdBasketIndex].SalesItemsList[index];
+                                    <tr @onclick="@(() => SelectItem(item))" class="@(selectedItemIndex == index ? "table-primary" : "")" style="cursor: pointer;">
                                         <td class="text-truncate">@item.Product_QTY</td>
                                         <td class="text-truncate">@item.Product.Product_Name</td>
                                         <td class="text-truncate">@item.Promotion</td>
@@ -52,10 +52,6 @@
                                         <td class="text-truncate fw-bold fs-5">@item.Product_Total_Amount.ToString("C2")</td>
                                     </tr>
                                 }
-
-
-
-
                             }
                         </tbody>
                         <tfoot class="table-light">
@@ -63,10 +59,10 @@
                                 <td colspan="4" class="text-end fw-bold">Grand Total:</td>
                                 <td class="fw-bold fs-5">
                                     @(
-                                        salesBaskets?.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList?.Count > 0
-                                        ? salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount).ToString("C2")
-                                        : "0.00"
-                                        )
+                                                            salesBaskets?.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList?.Count > 0
+                                                            ? salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount).ToString("C2")
+                                                            : "0.00"
+                                                            )
                                 </td>
                             </tr>
                         </tfoot>
@@ -79,7 +75,7 @@
                             <img src="images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                             <span class="fw-bold">Card</span>
                         </button>
-                        <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
+                        <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill" @onclick="QtyButtonClick">
                             <img src="images/icons/liquor.png" class="img-fluid mb-2" />
                             <span class="fw-bold">Qty</span>
                         </button>
@@ -301,20 +297,20 @@
     @if (modalSettings.ModalEnum == ModalEnum.Error)
     {
         <GenericMessageModal IsVisible="@modalSettings.ShowModal"
-                             Title="@modalSettings.ModalTitle"
-                             Message="@modalSettings.ModalMessage"
-                             PrimaryButtonText="OK"
-                             PrimaryAction="@OnModalOk"
-                             SecondaryButtonText="Cancel"
-                             OnClose="@OnModalClose" />
+        Title="@modalSettings.ModalTitle"
+        Message="@modalSettings.ModalMessage"
+        PrimaryButtonText="OK"
+        PrimaryAction="@OnModalOk"
+        SecondaryButtonText="Cancel"
+        OnClose="@OnModalClose" />
     }
     @if (modalSettings.ModalEnum == ModalEnum.ProductActivate || modalSettings.ModalEnum == ModalEnum.ProductNotFound)
     {
         <ProductModal IsVisible="@modalSettings.ShowModal"
-                      Title="@modalSettings.ModalTitle"
-                      Product="@modalProduct"
-                      OnSave="@OnModalProductUpserted"
-                      OnClose="@OnModalClose">
+        Title="@modalSettings.ModalTitle"
+        Product="@modalProduct"
+        OnSave="@OnModalProductUpserted"
+        OnClose="@OnModalClose">
 
         </ProductModal>
     }
@@ -473,9 +469,16 @@
             tableStyle = "height: 512px; overflow-y: auto";
             collapseButtonLabel = "Collapse";
         }
+         
     }
 
-
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SetFocusOnSearchBoxAsync();            
+        }
+    }
 
     private async void SearchKeyDown(KeyboardEventArgs e)
     {
@@ -562,7 +565,7 @@
         decimal totalAmount = salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount);
         ProvideRoundedUpCashSuggestion(totalAmount);
         ProvideSecondRoundedUpCashSuggestion(totalAmount);
-        await SetFocusOnSearchBoxAsync();
+        SetFocusOnSearchBoxAsync();
     }
 
     private void InitializeSalesTransaction(bool isRefund)
@@ -636,5 +639,82 @@
                 ? "height:512px; overflow-y: auto"
                 : "height: 425px; overflow-y: auto";
         }
+    }
+}
+
+
+
+@if (showQuantityBox)
+{
+    <div class="position-fixed top-50 start-50 translate-middle bg-white p-4 rounded shadow-lg">
+        <div class="mb-3">
+            <label class="form-label">Enter Quantity:</label>
+            <input type="number" @ref="quantityInput" class="form-control" @bind="quantityValue" @bind:event="oninput" />
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <button class="btn btn-secondary" @onclick="() => showQuantityBox = false">Cancel</button>
+            <button class="btn btn-primary" @onclick="ApplyQuantity">Apply</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ElementReference quantityInput;
+    private bool showQuantityBox = false;
+    private string quantityValue = "";
+    private int selectedItemIndex = -1;
+
+    private void SelectItem(SalesItemTransaction item)
+    {
+        selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.FindIndex(i=>i.Product_ID == item.Product_ID);
+        StateHasChanged();
+    }
+
+    private async Task QtyButtonClick()
+    {
+        if (salesBaskets.Count == 0 || salesBaskets[holdBasketIndex].SalesItemsList == null || 
+            salesBaskets[holdBasketIndex].SalesItemsList.Count == 0)
+        {
+            return;
+        }
+
+        moreSalesButtonsClass = "d-none";
+        showQuantityBox = true;
+
+        // If no item is selected, select the last item
+        if (selectedItemIndex == -1)
+        {
+            selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.Count - 1;
+        }
+        
+        // Set initial quantity value from selected item
+        var selectedItem = salesBaskets[holdBasketIndex].SalesItemsList[selectedItemIndex];
+        quantityValue = selectedItem.Product_QTY.ToString();
+        
+        StateHasChanged();
+        
+        await Task.Delay(50);
+        await JS.InvokeVoidAsync("focusElement", quantityInput);
+    }
+
+    private void ApplyQuantity()
+    {
+        if (string.IsNullOrEmpty(quantityValue) || !int.TryParse(quantityValue, out int quantity))
+        {
+            return;
+        }
+
+        var itemsList = salesBaskets[holdBasketIndex].SalesItemsList;
+        if (selectedItemIndex >= 0 && selectedItemIndex < itemsList.Count)
+        {
+            itemsList[selectedItemIndex].Product_QTY = quantity;
+            itemsList[selectedItemIndex].Product_Total_Amount =
+                itemsList[selectedItemIndex].Product_Amount * quantity;
+        }
+
+        showQuantityBox = false;
+        quantityValue = "";
+        selectedItemIndex = -1;  // Reset selectedItemIndex to -1 after applying quantity
+        StateHasChanged();
     }
 }
