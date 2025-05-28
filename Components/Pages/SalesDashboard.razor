@@ -1,0 +1,181 @@
+@page "/"
+@using System.Globalization
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Sales Dashboard</h2>
+            <p class="text-center text-muted">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</p>
+        </div>
+    </div>
+
+    <!-- Top Row - Main Sales Metrics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="sales-card sales-card-primary">
+                <div class="sales-card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Today's Sales</h3>
+                    <p class="sales-card-value">@todaysSales.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change positive">+12.5% from yesterday</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="sales-card sales-card-success">
+                <div class="sales-card-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Net Sales</h3>
+                    <p class="sales-card-value">@netSales.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change positive">+8.3% from yesterday</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="sales-card sales-card-info">
+                <div class="sales-card-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Other Sales</h3>
+                    <p class="sales-card-value">@otherSales.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change neutral">No change</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="sales-card sales-card-warning">
+                <div class="sales-card-icon">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Payout</h3>
+                    <p class="sales-card-value">@payout.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change negative">-5.2% from yesterday</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row - Returns and Adjustments -->
+    <div class="row mb-4">
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="sales-card sales-card-danger">
+                <div class="sales-card-icon">
+                    <i class="fas fa-undo"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Refunds</h3>
+                    <p class="sales-card-value">@refunds.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change negative">@refundCount transactions</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="sales-card sales-card-secondary">
+                <div class="sales-card-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Void Lines</h3>
+                    <p class="sales-card-value">@voidLines.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change neutral">@voidCount items voided</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Third Row - Payment Methods -->
+    <div class="row mb-4">
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="sales-card sales-card-cash">
+                <div class="sales-card-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Cash Difference</h3>
+                    <p class="sales-card-value @(cashDifference >= 0 ? "text-success" : "text-danger")">@cashDifference.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change @(cashDifference >= 0 ? "positive" : "negative")">@(cashDifference >= 0 ? "Over" : "Short")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="sales-card sales-card-card">
+                <div class="sales-card-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="sales-card-content">
+                    <h3 class="sales-card-title">Card Difference</h3>
+                    <p class="sales-card-value @(cardDifference >= 0 ? "text-success" : "text-danger")">@cardDifference.ToString("C", CultureInfo.CurrentCulture)</p>
+                    <small class="sales-card-change @(cardDifference >= 0 ? "positive" : "negative")">@(cardDifference >= 0 ? "Over" : "Short")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="sales-summary-card">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4 class="mb-3">Daily Summary</h4>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <p><strong>Total Transactions:</strong> @totalTransactions</p>
+                                <p><strong>Average Transaction:</strong> @averageTransaction.ToString("C", CultureInfo.CurrentCulture)</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p><strong>Items Sold:</strong> @itemsSold</p>
+                                <p><strong>Peak Hour:</strong> @peakHour</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="summary-total">
+                            <h5>Net Total</h5>
+                            <h2 class="text-primary">@(todaysSales - refunds - voidLines).ToString("C", CultureInfo.CurrentCulture)</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Sample data - replace with actual data from your services
+    private decimal todaysSales = 2847.50m;
+    private decimal netSales = 2654.75m;
+    private decimal otherSales = 192.75m;
+    private decimal payout = 150.00m;
+    private decimal refunds = 89.25m;
+    private decimal voidLines = 103.50m;
+    private decimal cashDifference = 12.50m;
+    private decimal cardDifference = -5.25m;
+    
+    private int totalTransactions = 47;
+    private decimal averageTransaction = 60.59m;
+    private int itemsSold = 156;
+    private string peakHour = "2:00 PM - 3:00 PM";
+    private int refundCount = 3;
+    private int voidCount = 8;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load actual sales data from your services
+        // Example:
+        // todaysSales = await salesService.GetTodaysSalesAsync();
+        // netSales = await salesService.GetNetSalesAsync(DateTime.Today);
+        // etc.
+    }
+}

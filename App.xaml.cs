@@ -9,7 +9,16 @@
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new MainPage()) { Title = "EposRetail" };
+            var window = new Window(new MainPage()) { Title = "EposRetail" };
+            
+            // Set window to fullscreen/maximized by using screen dimensions
+            var displayInfo = DeviceDisplay.Current.MainDisplayInfo;
+            window.Width = displayInfo.Width / displayInfo.Density;
+            window.Height = displayInfo.Height / displayInfo.Density;
+            window.X = 0;
+            window.Y = 0;
+            
+            return window;
         }
     }
 }

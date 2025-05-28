@@ -1,0 +1,209 @@
+.sales-card {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.sales-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.sales-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+}
+
+.sales-card-primary::before {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+}
+
+.sales-card-success::before {
+    background: linear-gradient(90deg, #28a745, #1e7e34);
+}
+
+.sales-card-info::before {
+    background: linear-gradient(90deg, #17a2b8, #117a8b);
+}
+
+.sales-card-warning::before {
+    background: linear-gradient(90deg, #ffc107, #e0a800);
+}
+
+.sales-card-danger::before {
+    background: linear-gradient(90deg, #dc3545, #c82333);
+}
+
+.sales-card-secondary::before {
+    background: linear-gradient(90deg, #6c757d, #545b62);
+}
+
+.sales-card-cash::before {
+    background: linear-gradient(90deg, #20c997, #1aa179);
+}
+
+.sales-card-card::before {
+    background: linear-gradient(90deg, #6f42c1, #59359a);
+}
+
+.sales-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: rgba(0, 123, 255, 0.1);
+    margin-bottom: 15px;
+}
+
+.sales-card-primary .sales-card-icon {
+    background: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+.sales-card-success .sales-card-icon {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.sales-card-info .sales-card-icon {
+    background: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+}
+
+.sales-card-warning .sales-card-icon {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.sales-card-danger .sales-card-icon {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.sales-card-secondary .sales-card-icon {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+.sales-card-cash .sales-card-icon {
+    background: rgba(32, 201, 151, 0.1);
+    color: #20c997;
+}
+
+.sales-card-card .sales-card-icon {
+    background: rgba(111, 66, 193, 0.1);
+    color: #6f42c1;
+}
+
+.sales-card-icon i {
+    font-size: 24px;
+}
+
+.sales-card-content {
+    text-align: left;
+}
+
+.sales-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sales-card-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    line-height: 1.2;
+}
+
+.sales-card-change {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.sales-card-change.positive {
+    color: #28a745;
+}
+
+.sales-card-change.negative {
+    color: #dc3545;
+}
+
+.sales-card-change.neutral {
+    color: #6c757d;
+}
+
+.sales-summary-card {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    position: relative;
+    overflow: hidden;
+}
+
+.sales-summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #6f42c1, #59359a);
+}
+
+.summary-total {
+    background: rgba(0, 123, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px dashed rgba(0, 123, 255, 0.2);
+}
+
+.summary-total h5 {
+    color: #6c757d;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.summary-total h2 {
+    margin-bottom: 0;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .sales-card {
+        margin-bottom: 20px;
+    }
+    
+    .sales-card-value {
+        font-size: 24px;
+    }
+    
+    .sales-summary-card {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .sales-card-value {
+        font-size: 20px;
+    }
+}
