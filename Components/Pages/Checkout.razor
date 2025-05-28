@@ -1,4 +1,4 @@
-﻿@page "/checkout"
+﻿@page "/"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Models
@@ -7,6 +7,7 @@
 @using DataHandlerLibrary.Services
 @inject ScreenInfoService ScreenInfoService
 @inject ProductServices productServices
+@inject SalesTransactionServices salesTransactionServices
 @inject IJSRuntime JS
 
 @* <h3 class="text-center">Checkout Dashboard</h3> *@
@@ -36,10 +37,11 @@
                                 <th class="text-truncate">Unit Price</th>
                                 <th class="text-truncate">Total</th>
                             </tr>
-                        </thead>                    
+                        </thead>
 
                         <tbody>
-                            @if (salesBaskets.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList != null)
+                            @if (salesBaskets?.Count > holdBasketIndex &&
+                            salesBaskets[holdBasketIndex]?.SalesItemsList?.Count > 0)
                             {
                                 @for (int index = 0; index < salesBaskets[holdBasketIndex].SalesItemsList.Count; index++)
                                 {
@@ -58,11 +60,23 @@
                             <tr>
                                 <td colspan="4" class="text-end fw-bold">Grand Total:</td>
                                 <td class="fw-bold fs-5">
-                                    @(
-                                                            salesBaskets?.Count > 0 && salesBaskets[holdBasketIndex].SalesItemsList?.Count > 0
-                                                            ? salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount).ToString("C2")
-                                                            : "0.00"
-                                                            )
+                                    @{
+                                        decimal grandTotal = 0;
+                                        if (salesBaskets?.Count > holdBasketIndex &&
+                                        salesBaskets[holdBasketIndex]?.SalesItemsList?.Count > 0)
+                                        {
+                                            grandTotal = salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Total_Amount;
+
+                                            // Calculate remaining amount if payments have been made
+                                            if (salesBaskets[holdBasketIndex].Transaction != null)
+                                            {
+                                                var totalPaid = (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Cash) +
+                                                (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Card);
+                                                grandTotal = grandTotal - totalPaid;
+                                            }
+                                        }
+                                    }
+                                    @grandTotal.ToString("C2")
                                 </td>
                             </tr>
                         </tfoot>
@@ -71,7 +85,7 @@
 
                 <div class="col-md-12 mb-2">
                     <div class="d-flex gap-2 mb-2">
-                        <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
+                        <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill" @onclick="()=>PaymentButtonClicked(PaymentType.Card)">
                             <img src="images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                             <span class="fw-bold">Card</span>
                         </button>
@@ -79,7 +93,7 @@
                             <img src="images/icons/liquor.png" class="img-fluid mb-2" />
                             <span class="fw-bold">Qty</span>
                         </button>
-                        <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
+                        <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill" @onclick="()=>PaymentButtonClicked(PaymentType.Cash)">
                             <img src="images/icons/money_bag_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                             <span class="fw-bold">Cash</span>
                         </button>
@@ -294,14 +308,13 @@
         </div>
 
     </div>
-    @if (modalSettings.ModalEnum == ModalEnum.Error)
+    @if (modalSettings.ModalEnum == ModalEnum.Error || modalSettings.ModalEnum == ModalEnum.Default)
     {
         <GenericMessageModal IsVisible="@modalSettings.ShowModal"
         Title="@modalSettings.ModalTitle"
         Message="@modalSettings.ModalMessage"
         PrimaryButtonText="OK"
-        PrimaryAction="@OnModalOk"
-        SecondaryButtonText="Cancel"
+        PrimaryAction="@OnModalOk"                             
         OnClose="@OnModalClose" />
     }
     @if (modalSettings.ModalEnum == ModalEnum.ProductActivate || modalSettings.ModalEnum == ModalEnum.ProductNotFound)
@@ -344,6 +357,9 @@
 
     Product modalProduct { get; set; } = new Product();
 
+    //Payment
+    PaymentType _paymentType = new();
+
     // Modal objects
     ModalSettings modalSettings = new ModalSettings();
 
@@ -355,8 +371,132 @@
     int roundupCashSuggestion = 1;
     int secondRoundupCashSuggestion = 5;
 
+
+
     //Services
     GeneralServices generalServices = new GeneralServices();
+
+    private void PaymentButtonClicked(PaymentType pPaymentType)
+    {
+        try
+        {
+            if (salesBaskets?.ElementAtOrDefault(holdBasketIndex)?.SalesItemsList?.Count < 1)
+            {
+                return;
+            }
+            _paymentType = pPaymentType;
+
+            switch (_paymentType)
+            {
+                case PaymentType.Cash:
+                    CheckoutTransaction(_paymentType);
+                    break;
+                case PaymentType.Card:
+                    CheckoutTransaction(_paymentType);
+                    break;
+                default:
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            modalSettings.ModalEnum = ModalEnum.Error;
+            modalSettings.ModalTitle = "Error";
+            modalSettings.ModalMessage = "An error occurred while processing the payment: " + ex.Message;
+            modalSettings.ShowModal = true;
+            ShowModal();
+            return;
+        }
+
+    }
+
+    private async Task CheckoutTransaction(PaymentType pPaymentType)
+    {
+
+        if (string.IsNullOrEmpty(searchText))
+        {
+            modalSettings.ModalEnum = ModalEnum.Payment;
+            ShowModal();
+        }
+        else
+        {
+            if (searchText.All(char.IsDigit))
+            {
+                if (pPaymentType == PaymentType.Cash)
+                {
+                    salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Cash += generalServices.ConvertStringToDecimal(searchText);
+                }
+                else if (pPaymentType == PaymentType.Card)
+                {
+                    salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Card += generalServices.ConvertStringToDecimal(searchText);
+                }
+
+                salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change =
+                salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Total_Amount -
+                (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Cash
+                    + salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Card);
+
+                if (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change <= 0)
+                {
+                    //printerService.OpenDrawer();
+                    modalSettings.ModalTitle = "Transaction";
+                    modalSettings.ModalMessage = "Change: £" + salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change;
+                    modalSettings.ModalEnum = ModalEnum.Default;
+                    modalSettings.ShowModal = true;                  
+
+
+                    // Store the current transaction data before clearing
+                    var transactionToSave = salesBaskets[holdBasketIndex].Transaction;
+
+                    // Immediately clear the UI for next sale
+                    salesBaskets[holdBasketIndex].Transaction = new SalesTransaction();
+                    salesBaskets[holdBasketIndex].SalesItemsList.Clear();
+                    searchText = "";
+                    holdBasketIndex = 0;
+                    StateHasChanged(); // Update UI immediately
+
+                    // Save transaction in background
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await salesTransactionServices.AddAsync(transactionToSave);
+                            // Optionally log success or update a background status
+                        }
+                        catch (Exception ex)
+                        {
+                            // Handle error in background - maybe log it or show a non-blocking notification
+                            await InvokeAsync(() =>
+                            {
+                                modalSettings.ModalEnum = ModalEnum.Error;
+                                modalSettings.ModalTitle = "Background Save Error";
+                                modalSettings.ModalMessage = "Transaction completed but failed to save. Please check logs.";
+                                modalSettings.ShowModal = true;
+                                ShowModal();
+                            });
+                        }
+                    });
+
+
+
+                }
+                else
+                {
+                   await SetFocusOnSearchBoxAsync();
+                }
+            }
+            else
+            {
+                modalSettings.ModalTitle = "Transaction";
+                modalSettings.ModalMessage = "Change: £" + salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change;
+                modalSettings.ModalEnum = ModalEnum.Default;
+                modalSettings.ShowModal = true;
+                ShowModal();
+            }
+        }
+
+
+    }
 
     private void HandleCashSuggestion(int value)
     {
@@ -415,10 +555,16 @@
                 modalSettings.ModalMessage = "The product you scanned was not found in the system. Please check the barcode or enter the product manually.";
                 modalSettings.ShowModal = true;
                 break;
+            case ModalEnum.Payment:
+                modalSettings.ModalTitle = "Transaction";
+                modalSettings.ModalMessage = "Would you like to process the transaction as " + _paymentType.ToString() + "?";
+                modalSettings.ModalEnum = ModalEnum.Payment;
+                modalSettings.ShowModal = true;
+                break;
             default:
                 break;
         }
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     // Modal button/callback handlers
@@ -469,14 +615,14 @@
             tableStyle = "height: 512px; overflow-y: auto";
             collapseButtonLabel = "Collapse";
         }
-         
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await SetFocusOnSearchBoxAsync();            
+            await SetFocusOnSearchBoxAsync();
         }
     }
 
@@ -550,6 +696,7 @@
         {
             item.Product_QTY += 1;
             item.Product_Total_Amount = item.Product_QTY * fetchProduct.Product_Selling_Price;
+            item.Product_Total_Amount_Before_Discount = item.Product_QTY * fetchProduct.Product_Selling_Price;
         }
         else
         {
@@ -560,9 +707,11 @@
                     Product_QTY = 1,
                     Product_Amount = fetchProduct.Product_Selling_Price,
                     Product_Total_Amount = fetchProduct.Product_Selling_Price,
+                    Product_Total_Amount_Before_Discount = fetchProduct.Product_Selling_Price
                 });
         }
         decimal totalAmount = salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount);
+        salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Total_Amount = totalAmount;
         ProvideRoundedUpCashSuggestion(totalAmount);
         ProvideSecondRoundedUpCashSuggestion(totalAmount);
         SetFocusOnSearchBoxAsync();
@@ -666,13 +815,13 @@
 
     private void SelectItem(SalesItemTransaction item)
     {
-        selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.FindIndex(i=>i.Product_ID == item.Product_ID);
+        selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.FindIndex(i => i.Product_ID == item.Product_ID);
         StateHasChanged();
     }
 
     private async Task QtyButtonClick()
     {
-        if (salesBaskets.Count == 0 || salesBaskets[holdBasketIndex].SalesItemsList == null || 
+        if (salesBaskets.Count == 0 || salesBaskets[holdBasketIndex].SalesItemsList == null ||
             salesBaskets[holdBasketIndex].SalesItemsList.Count == 0)
         {
             return;
@@ -686,13 +835,13 @@
         {
             selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.Count - 1;
         }
-        
+
         // Set initial quantity value from selected item
         var selectedItem = salesBaskets[holdBasketIndex].SalesItemsList[selectedItemIndex];
         quantityValue = selectedItem.Product_QTY.ToString();
-        
+
         StateHasChanged();
-        
+
         await Task.Delay(50);
         await JS.InvokeVoidAsync("focusElement", quantityInput);
     }
