@@ -1,10 +1,13 @@
 ﻿@page "/"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
+@using EposRetail.Constants
 @using EposRetail.Models
 @using EposRetail.Services
-@using EposRetail.Components.Pages.RepeatComponents
 @using DataHandlerLibrary.Services
+@using EposRetail.Components.Pages.Shared
+@inject GeneralServices generalServices
+@inject CheckoutService CheckoutService
 @inject ScreenInfoService ScreenInfoService
 @inject ProductServices productServices
 @inject SalesTransactionServices salesTransactionServices
@@ -16,319 +19,34 @@
         <!-- Make the row full height and align items to the start -->
         <div class="d-flex align-items-start">
             <div class="col-md-6 row">
+                <!-- Search Box -->
                 <div class="mb-2">
-                    <input type="text" @ref="searchBox" @bind-value="searchText" @bind-value:event="oninput" @onkeydown="SearchKeyDown" class="form-control" placeholder="Search for products or enter amount..." />
+                    <input type="text" @ref="searchBox" @bind-value="_state.SearchText"
+                           @bind-value:event="oninput" @onkeydown="SearchKeyDownAsync"
+                           class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
-
-                <div id="checkoutTable" class="table-responsive" style="@tableStyle">
-                    <table class="table table-bordered table-striped align-middle" style="table-layout:fixed; width:100%;">
-                        <colgroup>
-                            <col style="width: 10%;">
-                            <col style="width: 40%;">
-                            <col style="width: 20%;">
-                            <col style="width: 15%;">
-                            <col style="width: 15%;">
-                        </colgroup>
-                        <thead class="table-primary">
-                            <tr>
-                                <th class="text-truncate">Qty</th>
-                                <th class="text-truncate">Product Name</th>
-                                <th class="text-truncate">Promotion</th>
-                                <th class="text-truncate">Unit Price</th>
-                                <th class="text-truncate">Total</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            @if (salesBaskets?.Count > holdBasketIndex &&
-                            salesBaskets[holdBasketIndex]?.SalesItemsList?.Count > 0)
-                            {
-                                @for (int index = 0; index < salesBaskets[holdBasketIndex].SalesItemsList.Count; index++)
-                                {
-                                    var item = salesBaskets[holdBasketIndex].SalesItemsList[index];
-                                    <tr @onclick="@(() => SelectItem(item))" class="@(selectedItemIndex == index ? "table-primary" : "")" style="cursor: pointer;">
-                                        <td class="text-truncate">@item.Product_QTY</td>
-                                        <td class="text-truncate">@item.Product.Product_Name</td>
-                                        <td class="text-truncate">@item.Promotion</td>
-                                        <td class="text-truncate">@item.Product_Amount.ToString("C2")</td>
-                                        <td class="text-truncate fw-bold fs-5">@item.Product_Total_Amount.ToString("C2")</td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <td colspan="4" class="text-end fw-bold">Grand Total:</td>
-                                <td class="fw-bold fs-5">
-                                    @{
-                                        decimal grandTotal = 0;
-                                        if (salesBaskets?.Count > holdBasketIndex &&
-                                        salesBaskets[holdBasketIndex]?.SalesItemsList?.Count > 0)
-                                        {
-                                            grandTotal = salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Total_Amount;
-
-                                            // Calculate remaining amount if payments have been made
-                                            if (salesBaskets[holdBasketIndex].Transaction != null)
-                                            {
-                                                var totalPaid = (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Cash) +
-                                                (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Card);
-                                                grandTotal = grandTotal - totalPaid;
-                                            }
-                                        }
-                                    }
-                                    @grandTotal.ToString("C2")
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <div class="col-md-12 mb-2">
-                    <div class="d-flex gap-2 mb-2">
-                        <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill" @onclick="()=>PaymentButtonClicked(PaymentType.Card)">
-                            <img src="images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                            <span class="fw-bold">Card</span>
-                        </button>
-                        <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill" @onclick="QtyButtonClick">
-                            <img src="images/icons/liquor.png" class="img-fluid mb-2" />
-                            <span class="fw-bold">Qty</span>
-                        </button>
-                        <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill" @onclick="()=>PaymentButtonClicked(PaymentType.Cash)">
-                            <img src="images/icons/money_bag_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                            <span class="fw-bold">Cash</span>
-                        </button>
-                        <button class="col-md-3 btn-light d-flex flex-column align-items-center flex-fill" @onclick="MoreSalesButtonClick">
-                            <img src=@leftCollapseButtonPanel class="img-fluid mb-2" />
-                            <span class="fw-bold">@leftPanelLabel</span>
-                        </button>
-                    </div>
-                    <div class="@moreSalesButtonsClass">
-                        <div class="col-md-12 mb-2">
-                            <div class="d-flex gap-2 mb-2">
-                                <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
-                                    <img src="images/icons/remove_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                    <span class="fw-bold">Void Line</span>
-                                </button>
-                                <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
-                                    <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                    <span class="fw-bold">Hold</span>
-                                </button>
-                                <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
-                                    <img src="images/icons/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                    <span class="fw-bold">Void Basket</span>
-                                </button>
-                                <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
-                                    <img src="images/icons/receipt_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                    <span class="fw-bold">Receipt</span>
-                                </button>
-                            </div>
-                            <div class="col-md-12 mb-2">
-                                <div class="d-flex gap-2 mb-2">
-                                    <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
-                                        <img src="images/icons/search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                        <span class="fw-bold">Enquiry</span>
-                                    </button>
-                                    <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
-                                        <img src="images/icons/send_money_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                        <span class="fw-bold">Refund</span>
-                                    </button>
-                                    <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
-                                        <img src="images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                        <span class="fw-bold">New Product</span>
-                                    </button>
-                                    <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
-                                        <img src="images/icons/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                                        <span class="fw-bold">Office</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
+                <CheckoutButtons State="_state" OnPaymentClicked="PaymentButtonClickedAsync" OnQtyClicked="QtyButtonClick" OnMoreSalesClicked="MoreSalesButtonClick"></CheckoutButtons>
 
             </div>
-
-
 
             <div class="row col-md-12 mb-2">
-                <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-                    @if (screenModel.Height < 800 && displayGenericButtons)
-                    {
-                        <EposRetail.Components.Pages.RepeatComponents.GenericGambleButtons></EposRetail.Components.Pages.RepeatComponents.GenericGambleButtons>
-                        //gamble buttons
-                    }
-                    else if (screenModel.Height < 800 && !displayGenericButtons)
-                    {
-                        <EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents></EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents>
-                    }
-                    else if (screenModel.Height > 800)
-                    {
-                        <EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents></EposRetail.Components.Pages.RepeatComponents.GenericRestrictedButtonsComponents>
-
-                    }
-
-
-
-                    @if (screenModel.Height < 800)
-                    {
-                        <button @onclick="DisplayGenericButtonClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
-                            <img src="@collapseButtonImage" class="img-fluid mb-2" />
-                            <span class="fw-bold">@collapseButtonLabel</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
-                            <img src="images/icons/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                            <span class="fw-bold">Fruit & Veg</span>
-                        </button>
-                    }
-                </div>
-
-                @if (screenModel.Height < 800 && displayGenericButtons)
-                {
-                    <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents></EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents>
-                }
-
-                @if (screenModel.Height < 800 && !displayGenericButtons)
-                {
-                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent SecondRoundupCashSuggestion="@secondRoundupCashSuggestion" RoundupCashSuggestion="@roundupCashSuggestion" OnCashSuggestionClicked="HandleCashSuggestion" />
-                }
-
-                @if (screenModel.Height > 800)
-                {
-                    <EposRetail.Components.Pages.RepeatComponents.PayoutButtonComponents PayoutClick="@payoutActionModel" />
-                    <EposRetail.Components.Pages.RepeatComponents.GenericCashSuggestionButtonsComponent SecondRoundupCashSuggestion="@secondRoundupCashSuggestion" RoundupCashSuggestion="@roundupCashSuggestion" OnCashSuggestionClicked="HandleCashSuggestion" />
-
-                }
-                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
-
-                    <button @onclick="()=>NumberPadClick(7)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="fw-bold">7</span>
-                    </button>
-                    <button @onclick="()=>NumberPadClick(8)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">8</span>
-                    </button>
-                    <button @onclick="()=>NumberPadClick(9)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">9</span>
-                    </button>
-
-                </div>
-                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
-
-                    <button @onclick="()=>NumberPadClick(4)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">4</span>
-                    </button>
-                    <button @onclick="()=>NumberPadClick(5)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">5</span>
-                    </button>
-                    <button @onclick="()=>NumberPadClick(6)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">6</span>
-                    </button>
-
-                </div>
-                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
-
-                    <button @onclick="()=>NumberPadClick(1)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">1</span>
-                    </button>
-                    <button @onclick="()=>NumberPadClick(2)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">2</span>
-                    </button>
-                    <button @onclick="()=>NumberPadClick(3)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">3</span>
-                    </button>
-
-                </div>
-                <div class="col-md-6 d-flex gap-2 align-items-start ms-2 m-2">
-
-                    <button @onclick="()=>NumberPadClick(0)" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">0</span>
-                    </button>
-                    <button @onclick="()=>DoubleZeroPadClick()" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">00</span>
-                    </button>
-                    <button @onclick="()=> SetFocusOnSearchBoxAsync()" class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill">
-                        <img src="images/icons/clear_all_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-
-                        <span class="fw-bold">Clear</span>
-                    </button>
-
-                </div>
-
-
-
-
-            </div>
-
-
-        </div>
-        <div class="col-md-12">
-            <div class="row me-4">
-                <div class="col-md-4 mb-3">
-                    <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-green">
-                        <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="text-center">Refill Products Count: 12</span>
-                    </button>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-yellow">
-                        <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="text-center">Expiry Products Count: 12</span>
-                    </button>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-red">
-                        <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                        <span class="text-center">Shortage Products Count: 12</span>
-                    </button>
-                </div>
+                <DepartmentButtons State="_state" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
+                <NumberPadComponent OnNumberClick="HandleNumPadClick" />
             </div>
         </div>
+        <StatusBarComponent />
 
     </div>
-    @if (modalSettings.ModalEnum == ModalEnum.Error || modalSettings.ModalEnum == ModalEnum.Default)
-    {
-        <GenericMessageModal IsVisible="@modalSettings.ShowModal"
-        Title="@modalSettings.ModalTitle"
-        Message="@modalSettings.ModalMessage"
-        PrimaryButtonText="OK"
-        PrimaryAction="@OnModalOk"                             
-        OnClose="@OnModalClose" />
-    }
-    @if (modalSettings.ModalEnum == ModalEnum.ProductActivate || modalSettings.ModalEnum == ModalEnum.ProductNotFound)
-    {
-        <ProductModal IsVisible="@modalSettings.ShowModal"
-        Title="@modalSettings.ModalTitle"
-        Product="@modalProduct"
-        OnSave="@OnModalProductUpserted"
-        OnClose="@OnModalClose">
+    <!-- modals -->
+    <ModalContainer State="_state"
+                    OnModalOk="onmodalokasync"
+                    OnModalClose="onmodalcloseasync"
+                    OnProductSave="onmodalproductupsertedasync" />
 
-        </ProductModal>
-    }
-
-
+    <QuantityBoxComponent IsVisible="_state.ShowQuantityBox"
+                          value="_state.QuantityValue"
+                          onapply="applyquantityasync" />
 
 </div>
 
@@ -336,534 +54,413 @@
 
 
 
+
 @code {
     ElementReference searchBox;
+    CheckoutState _state = new CheckoutState();
 
-    string searchText = "";
-
-    string tableStyle = "height: 512px; overflow-y: auto";
-    string leftPanelLabel = "More";
-    string moreSalesButtonsClass = "d-none";
-    // string cardsDisplayClass = "d-none";
-
-
-    string leftCollapseButtonPanel = "images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-    string collapseButtonLabel = "More";
-    string collapseButtonImage = "images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-
-    bool displayGenericButtons = true;
-
-    ScreenModel screenModel = new ScreenModel();
-
-    Product modalProduct { get; set; } = new Product();
-
-    //Payment
-    PaymentType _paymentType = new();
-
-    // Modal objects
-    ModalSettings modalSettings = new ModalSettings();
-
-    //Checkout Objects
-    int holdBasketIndex = 0;
-    List<SalesBasket> salesBaskets = new List<SalesBasket>();
-
-    //Generic Cash Suggestion
-    int roundupCashSuggestion = 1;
-    int secondRoundupCashSuggestion = 5;
-
-
-
-    //Services
-    GeneralServices generalServices = new GeneralServices();
-
-    private void PaymentButtonClicked(PaymentType pPaymentType)
+    private async Task HandleNumPadClick(string amount)
     {
+        if (amount.Equals("Clear", StringComparison.OrdinalIgnoreCase))
+        {
+            _state.SearchText = string.Empty;
+        }
+        else
+        {
+            _state.SearchText += amount;
+        }
+        StateHasChanged();
+    }
+    private async Task HandleCashSuggestionClick(int amount)
+    {
+        _state.SearchText = int.TryParse(_state.SearchText, out int currentAmount) ? (currentAmount + (amount * 100)).ToString() : (amount * 100).ToString();
+        StateHasChanged();
+    }
+
+    private async Task applyquantityasync()
+    {
+        _state.ShowQuantityBox = false;
+        if (!string.IsNullOrEmpty(_state.QuantityValue) && int.TryParse(_state.QuantityValue, out int quantity) && quantity > 0)
+        {
+            var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+            // if (currentBasket. 0 && currentBasket.SelectedItemIndex < currentBasket.SalesItemsList.Count)
+            // {
+            //     var selectedItem = currentBasket.SalesItemsList[currentBasket.SelectedItemIndex];
+            //     selectedItem.Product_QTY = quantity;
+            //     selectedItem.Product_Total_Amount = selectedItem.Product_Amount * quantity;
+            //     StateHasChanged();
+            // }
+        }
+    }
+
+    private async Task SearchKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter")
+        {
+            await searchBox.FocusAsync();
+            return;
+        }
+
         try
         {
-            if (salesBaskets?.ElementAtOrDefault(holdBasketIndex)?.SalesItemsList?.Count < 1)
+            await ProcessSearchInputAsync();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Search Error", ex.Message);
+        }
+    }
+
+    private async Task ProcessSearchInputAsync()
+    {
+        if (string.IsNullOrEmpty(_state.SearchText))
+        {
+            await SetFocusOnSearchBoxAsync();
+            return;
+        }
+
+        if (_state.SalesBaskets.Count < 1)
+        {
+            await InitializeSalesTransactionAsync(false);
+        }
+
+        var product = await CheckoutService.GetProductByBarcodeAsync(_state.SearchText);
+
+        if (product == null)
+        {
+            await ShowProductNotFoundModalAsync();
+            return;
+        }
+
+        if (!product.Is_activated)
+        {
+            await ShowProductActivationModalAsync(product);
+            return;
+        }
+
+        await AddProductToBasketAsync(product);
+        await JS.InvokeVoidAsync("scrollTableToBottom");
+        StateHasChanged();
+    }
+
+    private async Task AddProductToBasketAsync(Product product)
+    {
+        var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+        CheckoutService.AddProductToBasket(currentBasket, product);
+
+        UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
+        await SetFocusOnSearchBoxAsync();
+    }
+
+    private void UpdateCashSuggestions(decimal totalAmount)
+    {
+        _state.RoundupCashSuggestion = (int)Math.Ceiling(totalAmount);
+        _state.SecondRoundupCashSuggestion = generalServices.RoundUpToNearestFive((int)Math.Ceiling(totalAmount));
+    }
+
+    private async Task InitializeSalesTransactionAsync(bool clearSearch = true)
+    {
+        if (!(_state.SalesBaskets != null && _state.SalesBaskets.Count > _state.HoldBasketIndex && _state.HoldBasketIndex >= 0))
+        {
+            _state.SalesBaskets.Add(new SalesBasket());
+        }
+
+        _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
+        {
+
+            Date_Created = DateTime.Now,
+            SaleTransaction_Total_Amount = 0,
+            SaleTransaction_Cash = 0,
+            SaleTransaction_Card = 0,
+            SaleTransaction_Change = 0
+        };
+
+        StateHasChanged();
+    }
+
+    private async Task ShowProductNotFoundModalAsync()
+    {
+        _state.ModalSettings = new ModalSettings
+        {
+            ModalTitle = "Product Not Found",
+            ModalMessage = $"Product not Found! Please add the product!",
+            ShowModal = true,
+            ModalEnum = ModalEnum.ProductNotFound
+        };
+        _state.ModalProduct = new Product
+        {
+            Product_Barcode = _state.SearchText,
+            Expiry_Date = DateTime.Now.AddDays(7),
+            Is_activated = true
+        };
+        StateHasChanged();
+    }
+
+    private async Task ShowProductActivationModalAsync(Product product)
+    {
+        _state.ModalSettings = new ModalSettings
+        {
+            ModalTitle = "Product Activation Required",
+            ModalMessage = $"Product '{product.Product_Name}' requires activation. Please contact management.",
+            ShowModal = true,
+            ModalEnum = ModalEnum.ProductActivate
+        };
+        _state.ModalProduct = product;
+        StateHasChanged();
+    }
+
+    private void QtyButtonClick()
+    {
+        if (HasItemsInBasket())
+        {
+            _state.ShowQuantityBox = true;
+            StateHasChanged();
+        }
+
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeScreenSettingsAsync();
+        //await InitializeSalesTransactionAsync(false);
+    }
+
+    private async Task InitializeScreenSettingsAsync()
+    {
+        _state.ScreenModel = ScreenInfoService.GetScreenSize();
+
+        if (_state.ScreenModel.Height < 800)
+        {
+            _state.DisplayGenericButtons = false;
+            _state.TableStyle = CheckoutConstants.TableHeights.SmallScreen;
+            _state.CollapseButtonLabel = "More";
+        }
+        else
+        {
+            _state.DisplayGenericButtons = true;
+            _state.TableStyle = CheckoutConstants.TableHeights.Default;
+            _state.CollapseButtonLabel = "Collapse";
+        }
+    }
+
+    private void SelectItem(SalesItemTransaction item)
+    {
+        var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+        _state.SelectedItemIndex = currentBasket.SalesItemsList.FindIndex(i => i.Product_ID == item.Product_ID);
+        StateHasChanged();
+    }
+
+    private async Task PaymentButtonClickedAsync(PaymentType paymentType)
+    {
+        if (!HasItemsInBasket()) return;
+
+        try
+        {
+            _state.PaymentType = paymentType;
+            await ProcessPaymentAsync(paymentType);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Payment Error", ex.Message);
+        }
+    }
+
+    private bool HasItemsInBasket()
+    {
+        return _state.SalesBaskets?.ElementAtOrDefault(_state.HoldBasketIndex)?.SalesItemsList?.Count > 0;
+    }
+
+    private async Task ProcessPaymentAsync(PaymentType paymentType)
+    {
+        if (string.IsNullOrEmpty(_state.SearchText))
+        {
+            await ShowPaymentConfirmationModalAsync();
+            return;
+        }
+
+        // if (!_state.SearchText.All(char.IsDigit))
+        // {
+        //     await ShowTransactionCompleteModalAsync();
+        //     return;
+        // }
+
+        await ProcessCashOrCardPaymentAsync(paymentType);
+    }
+
+    private async Task ProcessCashOrCardPaymentAsync(PaymentType paymentType)
+    {
+
+        try
+        {
+            var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+
+            if (currentBasket.SalesItemsList.Count == 0)
             {
+                await ShowErrorModalAsync("Payment Error", "No items in basket to process payment.");
                 return;
             }
-            _paymentType = pPaymentType;
 
-            switch (_paymentType)
+            decimal paymentAmount = currentBasket.Transaction.SaleTransaction_Total_Amount;
+
+            if (paymentType == PaymentType.Cash)
             {
-                case PaymentType.Cash:
-                    CheckoutTransaction(_paymentType);
-                    break;
-                case PaymentType.Card:
-                    CheckoutTransaction(_paymentType);
-                    break;
-                default:
-                    break;
+                currentBasket.Transaction.SaleTransaction_Cash += paymentAmount;
+            }
+            else
+            {
+                currentBasket.Transaction.SaleTransaction_Card += paymentAmount;
+            }
+
+            currentBasket.Transaction.SaleTransaction_Change =
+                currentBasket.Transaction.SaleTransaction_Total_Amount -
+                (currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card);
+
+            if (currentBasket.Transaction.SaleTransaction_Change <= 0)
+            {
+                await CompleteTransactionAsync(currentBasket);
+            }
+            else
+            {
+                await SetFocusOnSearchBoxAsync();
             }
         }
         catch (Exception ex)
         {
-            modalSettings.ModalEnum = ModalEnum.Error;
-            modalSettings.ModalTitle = "Error";
-            modalSettings.ModalMessage = "An error occurred while processing the payment: " + ex.Message;
-            modalSettings.ShowModal = true;
-            ShowModal();
-            return;
+            await ShowErrorModalAsync("Payment Error", ex.Message);
         }
-
-    }
-
-    private async Task CheckoutTransaction(PaymentType pPaymentType)
-    {
-
-        if (string.IsNullOrEmpty(searchText))
-        {
-            modalSettings.ModalEnum = ModalEnum.Payment;
-            ShowModal();
-        }
-        else
-        {
-            if (searchText.All(char.IsDigit))
-            {
-                if (pPaymentType == PaymentType.Cash)
-                {
-                    salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Cash += generalServices.ConvertStringToDecimal(searchText);
-                }
-                else if (pPaymentType == PaymentType.Card)
-                {
-                    salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Card += generalServices.ConvertStringToDecimal(searchText);
-                }
-
-                salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change =
-                salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Total_Amount -
-                (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Cash
-                    + salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Card);
-
-                if (salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change <= 0)
-                {
-                    //printerService.OpenDrawer();
-                    modalSettings.ModalTitle = "Transaction";
-                    modalSettings.ModalMessage = "Change: £" + salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change;
-                    modalSettings.ModalEnum = ModalEnum.Default;
-                    modalSettings.ShowModal = true;                  
-
-
-                    // Store the current transaction data before clearing
-                    var transactionToSave = salesBaskets[holdBasketIndex].Transaction;
-
-                    // Immediately clear the UI for next sale
-                    salesBaskets[holdBasketIndex].Transaction = new SalesTransaction();
-                    salesBaskets[holdBasketIndex].SalesItemsList.Clear();
-                    searchText = "";
-                    holdBasketIndex = 0;
-                    StateHasChanged(); // Update UI immediately
-
-                    // Save transaction in background
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await salesTransactionServices.AddAsync(transactionToSave);
-                            // Optionally log success or update a background status
-                        }
-                        catch (Exception ex)
-                        {
-                            // Handle error in background - maybe log it or show a non-blocking notification
-                            await InvokeAsync(() =>
-                            {
-                                modalSettings.ModalEnum = ModalEnum.Error;
-                                modalSettings.ModalTitle = "Background Save Error";
-                                modalSettings.ModalMessage = "Transaction completed but failed to save. Please check logs.";
-                                modalSettings.ShowModal = true;
-                                ShowModal();
-                            });
-                        }
-                    });
-
-
-
-                }
-                else
-                {
-                   await SetFocusOnSearchBoxAsync();
-                }
-            }
-            else
-            {
-                modalSettings.ModalTitle = "Transaction";
-                modalSettings.ModalMessage = "Change: £" + salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Change;
-                modalSettings.ModalEnum = ModalEnum.Default;
-                modalSettings.ShowModal = true;
-                ShowModal();
-            }
-        }
-
-
-    }
-
-    private void HandleCashSuggestion(int value)
-    {
-        if (int.TryParse(searchText, out int currentValue))
-        {
-            int newValue = currentValue + value;
-            searchText = newValue > 0 ? newValue.ToString() : "0";
-        }
-        else
-        {
-            // If parsing fails, treat as zero and add the value
-            int newValue = value;
-            searchText = newValue > 0 ? newValue.ToString() : "0";
-        }
-    }
-
-    private void ProvideRoundedUpCashSuggestion(decimal value)
-    {
-        decimal roundedValue = Math.Ceiling(value);
-        roundupCashSuggestion = int.Parse(roundedValue.ToString("0"));
-    }
-
-
-    private void ProvideSecondRoundedUpCashSuggestion(decimal value)
-    {
-        // Always round up to the next whole number before rounding to nearest five
-        int intValue = (int)Math.Ceiling(value);
-        secondRoundupCashSuggestion = generalServices.RoundUpToNearestFive(intValue);
-    }
-
-
-
-    private void NumberPadClick(int num)
-    {
-        searchText += num.ToString();
-    }
-
-    private void DoubleZeroPadClick()
-    {
-        searchText += "00";
-    }
-
-
-    // Method to show the modal
-    private void ShowModal()
-    {
-        switch (modalSettings.ModalEnum)
-        {
-            case ModalEnum.ProductActivate:
-                modalSettings.ModalTitle = "Product Activation";
-                modalSettings.ModalMessage = "This product is not activated. Would you like to activate this product?";
-                modalSettings.ShowModal = true;
-                break;
-            case ModalEnum.ProductNotFound:
-                modalSettings.ModalTitle = "Product Not Found";
-                modalSettings.ModalMessage = "The product you scanned was not found in the system. Please check the barcode or enter the product manually.";
-                modalSettings.ShowModal = true;
-                break;
-            case ModalEnum.Payment:
-                modalSettings.ModalTitle = "Transaction";
-                modalSettings.ModalMessage = "Would you like to process the transaction as " + _paymentType.ToString() + "?";
-                modalSettings.ModalEnum = ModalEnum.Payment;
-                modalSettings.ShowModal = true;
-                break;
-            default:
-                break;
-        }
-        InvokeAsync(StateHasChanged);
-    }
-
-    // Modal button/callback handlers
-    private Task OnModalOk()
-    {
-        modalSettings.ShowModal = false;
-        return Task.CompletedTask;
-    }
-
-    private Task OnModalClose()
-    {
-        modalSettings.ShowModal = false;
-        return Task.CompletedTask;
-    }
-
-    private Task OnModalProductUpserted()
-    {
-        modalSettings.ShowModal = false;
-        salesBaskets[holdBasketIndex].SalesItemsList.Add(new SalesItemTransaction
-            {
-                Product_ID = modalProduct.Product_ID,
-                Product = modalProduct,
-                Product_QTY = 1,
-                Product_Amount = modalProduct.Product_Selling_Price,
-                Product_Total_Amount = modalProduct.Product_Selling_Price,
-            });
-        return Task.CompletedTask;
     }
 
     private async Task SetFocusOnSearchBoxAsync()
     {
-        searchText = "";
+        _state.SearchText = "";
         await searchBox.FocusAsync();
     }
 
-    protected override async Task OnInitializedAsync()
+    private async Task ShowPaymentConfirmationModalAsync()
     {
-        screenModel = ScreenInfoService.GetScreenSize();
-        if (screenModel.Height < 800)
+        var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+        _state.ModalSettings = new ModalSettings
         {
-            displayGenericButtons = false;
-            tableStyle = "height: 425px; overflow-y: auto";
-            collapseButtonLabel = "More";
+            ModalTitle = "Payment Confirmation",
+            ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}\nCash: £{currentBasket.Transaction.SaleTransaction_Cash:F2}\nCard: £{currentBasket.Transaction.SaleTransaction_Card:F2}",
+            ShowModal = true,
+            ModalEnum = ModalEnum.Payment
+        };
+        StateHasChanged();
+    }
+
+    private async Task CompleteTransactionAsync(SalesBasket basket)
+    {
+        var transactionToSave = basket.Transaction;
+
+        // Clear UI immediately
+        await ClearCurrentTransactionAsync();
+
+        // Show change modal
+        await ShowChangeModalAsync(transactionToSave.SaleTransaction_Change);
+
+        // Save in background
+        _ = SaveTransactionInBackgroundAsync(transactionToSave);
+    }
+
+    private async Task ClearCurrentTransactionAsync()
+    {
+        var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+        currentBasket.Transaction = new SalesTransaction();
+        currentBasket.SalesItemsList.Clear();
+        _state.SearchText = "";
+        _state.HoldBasketIndex = 0;
+        StateHasChanged();
+    }
+
+    private async Task ShowChangeModalAsync(decimal changeAmount)
+    {
+        if (changeAmount > 0)
+        {
+            _state.ModalSettings = new ModalSettings
+            {
+                ModalTitle = "Change Due",
+                ModalMessage = $"Change to give: £{changeAmount:F2}",
+                ShowModal = true,
+                ModalEnum = ModalEnum.Default
+            };
         }
         else
         {
-            displayGenericButtons = true;
-            tableStyle = "height: 512px; overflow-y: auto";
-            collapseButtonLabel = "Collapse";
+            _state.ModalSettings = new ModalSettings
+            {
+                ModalTitle = "Transaction Complete",
+                ModalMessage = "Payment received. No change due.",
+                ShowModal = true,
+                ModalEnum = ModalEnum.Default
+            };
         }
-
+        StateHasChanged();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await SetFocusOnSearchBoxAsync();
-        }
-    }
-
-    private async void SearchKeyDown(KeyboardEventArgs e)
+    private async Task SaveTransactionInBackgroundAsync(SalesTransaction transaction)
     {
         try
         {
-            if (e.Key == "Enter")
-            {
-                if (!string.IsNullOrEmpty(searchText))
-                {
-                    if (salesBaskets.Count < 1)
-                    {
-                        InitializeSalesTransaction(false);
-                    }
-
-                    var product = await productServices.GetProductByBarcode(searchText);
-                    if (product != null)
-                    {
-                        if (!product.Is_activated)
-                        {
-                            modalSettings.ModalEnum = ModalEnum.ProductActivate;
-                            modalProduct = product;
-                            ShowModal();
-                            await SetFocusOnSearchBoxAsync();
-                            return;
-                        }
-                        else
-                        {
-                            await AddProductToBasketAsync(product);
-                        }
-                    }
-                    else
-                    {
-                        modalSettings.ModalEnum = ModalEnum.ProductNotFound;
-                        modalProduct.Product_Barcode = searchText;
-                        modalProduct.Expiry_Date = DateTime.Now;
-                        ShowModal();
-                    }
-                    await Task.Yield();
-                    await JS.InvokeVoidAsync("scrollTableToBottom");
-                }
-                else
-                {
-                    await SetFocusOnSearchBoxAsync();
-                }
-                StateHasChanged();
-            }
-            else
-            {
-                await searchBox.FocusAsync();
-            }
+            await CheckoutService.SaveTransactionAsync(transaction);
         }
         catch (Exception ex)
         {
-            modalSettings.ModalEnum = ModalEnum.Error;
-            Console.WriteLine($"Error: {ex.Message}");
+            await InvokeAsync(async () =>
+            {
+                await ShowErrorModalAsync("Background Save Error",
+                    "Transaction completed but failed to save. Please check logs.");
+            });
         }
-
     }
 
-
-    private async Task AddProductToBasketAsync(Product fetchProduct)
+    private async Task ShowErrorModalAsync(string title, string message)
     {
-        if (salesBaskets[holdBasketIndex].SalesItemsList == null)
+        _state.ModalSettings = new ModalSettings
         {
-            salesBaskets[holdBasketIndex].SalesItemsList = new();
-        }
-        var item = salesBaskets[holdBasketIndex].SalesItemsList.FirstOrDefault(x => x.Product_ID == fetchProduct.Product_ID);
-        if (item != null)
+            ModalTitle = title,
+            ModalMessage = message,
+            ShowModal = true,
+            ModalEnum = ModalEnum.Error
+        };
+        StateHasChanged();
+    }
+    private void MoreSalesButtonClick(bool isCollapsed)
+    {
+        if (isCollapsed)
         {
-            item.Product_QTY += 1;
-            item.Product_Total_Amount = item.Product_QTY * fetchProduct.Product_Selling_Price;
-            item.Product_Total_Amount_Before_Discount = item.Product_QTY * fetchProduct.Product_Selling_Price;
+            _state.TableStyle = _state.ScreenModel.Height > 800
+            ? "height:512px; overflow-y: auto"
+            : "height: 425px; overflow-y: auto";
+
         }
         else
         {
-            salesBaskets[holdBasketIndex].SalesItemsList.Add(new SalesItemTransaction
-                {
-                    Product_ID = fetchProduct.Product_ID,
-                    Product = fetchProduct,
-                    Product_QTY = 1,
-                    Product_Amount = fetchProduct.Product_Selling_Price,
-                    Product_Total_Amount = fetchProduct.Product_Selling_Price,
-                    Product_Total_Amount_Before_Discount = fetchProduct.Product_Selling_Price
-                });
+            _state.TableStyle = _state.ScreenModel.Height > 800
+          ? "height: 335px; overflow-y: auto"
+          : "height: 225px; overflow-y: auto";
         }
-        decimal totalAmount = salesBaskets[holdBasketIndex].SalesItemsList.Sum(s => s.Product_Total_Amount);
-        salesBaskets[holdBasketIndex].Transaction.SaleTransaction_Total_Amount = totalAmount;
-        ProvideRoundedUpCashSuggestion(totalAmount);
-        ProvideSecondRoundedUpCashSuggestion(totalAmount);
-        SetFocusOnSearchBoxAsync();
-    }
-
-    private void InitializeSalesTransaction(bool isRefund)
-    {
-
-        if (salesBaskets.Count < 1)
-        {
-            salesBaskets.Add(new SalesBasket());
-        }
-        if (salesBaskets[holdBasketIndex].Transaction == null)
-        {
-            salesBaskets[holdBasketIndex].Transaction = new SalesTransaction
-                {
-                    Date_Created = DateTime.Now,
-                    Sale_Start_Date = DateTime.Now,
-                    Is_Refund = isRefund ? 1 : 0,
-                    Till_ID = 0,
-                    User_ID = 0,
-                    DayLog_ID = 0,
-                    Is_Printed = 0,
-                    SaleTransaction_Discount = 0,
-                    SaleTransaction_Promotion = 0,
-                    SaleTransaction_Change = 0,
-                    SaleTransaction_Payout = 0,
-                    SaleTransaction_CashBack = 0,
-                    SaleTransaction_Cash = 0,
-                };
-            salesBaskets[holdBasketIndex].SalesItemsList = new();
-        }
-
-    }
-
-    private void HandleGenericItemClick()
-    {
-        int i = 0;
-        // Your logic here
-    }
-
-    private void payoutActionModel(PayoutActionModel payoutActionModel)
-    {
-        int i = 0;
-        // Your logic here
-    }
-
-    private void DisplayGenericButtonClick()
-    {
-        displayGenericButtons = !displayGenericButtons;
-        collapseButtonLabel = displayGenericButtons ? "Collapse" : "More";
-        collapseButtonImage = displayGenericButtons
-            ? "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png"
-            : "images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-    }
-
-    private void MoreSalesButtonClick()
-    {
-        if (moreSalesButtonsClass == "d-none")
-        {
-            moreSalesButtonsClass = "";
-            leftPanelLabel = "Collapse";
-            leftCollapseButtonPanel = "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            tableStyle = screenModel.Height > 800
-                ? "height: 335px; overflow-y: auto"
-                : "height: 225px; overflow-y: auto";
-        }
-        else
-        {
-            moreSalesButtonsClass = "d-none";
-            leftPanelLabel = "More";
-            leftCollapseButtonPanel = "images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            tableStyle = screenModel.Height > 800
-                ? "height:512px; overflow-y: auto"
-                : "height: 425px; overflow-y: auto";
-        }
-    }
-}
-
-
-
-@if (showQuantityBox)
-{
-    <div class="position-fixed top-50 start-50 translate-middle bg-white p-4 rounded shadow-lg">
-        <div class="mb-3">
-            <label class="form-label">Enter Quantity:</label>
-            <input type="number" @ref="quantityInput" class="form-control" @bind="quantityValue" @bind:event="oninput" />
-        </div>
-        <div class="d-flex justify-content-end gap-2">
-            <button class="btn btn-secondary" @onclick="() => showQuantityBox = false">Cancel</button>
-            <button class="btn btn-primary" @onclick="ApplyQuantity">Apply</button>
-        </div>
-    </div>
-}
-
-@code {
-    private ElementReference quantityInput;
-    private bool showQuantityBox = false;
-    private string quantityValue = "";
-    private int selectedItemIndex = -1;
-
-    private void SelectItem(SalesItemTransaction item)
-    {
-        selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.FindIndex(i => i.Product_ID == item.Product_ID);
         StateHasChanged();
     }
 
-    private async Task QtyButtonClick()
+    private async Task onmodalokasync()
     {
-        if (salesBaskets.Count == 0 || salesBaskets[holdBasketIndex].SalesItemsList == null ||
-            salesBaskets[holdBasketIndex].SalesItemsList.Count == 0)
-        {
-            return;
-        }
-
-        moreSalesButtonsClass = "d-none";
-        showQuantityBox = true;
-
-        // If no item is selected, select the last item
-        if (selectedItemIndex == -1)
-        {
-            selectedItemIndex = salesBaskets[holdBasketIndex].SalesItemsList.Count - 1;
-        }
-
-        // Set initial quantity value from selected item
-        var selectedItem = salesBaskets[holdBasketIndex].SalesItemsList[selectedItemIndex];
-        quantityValue = selectedItem.Product_QTY.ToString();
-
+        // Handle modal OK button click
+        _state.ModalSettings.ShowModal = false;
         StateHasChanged();
-
-        await Task.Delay(50);
-        await JS.InvokeVoidAsync("focusElement", quantityInput);
     }
 
-    private void ApplyQuantity()
+    private async Task onmodalcloseasync()
     {
-        if (string.IsNullOrEmpty(quantityValue) || !int.TryParse(quantityValue, out int quantity))
-        {
-            return;
-        }
+        // Handle modal close/cancel
+        _state.ModalSettings.ShowModal = false;
+        StateHasChanged();
+    }
 
-        var itemsList = salesBaskets[holdBasketIndex].SalesItemsList;
-        if (selectedItemIndex >= 0 && selectedItemIndex < itemsList.Count)
-        {
-            itemsList[selectedItemIndex].Product_QTY = quantity;
-            itemsList[selectedItemIndex].Product_Total_Amount =
-                itemsList[selectedItemIndex].Product_Amount * quantity;
-        }
-
-        showQuantityBox = false;
-        quantityValue = "";
-        selectedItemIndex = -1;  // Reset selectedItemIndex to -1 after applying quantity
+    private async Task onmodalproductupsertedasync(Product product)
+    {
+        // Handle product save/update from modal
+        _state.ModalSettings.ShowModal = false;
+        await AddProductToBasketAsync(product);
         StateHasChanged();
     }
 }

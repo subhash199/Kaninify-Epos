@@ -1,0 +1,90 @@
+@using EposRetail.Models
+@using EposRetail.Constants
+<div class="col-md-12 mb-2">
+    <div class="d-flex gap-2 mb-2">
+        <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill"
+                @onclick="() => OnPaymentClicked.InvokeAsync(PaymentType.Card)">
+            <img src="@CheckoutConstants.Images.CardIcon" class="img-fluid mb-2" />
+            <span class="fw-bold">Card</span>
+        </button>
+        <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill"
+                @onclick="OnQtyClicked">
+            <img src="images/icons/liquor.png" class="img-fluid mb-2" />
+            <span class="fw-bold">Qty</span>
+        </button>
+        <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill"
+                @onclick="() => OnPaymentClicked.InvokeAsync(PaymentType.Cash)">
+            <img src="@CheckoutConstants.Images.CashIcon" class="img-fluid mb-2" />
+            <span class="fw-bold">Cash</span>
+        </button>
+        <button class="col-md-3 btn-light d-flex flex-column align-items-center flex-fill"
+                @onclick="MoreCheckoutClick">
+            <img src="@State.LeftCollapseButtonPanel" class="img-fluid mb-2" />
+            <span class="fw-bold">@State.LeftPanelLabel</span>
+        </button>
+    </div>
+
+    @if (!IsCollapsed)
+    {
+        <div class="col-md-12 mb-2">
+            <div class="d-flex gap-2 mb-2">
+                <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
+                    <img src="images/icons/remove_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                    <span class="fw-bold">Void Line</span>
+                </button>
+                <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
+                    <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                    <span class="fw-bold">Hold</span>
+                </button>
+                <button class="col-md-3 btn btn-danger d-flex flex-column align-items-center flex-fill">
+                    <img src="images/icons/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                    <span class="fw-bold">Void Basket</span>
+                </button>
+                <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
+                    <img src="images/icons/receipt_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                    <span class="fw-bold">Receipt</span>
+                </button>
+            </div>
+            <div class="col-md-12 mb-2">
+                <div class="d-flex gap-2 mb-2">
+                    <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Enquiry</span>
+                    </button>
+                    <button class="col-md-3 btn btn-warning d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/send_money_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Refund</span>
+                    </button>
+                    <button class="col-md-3 btn btn-success d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/add_box_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">New Product</span>
+                    </button>
+                    <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Office</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    [Parameter] public CheckoutState State { get; set; } = new();
+    [Parameter] public EventCallback<PaymentType> OnPaymentClicked { get; set; }
+    [Parameter] public EventCallback OnQtyClicked { get; set; }
+    [Parameter] public EventCallback<bool> OnMoreSalesClicked { get; set; }
+
+    bool IsCollapsed = true;
+
+    private async Task MoreCheckoutClick()
+    {
+        IsCollapsed = !IsCollapsed;
+        State.LeftCollapseButtonPanel = IsCollapsed ? CheckoutConstants.Images.AddIcon : CheckoutConstants.Images.HideIcon;
+        State.LeftPanelLabel = IsCollapsed ? "More" : "Collapse";        
+        await OnMoreSalesClicked.InvokeAsync(IsCollapsed);
+        
+    }
+
+}

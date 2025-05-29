@@ -1,0 +1,29 @@
+<div class="col-md-12">
+    <div class="row me-4">
+        <div class="col-md-4 mb-3">
+            <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-green">
+                <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                <span class="text-center">Refill Products Count: 12</span>
+            </button>
+        </div>
+        <div class="col-md-4 mb-3">
+            <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-yellow">
+                <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                <span class="text-center">Expiry Products Count: 12</span>
+            </button>
+        </div>
+        <div class="col-md-4 mb-3">
+            <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-red">
+                <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                <span class="text-center">Shortage Products Count: 12</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    // This component could be enhanced to accept parameters for dynamic counts
+    [Parameter] public int RefillCount { get; set; } = 12;
+    [Parameter] public int ExpiryCount { get; set; } = 12;
+    [Parameter] public int ShortageCount { get; set; } = 12;
+}
