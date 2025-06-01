@@ -10,15 +10,15 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
-        builder.Services.AddSingleton<ScreenInfoService>();
+		builder.Services.AddSingleton<ScreenInfoService>();
 		builder.Services.AddSingleton<DatabaseInitialization>();
 		builder.Services.AddSingleton<ProductServices>();
 		builder.Services.AddSingleton<DepartmentServices>();
-        builder.Services.AddSingleton<VatServices>();
+		builder.Services.AddSingleton<VatServices>();
 		builder.Services.AddSingleton<SalesTransactionServices>();
 		builder.Services.AddSingleton<GeneralServices>();
 		builder.Services.AddSingleton<CheckoutService>();
-        builder
+		builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
 			{

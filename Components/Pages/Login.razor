@@ -1,0 +1,154 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+
+<div class="login-container">
+    <div class="cards-wrapper">
+        <!-- Login Card -->
+        <div class="login-card">
+            
+            <div class="user-icon">
+                <img height="60" width="60" src="images/logos/TransparentKaninifyLogo160.png" />
+            </div>
+            
+            <h2>Kaninify</h2>
+          
+            <h2 class="login-title">Login</h2>
+            
+            <!-- Login Form -->
+            <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" class="login-form">
+                <DataAnnotationsValidator />
+                
+                <div class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/>
+                                <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                                <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                        </span>
+                        <InputText @bind-Value="loginModel.Password" 
+                                  type="password" 
+                                  class="form-control modern-input" 
+                                  placeholder="Passcode" />
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small mt-1" />
+                </div>
+
+                <div class="d-grid gap-2 mb-3">
+                    <button type="submit" class="btn btn-primary btn-login" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Login</span>
+                        }
+                    </button>
+                    
+                    <button type="button" class="btn btn-primary btn-login background-colour-Warning" @onclick="HandleActivate">
+                        Activate
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+
+        <!-- Info Card -->
+        <div class="info-card">
+            <div class="info-header">
+                <div class="info-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h3 class="info-title">Support & Information</h3>
+            </div>
+
+            <div class="info-content">
+                <div class="company-info">
+                    <h4>Kaninify</h4>
+                    <p class="company-description">Advanced Point of Sale & Retail Management System</p>
+                </div>
+
+                <div class="contact-section">
+                    <h5>Tech Support</h5>
+                    <div class="contact-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        <span>+44 (0) 123 456 7890</span>
+                    </div>
+                    <div class="contact-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.5"/>
+                            <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        <span>support@kaninify.com</span>
+                    </div>
+                </div>
+
+                <div class="qr-section">
+                    <h5>Website</h5>
+                    <div class="qr-code" id="qrcode"></div>
+                    <p class="qr-description">Scan to visit our website</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-footer">
+    <p class="text-center text-muted small mb-0">Kaninify. All rights reserved 2025.</p>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private bool isLoading = false;
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         await GenerateQRCode();
+    //     }
+    // }
+
+    // private async Task GenerateQRCode()
+    // {
+    //     try
+    //     {
+    //         await JS.InvokeVoidAsync("generateQRCode", "qrcode", "https://www.kaninify.com");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"QR Code generation failed: {ex.Message}");
+    //     }
+    // }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        await Task.Delay(2000); // Simulate login process
+        isLoading = false;
+        
+        // // Add your login logic here
+        // await JS.InvokeVoidAsync("alert", "Login successful!");
+    }
+    
+    private async Task HandleActivate()
+    {
+        // // Add your activation logic here
+        // await JS.InvokeVoidAsync("alert", "Activate button clicked!");
+    }
+}

@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/checkout"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Constants
@@ -14,7 +14,7 @@
 @inject IJSRuntime JS
 
 @* <h3 class="text-center">Checkout Dashboard</h3> *@
-<div class="d-flex flex-column vh-100 mt-1">
+<div class="d-flex flex-column vh-100 mt-1 disable-scroll">
     <div class="container-fluid">
         <!-- Make the row full height and align items to the start -->
         <div class="d-flex align-items-start">
@@ -46,6 +46,7 @@
 
     <QuantityBoxComponent IsVisible="_state.ShowQuantityBox"
                           value="_state.QuantityValue"
+                          ValueChanged="QuantityValueEntered"
                           onapply="applyquantityasync" />
 
 </div>
@@ -58,6 +59,19 @@
 @code {
     ElementReference searchBox;
     CheckoutState _state = new CheckoutState();
+
+    private async Task QuantityValueEntered(string value)
+    {
+        if (string.IsNullOrEmpty(value) || !int.TryParse(value, out int quantity) || quantity <= 0)
+        {
+            _state.QuantityValue = string.Empty;
+            return;
+        }
+        else
+        {
+            _state.QuantityValue = value;
+        }
+    }
 
     private async Task HandleNumPadClick(string amount)
     {
@@ -83,13 +97,19 @@
         if (!string.IsNullOrEmpty(_state.QuantityValue) && int.TryParse(_state.QuantityValue, out int quantity) && quantity > 0)
         {
             var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-            // if (currentBasket. 0 && currentBasket.SelectedItemIndex < currentBasket.SalesItemsList.Count)
-            // {
-            //     var selectedItem = currentBasket.SalesItemsList[currentBasket.SelectedItemIndex];
-            //     selectedItem.Product_QTY = quantity;
-            //     selectedItem.Product_Total_Amount = selectedItem.Product_Amount * quantity;
-            //     StateHasChanged();
-            // }
+            if (currentBasket.SalesItemsList.Count > 0 && _state.SelectedItemIndex != -1)
+            {
+                var selectedItem = currentBasket.SalesItemsList[_state.SelectedItemIndex];
+                selectedItem.Product_QTY = quantity;
+                selectedItem.Product_Total_Amount = selectedItem.Product_Amount * quantity;
+                currentBasket.Transaction.SaleTransaction_Total_Amount = currentBasket.SalesItemsList.Sum(s => s.Product_Total_Amount);
+                UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
+                // reset selected index
+                _state.SelectedItemIndex = -1;
+
+                StateHasChanged();
+                await SetFocusOnSearchBoxAsync();
+            }
         }
     }
 
@@ -213,6 +233,10 @@
     {
         if (HasItemsInBasket())
         {
+            if (_state.SelectedItemIndex == -1)
+            {
+                SelectItem(null);
+            }
             _state.ShowQuantityBox = true;
             StateHasChanged();
         }
@@ -221,7 +245,14 @@
     protected override async Task OnInitializedAsync()
     {
         await InitializeScreenSettingsAsync();
-        //await InitializeSalesTransactionAsync(false);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SetFocusOnSearchBoxAsync();
+        }
     }
 
     private async Task InitializeScreenSettingsAsync()
@@ -245,8 +276,15 @@
     private void SelectItem(SalesItemTransaction item)
     {
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-        _state.SelectedItemIndex = currentBasket.SalesItemsList.FindIndex(i => i.Product_ID == item.Product_ID);
-        StateHasChanged();
+        if (item == null)
+        {
+            _state.SelectedItemIndex = currentBasket.SalesItemsList.Count > 0 ? currentBasket.SalesItemsList.Count - 1 : -1;
+        }
+        else
+        {
+            _state.SelectedItemIndex = currentBasket.SalesItemsList.FindIndex(i => i.Product_ID == item.Product_ID);
+            StateHasChanged();
+        }
     }
 
     private async Task PaymentButtonClickedAsync(PaymentType paymentType)
@@ -277,12 +315,6 @@
             return;
         }
 
-        // if (!_state.SearchText.All(char.IsDigit))
-        // {
-        //     await ShowTransactionCompleteModalAsync();
-        //     return;
-        // }
-
         await ProcessCashOrCardPaymentAsync(paymentType);
     }
 
@@ -291,6 +323,7 @@
 
         try
         {
+            decimal paymentAmount = 0;
             var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
 
             if (currentBasket.SalesItemsList.Count == 0)
@@ -298,8 +331,14 @@
                 await ShowErrorModalAsync("Payment Error", "No items in basket to process payment.");
                 return;
             }
-
-            decimal paymentAmount = currentBasket.Transaction.SaleTransaction_Total_Amount;
+            if (string.IsNullOrEmpty(_state.SearchText))
+            {
+                paymentAmount = currentBasket.Transaction.SaleTransaction_Total_Amount;
+            }
+            else
+            {
+                paymentAmount = decimal.TryParse(_state.SearchText, out decimal amount) ? amount : 0;
+            }
 
             if (paymentType == PaymentType.Cash)
             {
@@ -341,7 +380,7 @@
         _state.ModalSettings = new ModalSettings
         {
             ModalTitle = "Payment Confirmation",
-            ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}\nCash: £{currentBasket.Transaction.SaleTransaction_Cash:F2}\nCard: £{currentBasket.Transaction.SaleTransaction_Card:F2}",
+            ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}\n Would you like to process this transaction as {(_state.PaymentType == PaymentType.Cash ? "cash" : "card")}?",
             ShowModal = true,
             ModalEnum = ModalEnum.Payment
         };
@@ -444,7 +483,10 @@
 
     private async Task onmodalokasync()
     {
-        // Handle modal OK button click
+        if (_state.ModalSettings.ModalEnum == ModalEnum.Payment)
+        {
+           await ProcessCashOrCardPaymentAsync(_state.PaymentType);
+        }
         _state.ModalSettings.ShowModal = false;
         StateHasChanged();
     }

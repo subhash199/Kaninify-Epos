@@ -4,3 +4,7 @@
 .table tbody tr:hover {
     cursor: pointer;
 }
+
+.disable-scroll {
+    overflow: hidden;
+}

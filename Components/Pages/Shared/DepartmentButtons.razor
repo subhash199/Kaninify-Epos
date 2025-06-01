@@ -1,8 +1,7 @@
-﻿
+﻿@if (!IsCollapsed)
+{
+    <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
 
-<div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-    @if (!IsCollapsed)
-    {
         <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
             <img src="images/icons/liquor.png" class="img-fluid mb-2" />
             <span class="fw-bold">Alcohol</span>
@@ -23,11 +22,13 @@
             <img src="images/icons/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Fruit & Veg</span>
         </button> *@
-    }
-</div>
-<div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
-    @if (IsCollapsed)
-    {
+
+    </div>
+}
+@if (IsCollapsed)
+{
+    <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
+
         <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
             <img src="images/icons/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Lottery</span>
@@ -44,8 +45,9 @@
             <img src="@State.CollapseButtonImage" class="img-fluid mb-2" />
             <span class="fw-bold">@State.CollapseButtonLabel</span>
         </button>
-    }
-</div>
+
+    </div>
+}
 @if ((IsCollapsed && State.ScreenModel.Height < 800) || State.ScreenModel.Height > 800)
 {
     <PayoutButtonComponents></PayoutButtonComponents>
