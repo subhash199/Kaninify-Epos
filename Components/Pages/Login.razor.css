@@ -57,6 +57,10 @@
     margin-bottom: 24px;
 }
 
+.centerText {
+    text-align: center !important;
+}
+
 .info-icon {
     width: 60px;
     height: 60px;

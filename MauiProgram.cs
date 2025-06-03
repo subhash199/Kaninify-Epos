@@ -18,6 +18,11 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SalesTransactionServices>();
 		builder.Services.AddSingleton<GeneralServices>();
 		builder.Services.AddSingleton<CheckoutService>();
+		builder.Services.AddSingleton<PosUserServices>();
+		builder.Services.AddSingleton<UserRoleServices>();
+		builder.Services.AddSingleton<UserSiteAccessServices>();
+		builder.Services.AddSingleton<SiteServices>();
+        builder.Services.AddSingleton<UserManagementServices>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>

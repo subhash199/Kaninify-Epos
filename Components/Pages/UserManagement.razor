@@ -1,0 +1,655 @@
+﻿@page "/"
+@page "/user-management"
+@using EntityFrameworkDatabaseLibrary.Models
+@using DataHandlerLibrary.Services
+@inject UserManagementServices UserManagementServices
+@inject IJSRuntime JSRuntime
+
+<PageTitle>User Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">User Management</h3>
+                    <button class="btn btn-primary" @onclick="ShowCreateUserModal">
+                        <i class="fas fa-plus"></i> Add New User
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Search users..." 
+                                       @bind="searchTerm" @bind:event="oninput" @bind:after="FilterUsers" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="selectedRoleFilter" @bind:after="FilterUsers">
+                                <option value="">All Roles</option>
+                                @if (roles != null)
+                                {
+                                    @foreach (var role in roles)
+                                    {
+                                        <option value="@role.Role_ID">@role.Role_Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="selectedSiteFilter" @bind:after="FilterUsers">
+                                <option value="">All Sites</option>
+                                @if (sites != null)
+                                {
+                                    @foreach (var site in sites)
+                                    {
+                                        <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" @bind="selectedStatusFilter" @bind:after="FilterUsers">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Primary Site</th>
+                                    <th>Additional Sites</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredUsers != null && filteredUsers.Any())
+                                {
+                                    @foreach (var user in filteredUsers)
+                                    {
+                                        <tr>
+                                            <td>@($"{user.First_Name} {user.Last_Name}")</td>
+                                            <td>
+                                                <span class="badge bg-info">@user.UserRole?.Role_Name</span>
+                                            </td>
+                                            <td>@user.PrimarySite?.Site_BusinessName + " "+@user.PrimarySite.Site_AddressLine1</td>
+                                            <td>
+                                                @if (user.SiteAccesses?.Any(sa => sa.Is_Active && sa.Site_ID != user.Primary_Site_Id) == true)
+                                                {
+                                                    <span class="badge bg-secondary me-1">@user.SiteAccesses.Count(sa => sa.Is_Active && sa.Site_ID != user.Primary_Site_Id)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">None</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (user.Is_Activated && !user.Is_Deleted)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewUserDetails(user.User_ID)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => EditUser(user)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-info" @onclick="() => ManageSiteAccess(user)">
+                                                        <i class="fas fa-building"></i>
+                                                    </button>
+                                                    @if (user.Is_Activated)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateUser(user.User_ID)">
+                                                            <i class="fas fa-user-slash"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-success" @onclick="() => ReactivateUser(user.User_ID)">
+                                                            <i class="fas fa-user-check"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">No users found</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div class="modal fade @(showUserModal ? "show d-block" : "")" tabindex="-1" style="@(showUserModal ? "background-color: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@(isEditMode ? "Edit User" : "Create New User")</h5>
+                <button type="button" class="btn-close" @onclick="CloseUserModal"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="currentUser" OnValidSubmit="SaveUser">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">First Name *</label>
+                                <InputText class="form-control" @bind-Value="currentUser.First_Name" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Last Name *</label>
+                                <InputText class="form-control" @bind-Value="currentUser.Last_Name" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                       @*  <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Username *</label>
+                                <InputText class="form-control" @bind-Value="currentUser.Username" />
+                            </div>
+                        </div> *@
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Passcode *</label>
+                                <InputNumber class="form-control" @bind-Value="currentUser.Passcode" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Role *</label>
+                                <InputSelect class="form-select" @bind-Value="selectedRoleId">
+                                    <option value="">Select Role</option>
+                                    @if (roles != null)
+                                    {
+                                        @foreach (var role in roles)
+                                        {
+                                            <option value="@role.Role_ID">@role.Role_Name</option>
+                                        }
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Primary Site *</label>
+                                <InputSelect class="form-select" @bind-Value="selectedPrimarySiteId">
+                                    <option value="">Select Primary Site</option>
+                                    @if (sites != null)
+                                    {
+                                        @foreach (var site in sites)
+                                        {
+                                            <option value="@site.Site_Id">@site.Site_BusinessName + " "+@site.Site_AddressLine1</option>
+                                        }
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Additional Site Access</label>
+                        <div class="row">
+                            @if (sites != null)
+                            {
+                                @foreach (var site in sites)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   checked="@selectedAdditionalSites.Contains(site.Site_Id)"
+                                                   @onchange="@((e) => ToggleAdditionalSite(site.Site_Id, (bool)e.Value))" />
+                                            <label class="form-check-label">@site.Site_BusinessName+" "+@site.Site_AddressLine1</label>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="currentUser.Is_Activated" />
+                                <label class="form-check-label">Is Activated</label>
+                            </div>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseUserModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="SaveUser">@(isEditMode ? "Update" : "Create")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Site Access Management Modal -->
+<div class="modal fade @(showSiteAccessModal ? "show d-block" : "")" tabindex="-1" style="@(showSiteAccessModal ? "background-color: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Site Access - @selectedUserForSiteAccess?.First_Name @selectedUserForSiteAccess?.Last_Name</h5>
+                <button type="button" class="btn-close" @onclick="CloseSiteAccessModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (userAccessibleSites != null)
+                {
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Current Site Access</h6>
+                            <div class="list-group">
+                                @foreach (var site in userAccessibleSites)
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>@site.@site.Site_BusinessName+" "+@site.Site_AddressLine1</span>
+                                        @if (site.Site_Id != selectedUserForSiteAccess?.Primary_Site_Id)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveSiteAccess(site.Site_Id)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary">Primary</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Available Sites</h6>
+                            <div class="list-group">
+                                @if (availableSitesForUser != null)
+                                {
+                                    @foreach (var site in availableSitesForUser)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>@site.@site.Site_BusinessName+" "+@site.Site_AddressLine1</span>
+                                            <button class="btn btn-sm btn-outline-success" @onclick="() => AddSiteAccess(site.Site_Id)">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseSiteAccessModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade @(showUserDetailsModal ? "show d-block" : "")" tabindex="-1" style="@(showUserDetailsModal ? "background-color: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">User Details</h5>
+                <button type="button" class="btn-close" @onclick="CloseUserDetailsModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (userAccessSummary != null)
+                {
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>User Information</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Name:</strong></td><td>@userAccessSummary.User.First_Name @userAccessSummary.User.Last_Name</td></tr>
+                                <tr><td><strong>Username:</strong></td><td>@userAccessSummary.User.Username</td></tr>
+                                <tr><td><strong>Status:</strong></td><td>@(userAccessSummary.User.Is_Activated ? "Active" : "Inactive")</td></tr>
+                                <tr><td><strong>Created:</strong></td><td>@userAccessSummary.User.Date_Created.ToString("dd/MM/yyyy")</td></tr>
+                                <tr><td><strong>Role:</strong></td><td>@userAccessSummary.Role</td></tr>
+                                <tr><td><strong>Primary Site:</strong></td><td>@userAccessSummary.PrimarySite</td></tr>
+                                <tr><td><strong>Total Site Access:</strong></td><td>@userAccessSummary.TotalSiteAccess</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Additional Site Access</h6>
+                            @if (userAccessSummary.AdditionalSites?.Any() == true)
+                            {
+                                <div class="list-group">
+                                    @foreach (var site in userAccessSummary.AdditionalSites)
+                                    {
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">@site.Site_Name</h6>
+                                                <small>@(site.Is_Active ? "Active" : "Inactive")</small>
+                                            </div>
+                                            <small>Granted: @site.Date_Granted.ToString("dd/MM/yyyy")</small>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No additional site access</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseUserDetailsModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Data collections
+    private List<PosUser> users = new();
+    private List<PosUser> filteredUsers = new();
+    private List<UserRole> roles = new();
+    private List<Site> sites = new();
+    private List<Site> userAccessibleSites = new();
+    private List<Site> availableSitesForUser = new();
+    
+    // Filter properties
+    private string searchTerm = string.Empty;
+    private string selectedRoleFilter = string.Empty;
+    private string selectedSiteFilter = string.Empty;
+    private string selectedStatusFilter = string.Empty;
+    
+    // Modal states
+    private bool showUserModal = false;
+    private bool showSiteAccessModal = false;
+    private bool showUserDetailsModal = false;
+    private bool isEditMode = false;
+    
+    // Current user being edited/created
+    private PosUser currentUser = new();
+    private PosUser selectedUserForSiteAccess;
+    private int selectedRoleId;
+    private int selectedPrimarySiteId;
+    private List<int> selectedAdditionalSites = new();
+    
+    // User details
+    private dynamic userAccessSummary;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+    
+    private async Task LoadData()
+    {
+        try
+        {
+            // Load all data
+            var allUsers = await UserManagementServices.GetAllUsersAsync(); // You'll need to add this method to UserManagementServicesServices
+            users = allUsers.ToList();
+            
+            roles = (await UserManagementServices.GetAllRolesAsync()).ToList();
+            
+            // You'll need to add GetAllSitesAsync to UserManagementServices
+            // sites = (await UserManagement.GetAllSitesAsync()).ToList();
+            
+            FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
+        }
+    }
+    
+    private void FilterUsers()
+    {
+        filteredUsers = users.Where(u =>
+            (string.IsNullOrEmpty(searchTerm) ||
+                u.First_Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                u.Last_Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            &&
+            (string.IsNullOrEmpty(selectedRoleFilter) || u.Role_ID.ToString() == selectedRoleFilter)
+            &&
+            (string.IsNullOrEmpty(selectedSiteFilter) ||
+                (u.Primary_Site_Id.HasValue && u.Primary_Site_Id.Value.ToString() == selectedSiteFilter) ||
+                (u.SiteAccesses?.Any(sa => sa.Site_ID.ToString() == selectedSiteFilter && sa.Is_Active) == true))
+            &&
+            (string.IsNullOrEmpty(selectedStatusFilter) ||
+                (selectedStatusFilter == "active" && u.Is_Activated && !u.Is_Deleted) ||
+                (selectedStatusFilter == "inactive" && (!u.Is_Activated || u.Is_Deleted)))
+        ).ToList();
+        
+        StateHasChanged();
+    }
+    
+    private void ShowCreateUserModal()
+    {
+        currentUser = new PosUser { Is_Activated = true };
+        selectedRoleId = 0;
+        selectedPrimarySiteId = 0;
+        selectedAdditionalSites.Clear();
+        isEditMode = false;
+        showUserModal = true;
+    }
+    
+    private void EditUser(PosUser user)
+    {
+        currentUser = new PosUser
+        {
+            User_ID = user.User_ID,
+            First_Name = user.First_Name,
+            Last_Name = user.Last_Name,
+            Passcode = user.Passcode,
+            Is_Activated = user.Is_Activated,
+            Role_ID = user.Role_ID,
+            Primary_Site_Id = user.Primary_Site_Id
+        };
+        
+        selectedRoleId = user.Role_ID;
+        selectedPrimarySiteId = user.Primary_Site_Id ?? 0;
+        selectedAdditionalSites = user.SiteAccesses?
+            .Where(sa => sa.Is_Active && sa.Site_ID != user.Primary_Site_Id)
+            .Select(sa => sa.Site_ID)
+            .ToList() ?? new List<int>();
+        
+        isEditMode = true;
+        showUserModal = true;
+    }
+    
+    private void CloseUserModal()
+    {
+        showUserModal = false;
+        currentUser = new PosUser();
+    }
+    
+    private async Task SaveUser()
+    {
+        try
+        {
+            if (selectedRoleId == 0 || selectedPrimarySiteId == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Please select both role and primary site.");
+                return;
+            }
+            
+            if (isEditMode)
+            {
+                // Update existing user
+                currentUser.Role_ID = selectedRoleId;
+                currentUser.Primary_Site_Id = selectedPrimarySiteId;
+                
+                // You'll need to implement UpdateUserWithAccessAsync in UserManagementServices
+                // await UserManagement.UpdateUserWithAccessAsync(currentUser, selectedAdditionalSites);
+            }
+            else
+            {
+                // Create new user
+                await UserManagementServices.CreateUserWithAccessAsync(
+                    currentUser, 
+                    selectedRoleId, 
+                    selectedPrimarySiteId, 
+                    selectedAdditionalSites);
+            }
+            
+            CloseUserModal();
+            await LoadData();
+            await JSRuntime.InvokeVoidAsync("alert", $"User {(isEditMode ? "updated" : "created")} successfully!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving user: {ex.Message}");
+        }
+    }
+    
+    private void ToggleAdditionalSite(int siteId, bool isSelected)
+    {
+        if (siteId == selectedPrimarySiteId) return; // Can't select primary site as additional
+        
+        if (isSelected && !selectedAdditionalSites.Contains(siteId))
+        {
+            selectedAdditionalSites.Add(siteId);
+        }
+        else if (!isSelected && selectedAdditionalSites.Contains(siteId))
+        {
+            selectedAdditionalSites.Remove(siteId);
+        }
+    }
+    
+    private async Task ManageSiteAccess(PosUser user)
+    {
+        selectedUserForSiteAccess = user;
+        userAccessibleSites = (await UserManagementServices.GetUserAccessibleSitesAsync(user.User_ID)).ToList();
+        availableSitesForUser = sites.Where(s => !userAccessibleSites.Any(uas => uas.Site_Id == s.Site_Id)).ToList();
+        showSiteAccessModal = true;
+    }
+    
+    private void CloseSiteAccessModal()
+    {
+        showSiteAccessModal = false;
+        selectedUserForSiteAccess = null;
+    }
+    
+    private async Task AddSiteAccess(int siteId)
+    {
+        try
+        {
+            var success = await UserManagementServices.AssignUserToSiteAsync(selectedUserForSiteAccess.User_ID, siteId);
+            if (success)
+            {
+                await ManageSiteAccess(selectedUserForSiteAccess); // Refresh the modal data
+                await JSRuntime.InvokeVoidAsync("alert", "Site access granted successfully!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error granting site access: {ex.Message}");
+        }
+    }
+    
+    private async Task RemoveSiteAccess(int siteId)
+    {
+        try
+        {
+            var success = await UserManagementServices.RemoveUserFromSiteAsync(selectedUserForSiteAccess.User_ID, siteId);
+            if (success)
+            {
+                await ManageSiteAccess(selectedUserForSiteAccess); // Refresh the modal data
+                await JSRuntime.InvokeVoidAsync("alert", "Site access revoked successfully!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error revoking site access: {ex.Message}");
+        }
+    }
+    
+    private async Task ViewUserDetails(int userId)
+    {
+        try
+        {
+            userAccessSummary = await UserManagementServices.GetUserAccessSummaryAsync(userId);
+            showUserDetailsModal = true;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading user details: {ex.Message}");
+        }
+    }
+    
+    private void CloseUserDetailsModal()
+    {
+        showUserDetailsModal = false;
+        userAccessSummary = null;
+    }
+    
+    private async Task DeactivateUser(int userId)
+    {
+        try
+        {
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to deactivate this user?");
+            if (confirmed)
+            {
+                var success = await UserManagementServices.DeactivateUserAsync(userId);
+                if (success)
+                {
+                    await LoadData();
+                    await JSRuntime.InvokeVoidAsync("alert", "User deactivated successfully!");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error deactivating user: {ex.Message}");
+        }
+    }
+    
+    private async Task ReactivateUser(int userId)
+    {
+        try
+        {
+            var success = await UserManagementServices.ReactivateUserAsync(userId);
+            if (success)
+            {
+                await LoadData();
+                await JSRuntime.InvokeVoidAsync("alert", "User reactivated successfully!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error reactivating user: {ex.Message}");
+        }
+    }
+}

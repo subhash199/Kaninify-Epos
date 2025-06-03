@@ -61,6 +61,10 @@ tfoot.table-light tr td {
     background-color: lightpink !important;
 }
 
+.background-colour-light-tomato {
+    background-color: #ff6347 !important;
+}
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;

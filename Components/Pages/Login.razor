@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/login"
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
 @inject NavigationManager NavigationManager
@@ -15,7 +15,7 @@
             
             <h2>Kaninify</h2>
           
-            <h2 class="login-title">Login</h2>
+            <h2 class="login-title">Epos Login</h2>
             
             <!-- Login Form -->
             <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" class="login-form">
@@ -30,12 +30,12 @@
                                 <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="1.5"/>
                             </svg>
                         </span>
-                        <InputText @bind-Value="loginModel.Password" 
+                        <InputText @bind-Value="loginModel.Passcode" 
                                   type="password" 
                                   class="form-control modern-input" 
                                   placeholder="Passcode" />
                     </div>
-                    <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small mt-1" />
+                    <ValidationMessage For="@(() => loginModel.Passcode)" class="text-danger small mt-1" />
                 </div>
 
                 <div class="d-grid gap-2 mb-3">
@@ -47,11 +47,11 @@
                         }
                         else
                         {
-                            <span>Epos Login</span>
+                            <span>Login</span>
                         }
                     </button>
                     
-                    <button type="button" class="btn btn-primary btn-login background-colour-Warning" @onclick="HandleActivate">
+                    <button type="button" class="btn btn-primary btn-login background-colour-light-tomato" @onclick="HandleActivate">
                         Activate
                     </button>
                 </div>
@@ -70,26 +70,26 @@
                 <h3 class="info-title">Support & Information</h3>
             </div>
 
-            <div class="info-content">
+            <div class="info-content text-center">
                 <div class="company-info">
                     <h4>Kaninify</h4>
                     <p class="company-description">Advanced Point of Sale & Retail Management System</p>
                 </div>
 
-                <div class="contact-section">
+                <div class="contact-section centerText">
                     <h5>Tech Support</h5>
-                    <div class="contact-item">
+                   @*  <div class="contact-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="1.5"/>
                         </svg>
                         <span>+44 (0) 123 456 7890</span>
-                    </div>
-                    <div class="contact-item">
+                    </div> *@
+                    <div class="justify-content-center contact-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.5"/>
                             <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.5"/>
                         </svg>
-                        <span>support@kaninify.com</span>
+                        <span>kaninify@gmail.com</span>
                     </div>
                 </div>
 
@@ -113,9 +113,9 @@
 
     public class LoginModel
     {
-        [Required(ErrorMessage = "Password is required")]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
-        public string Password { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Passcode is required")]
+        [MinLength(4, ErrorMessage = "Passcode must be at least 4 characters")]
+        public string Passcode { get; set; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -146,12 +146,12 @@
         NavigationManager.NavigateTo("/checkout"); // Redirect to dashboard after login
         
         // Add your login logic here
-        await JS.InvokeVoidAsync("alert", "Login successful!");
+       // await JS.InvokeVoidAsync("alert", "Login successful!");
     }
     
     private async Task HandleActivate()
     {
         // Add your activation logic here
-        await JS.InvokeVoidAsync("alert", "Activate button clicked!");
+        //await JS.InvokeVoidAsync("alert", "Activate button clicked!");
     }
 }
