@@ -1,0 +1,234 @@
+﻿@using EntityFrameworkDatabaseLibrary.Models
+@using DataHandlerLibrary.Services
+@inject IJSRuntime JSRuntime
+
+<div class="modal fade @(IsVisible ? "show" : "")" id="userRoleModal" tabindex="-1" style="display: @(IsVisible ? "block" : "none")" aria-labelledby="userRoleModalLabel" aria-hidden="@(!IsVisible)">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userRoleModalLabel">
+                    @(IsEditMode ? "Edit User Role" : "Create New User Role")
+                </h5>
+                <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@CurrentUserRole" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="roleName" class="form-label">Role Name <span class="text-danger">*</span></label>
+                                <InputText id="roleName" class="form-control" @bind-Value="CurrentUserRole.Role_Name" placeholder="Enter role name" />
+                                <ValidationMessage For="@(() => CurrentUserRole.Role_Name)" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="isActive" class="form-label">Status</label>
+                                <div class="form-check">
+                                    <InputCheckbox id="isActive" class="form-check-input" @bind-Value="CurrentUserRole.Is_Active" />
+                                    <label class="form-check-label" for="isActive">
+                                        Active
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="roleDescription" class="form-label">Description</label>
+                        <InputTextArea id="roleDescription" class="form-control" @bind-Value="CurrentUserRole.Role_Description" rows="3" placeholder="Enter role description" />
+                        <ValidationMessage For="@(() => CurrentUserRole.Role_Description)" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="mb-3">Permissions</h6>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canAccessAllSites" class="form-check-input" @bind-Value="CurrentUserRole.Can_Access_All_Sites" />
+                                    <label class="form-check-label" for="canAccessAllSites">
+                                        Can Access All Sites
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canManageUsers" class="form-check-input" @bind-Value="CurrentUserRole.Can_Manage_Users" />
+                                    <label class="form-check-label" for="canManageUsers">
+                                        Can Manage Users
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canViewReports" class="form-check-input" @bind-Value="CurrentUserRole.Can_View_Reports" />
+                                    <label class="form-check-label" for="canViewReports">
+                                        Can View Reports
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canManageProducts" class="form-check-input" @bind-Value="CurrentUserRole.Can_Manage_Products" />
+                                    <label class="form-check-label" for="canManageProducts">
+                                        Can Manage Products
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canProcessRefunds" class="form-check-input" @bind-Value="CurrentUserRole.Can_Process_Refunds" />
+                                    <label class="form-check-label" for="canProcessRefunds">
+                                        Can Process Refunds
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canOverridePrices" class="form-check-input" @bind-Value="CurrentUserRole.Can_Override_Prices" />
+                                    <label class="form-check-label" for="canOverridePrices">
+                                        Can Override Prices
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox id="canManageShifts" class="form-check-input" @bind-Value="CurrentUserRole.Can_Manage_Shifts" />
+                                    <label class="form-check-label" for="canManageShifts">
+                                        Can Manage Shifts
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@IsLoading">
+                            @if (IsLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            @(IsEditMode ? "Update Role" : "Create Role")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public UserRole? UserRoleToEdit { get; set; }
+    [Parameter] public EventCallback<UserRole> OnUserRoleSaved { get; set; }
+    [Parameter] public EventCallback OnUserRoleDeleted { get; set; }
+    [Inject] public UserRoleServices UserRoleService { get; set; } = default!;
+
+    private UserRole CurrentUserRole { get; set; } = new();
+    private bool IsEditMode => UserRoleToEdit != null;
+    private bool IsLoading { get; set; }
+    private string ErrorMessage { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible)
+        {
+            if (IsEditMode && UserRoleToEdit != null)
+            {
+                // Create a copy for editing
+                CurrentUserRole = new UserRole
+                {
+                    Role_ID = UserRoleToEdit.Role_ID,
+                    Role_Name = UserRoleToEdit.Role_Name,
+                    Role_Description = UserRoleToEdit.Role_Description,
+                    Can_Access_All_Sites = UserRoleToEdit.Can_Access_All_Sites,
+                    Can_Manage_Users = UserRoleToEdit.Can_Manage_Users,
+                    Can_View_Reports = UserRoleToEdit.Can_View_Reports,
+                    Can_Manage_Products = UserRoleToEdit.Can_Manage_Products,
+                    Can_Process_Refunds = UserRoleToEdit.Can_Process_Refunds,
+                    Can_Override_Prices = UserRoleToEdit.Can_Override_Prices,
+                    Can_Manage_Shifts = UserRoleToEdit.Can_Manage_Shifts,
+                    Is_Active = UserRoleToEdit.Is_Active,
+                    Site_Id = UserRoleToEdit.Site_Id,
+                    Till_Id = UserRoleToEdit.Till_Id,
+                    Created_By_Id = UserRoleToEdit.Created_By_Id,
+                    Last_Modified_By_Id = UserRoleToEdit.Last_Modified_By_Id
+                };
+            }
+            else
+            {
+                // Create new role
+                CurrentUserRole = new UserRole
+                {
+                    Is_Active = true,
+                    Created_By_Id = 1, // You'll need to set this to the current user's ID
+                    Last_Modified_By_Id = 1 // You'll need to set this to the current user's ID
+                };
+            }
+        }
+
+        ErrorMessage = string.Empty;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            // Validate the entity
+            var validationResult = await UserRoleService.ValidateAsync(CurrentUserRole);
+            if (!string.IsNullOrEmpty(validationResult))
+            {
+                ErrorMessage = validationResult;
+                return;
+            }
+
+            if (IsEditMode)
+            {
+                await UserRoleService.UpdateAsync(CurrentUserRole);
+            }
+            else
+            {
+                await UserRoleService.AddAsync(CurrentUserRole);
+            }
+
+            await OnUserRoleSaved.InvokeAsync(CurrentUserRole);
+            await CloseModal();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving user role: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        CurrentUserRole = new UserRole();
+        ErrorMessage = string.Empty;
+    }
+}
