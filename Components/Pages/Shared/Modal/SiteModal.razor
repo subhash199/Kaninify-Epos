@@ -153,6 +153,8 @@
     [Parameter] public Site? SiteToEdit { get; set; }
     [Parameter] public EventCallback<Site> OnSiteSaved { get; set; }
     [Parameter] public EventCallback OnSiteDeleted { get; set; }
+    [Parameter] public EventCallback OncloseSiteModal { get; set; }
+
     [Inject] public SiteServices SiteService { get; set; } = default!;
     
     private Site CurrentSite { get; set; } = new();
@@ -192,9 +194,7 @@
                 CurrentSite = new Site
                 {
                     Is_Active = true,
-                    Site_Country = "United Kingdom", // Default country
-                    Created_By_Id = 1, // You'll need to set this to the current user's ID
-                    Last_Modified_By_Id = 1 // You'll need to set this to the current user's ID
+                    Site_Country = "United Kingdom", // Default country                   
                 };
             }
         }
@@ -248,5 +248,6 @@
         await IsVisibleChanged.InvokeAsync(IsVisible);
         CurrentSite = new Site();
         ErrorMessage = string.Empty;
+        OncloseSiteModal.InvokeAsync();
     }
 }

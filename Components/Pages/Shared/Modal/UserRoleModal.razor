@@ -139,6 +139,7 @@
     [Parameter] public UserRole? UserRoleToEdit { get; set; }
     [Parameter] public EventCallback<UserRole> OnUserRoleSaved { get; set; }
     [Parameter] public EventCallback OnUserRoleDeleted { get; set; }
+    [Parameter] public EventCallback OnCloseRoleModal{ get; set; }
     [Inject] public UserRoleServices UserRoleService { get; set; } = default!;
 
     private UserRole CurrentUserRole { get; set; } = new();
@@ -230,5 +231,6 @@
         await IsVisibleChanged.InvokeAsync(IsVisible);
         CurrentUserRole = new UserRole();
         ErrorMessage = string.Empty;
+        OnCloseRoleModal.InvokeAsync();
     }
 }
