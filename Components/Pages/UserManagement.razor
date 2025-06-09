@@ -3,6 +3,8 @@
 @using DataHandlerLibrary.Services
 @using EposRetail.Components.Pages.Shared.Modal
 @inject UserManagementServices UserManagementServices
+@inject UserSiteAccessServices UserSiteAccessServices
+@inject SiteServices SiteServices
 @inject IJSRuntime JSRuntime
 
 <PageTitle>User Management</PageTitle>
@@ -428,10 +430,19 @@
 {
     <!-- Modal Component -->
     <UserModal CurrentUser="currentUser"
+               IsEditMode="isEditMode"
                AvailableRoles="roles"
                AvailableSites="sites"
                OnUserSaved="HandleUserSaved"
                OnModalClosed="OnUserModalClose" />
+}
+
+<!-- Site Access Modal -->
+@if (showSiteAccessModal)
+{
+    <SiteAccessModal SelectedUser="selectedUserForSiteAccess"
+                     OnSiteAccessSaved="HandleSiteAccessSaved"
+                     OnModalClosed="CloseSiteAccessModal" />
 }
 
 @code {
@@ -447,6 +458,10 @@
     
     // Add this missing variable for edit mode
     private bool isEditMode = false;
+
+    // Site Access Modal properties
+    private bool showSiteAccessModal = false;
+    private PosUser selectedUserForSiteAccess;
 
 
     // Role management
@@ -790,16 +805,11 @@
 
             if (userDetails != null)
             {
-                // Create a detailed view message or show in a modal
-                var details = $"User Details:\n" +
-                             $"Name: {userDetails.First_Name} {userDetails.Last_Name}\n" +
-                             $"Role: {userDetails.UserRole?.Role_Name ?? "No Role"}\n" +
-                             $"Primary Site: {userDetails.PrimarySite?.Site_BusinessName ?? "No Primary Site"}\n" +
-                             $"Status: {(userDetails.Is_Activated ? "Active" : "Inactive")}\n" +
-                             $"Created: {userDetails.Date_Created:dd/MM/yyyy}\n" +
-                             $"Site Access Count: {userDetails.SiteAccesses?.Count(sa => sa.Is_Active) ?? 0}";
-
-                await JSRuntime.InvokeVoidAsync("alert", details);
+                // Set the current user for viewing
+                currentUser = userDetails;
+                isEditMode = false;  // This will set IsViewMode to true in the modal
+                showUserModal = true;
+                StateHasChanged();
             }
         }
         catch (Exception ex)
@@ -828,20 +838,13 @@
     {
         try
         {
-            // Get user's accessible sites
-            var accessibleSites = await UserManagementServices.GetUserAccessibleSitesAsync(user.User_ID);
-
-            var siteList = string.Join("\n", accessibleSites.Select(s => $"- {s.Site_BusinessName}"));
-            var message = $"Site Access for {user.First_Name} {user.Last_Name}:\n\n{siteList}";
-
-            await JSRuntime.InvokeVoidAsync("alert", message);
-
-            // TODO: Implement a proper modal for managing site access
-            // This would allow adding/removing site access for the user
+            selectedUserForSiteAccess = user;
+            showSiteAccessModal = true;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error loading site access: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error opening site access modal: {ex.Message}");
         }
     }
 
@@ -919,7 +922,7 @@
         {
             // Reset for new user creation
             currentUser = new PosUser();
-            isEditMode = false;
+            isEditMode = true;
             showUserModal = true;
             StateHasChanged();
         }
@@ -1048,6 +1051,23 @@
     private void OnUserModalClose()
     {
         showUserModal = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleSiteAccessSaved(bool success)
+    {
+        if (success)
+        {
+            // Refresh the users list to show updated site access counts
+            //await LoadUsers();
+            //FilterUsers();
+        }
+    }
+    
+    private void CloseSiteAccessModal()
+    {
+        showSiteAccessModal = false;
+        selectedUserForSiteAccess = null;
         StateHasChanged();
     }
 

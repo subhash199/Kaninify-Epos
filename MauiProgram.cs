@@ -11,18 +11,18 @@ public static class MauiProgram
 	{
 		var builder = MauiApp.CreateBuilder();
         builder.Services.AddSingleton<ScreenInfoService>();
-		builder.Services.AddSingleton<DatabaseInitialization>();
-		builder.Services.AddSingleton<ProductServices>();
-		builder.Services.AddSingleton<DepartmentServices>();
-        builder.Services.AddSingleton<VatServices>();
-		builder.Services.AddSingleton<SalesTransactionServices>();
-		builder.Services.AddSingleton<GeneralServices>();
-		builder.Services.AddSingleton<CheckoutService>();
-		builder.Services.AddSingleton<PosUserServices>();
-		builder.Services.AddSingleton<UserRoleServices>();
-		builder.Services.AddSingleton<UserSiteAccessServices>();
-		builder.Services.AddSingleton<SiteServices>();
-        builder.Services.AddSingleton<UserManagementServices>();
+		builder.Services.AddScoped<DatabaseInitialization>(); // Changed from AddSingleton
+		builder.Services.AddScoped<ProductServices>();        // Changed from AddSingleton
+		builder.Services.AddScoped<DepartmentServices>();     // Changed from AddSingleton
+        builder.Services.AddScoped<VatServices>();            // Changed from AddSingleton
+		builder.Services.AddScoped<SalesTransactionServices>(); // Changed from AddSingleton
+		builder.Services.AddScoped<GeneralServices>();        // Changed from AddSingleton
+		builder.Services.AddSingleton<CheckoutService>();     // Keep as singleton if it doesn't use DbContext directly
+		builder.Services.AddScoped<PosUserServices>();       // Changed from AddSingleton
+		builder.Services.AddScoped<UserRoleServices>();      // Changed from AddSingleton
+		builder.Services.AddScoped<UserSiteAccessServices>(); // Changed from AddSingleton
+		builder.Services.AddScoped<SiteServices>();          // Changed from AddSingleton
+        builder.Services.AddScoped<UserManagementServices>(); // Changed from AddSingleton
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>

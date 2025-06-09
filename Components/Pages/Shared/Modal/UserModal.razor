@@ -298,6 +298,7 @@
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
         // Add option for creating new site if not in view mode
+        IsViewMode = !IsEditMode;
         if (!IsViewMode)
         {
             if (!AvailableRoles.Exists(r => r.Role_ID == -1))
@@ -312,13 +313,6 @@
         }
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-
-        }
-    }
     private async Task RoleChangedAsync()
     {
 
