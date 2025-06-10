@@ -445,6 +445,12 @@
                      OnModalClosed="CloseSiteAccessModal" />
 }
 
+<!-- Site User Management Modal -->
+<SiteUserManagementModal IsVisible="showSiteUserManagementModal" 
+                        SelectedSite="selectedSiteForUserManagement"
+                        CurrentUserId="1"
+                        OnModalClosed="CloseSiteUserManagementModal" />
+
 @code {
     private void SetUsersTab() => SetActiveTab("users");
     private void SetRolesTab() => SetActiveTab("roles");
@@ -462,6 +468,10 @@
     // Site Access Modal properties
     private bool showSiteAccessModal = false;
     private PosUser selectedUserForSiteAccess;
+
+    // Site User Management Modal properties
+    private bool showSiteUserManagementModal = false;
+    private Site selectedSiteForUserManagement;
 
 
     // Role management
@@ -497,6 +507,10 @@
     private bool showDeleteModal = false;
     private string deleteItemType = string.Empty;
     private object itemToDelete;
+
+
+// Update the ManageSiteUsers method
+
 
     // Update your existing OnInitializedAsync to include:
     protected override async Task OnInitializedAsync()
@@ -974,8 +988,9 @@
 
     private void ManageSiteUsers(Site site)
     {
-        // Implement site users management
-        JSRuntime.InvokeVoidAsync("alert", $"Manage users for {site.Site_BusinessName}");
+        selectedSiteForUserManagement = site;
+        showSiteUserManagementModal = true;
+        StateHasChanged();
     }
 
     private void HandleUserRoleSaved(UserRole role)
@@ -1070,5 +1085,13 @@
         selectedUserForSiteAccess = null;
         StateHasChanged();
     }
+
+    private void CloseSiteUserManagementModal()
+    {
+        showSiteUserManagementModal = false;
+        selectedSiteForUserManagement = null;
+        StateHasChanged();
+    }
+    
 
 }
