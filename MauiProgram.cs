@@ -1,5 +1,6 @@
 ﻿using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Data;
+using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Services;
 using Microsoft.Extensions.Logging;
 
@@ -19,10 +20,10 @@ public static class MauiProgram
 		builder.Services.AddScoped<GeneralServices>();        // Changed from AddSingleton
 		builder.Services.AddSingleton<CheckoutService>();     // Keep as singleton if it doesn't use DbContext directly
 		builder.Services.AddScoped<PosUserServices>();       // Changed from AddSingleton
-		builder.Services.AddScoped<UserRoleServices>();      // Changed from AddSingleton
 		builder.Services.AddScoped<UserSiteAccessServices>(); // Changed from AddSingleton
 		builder.Services.AddScoped<SiteServices>();          // Changed from AddSingleton
         builder.Services.AddScoped<UserManagementServices>(); // Changed from AddSingleton
+		builder.Services.AddSingleton<PosUser>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>

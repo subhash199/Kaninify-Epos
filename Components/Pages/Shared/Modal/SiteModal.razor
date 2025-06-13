@@ -7,7 +7,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="siteModalLabel">
-                    @(IsEditMode ? "Edit Site" : "Create New Site")
+                    @if (IsViewMode)
+                    {
+                        <text>View Site Details</text>
+                    }
+                    else
+                    {
+                        <text>@(IsEditMode ? "Edit Site" : "Create New Site")</text>
+                    }
                 </h5>
                 <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
             </div>
@@ -27,7 +34,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="businessName" class="form-label">Business Name <span class="text-danger">*</span></label>
-                                <InputText id="businessName" class="form-control" @bind-Value="CurrentSite.Site_BusinessName" placeholder="Enter business name" />
+                                <InputText id="businessName" class="form-control" @bind-Value="CurrentSite.Site_BusinessName" placeholder="Enter business name" disabled="@IsViewMode" />
                                 <ValidationMessage For="@(() => CurrentSite.Site_BusinessName)" />
                             </div>
                         </div>
@@ -35,7 +42,7 @@
                             <div class="mb-3">
                                 <label for="isActive" class="form-label">Status</label>
                                 <div class="form-check">
-                                    <InputCheckbox id="isActive" class="form-check-input" @bind-Value="CurrentSite.Is_Active" />
+                                    <InputCheckbox id="isActive" class="form-check-input" @bind-Value="CurrentSite.Is_Active" disabled="@IsViewMode" />
                                     <label class="form-check-label" for="isActive">
                                         Active
                                     </label>
@@ -127,14 +134,19 @@
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" disabled="@IsLoading">
-                            @if (IsLoading)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            }
-                            @(IsEditMode ? "Update Site" : "Create Site")
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">
+                            @(IsViewMode ? "Close" : "Cancel")
                         </button>
+                        @if (!IsViewMode)
+                        {
+                            <button type="submit" class="btn btn-primary" disabled="@IsLoading">
+                                @if (IsLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                }
+                                @(IsEditMode ? "Update Site" : "Create Site")
+                            </button>
+                        }
                     </div>
                 </EditForm>
             </div>
@@ -151,14 +163,16 @@
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
     [Parameter] public Site? SiteToEdit { get; set; }
+    [Parameter] public bool IsViewMode { get; set; } = false;
     [Parameter] public EventCallback<Site> OnSiteSaved { get; set; }
+    [Parameter] public EventCallback<Site> OnSiteUpdated { get; set; }
     [Parameter] public EventCallback OnSiteDeleted { get; set; }
     [Parameter] public EventCallback OncloseSiteModal { get; set; }
 
     [Inject] public SiteServices SiteService { get; set; } = default!;
     
     private Site CurrentSite { get; set; } = new();
-    private bool IsEditMode => SiteToEdit != null;
+    private bool IsEditMode => SiteToEdit != null && !IsViewMode;
     private bool IsLoading { get; set; }
     private string ErrorMessage { get; set; } = string.Empty;
     
@@ -166,7 +180,7 @@
     {
         if (IsVisible)
         {
-            if (IsEditMode && SiteToEdit != null)
+            if (SiteToEdit != null)
             {
                 // Create a copy for editing
                 CurrentSite = new Site
@@ -221,15 +235,16 @@
             {
                 CurrentSite.Last_Modified = DateTime.Now;
                 await SiteService.UpdateAsync(CurrentSite);
+                await OnSiteUpdated.InvokeAsync(CurrentSite);
             }
             else
             {
                 CurrentSite.Date_Created = DateTime.Now;
                 CurrentSite.Last_Modified = DateTime.Now;
                 await SiteService.AddAsync(CurrentSite);
+                await OnSiteSaved.InvokeAsync(CurrentSite);
             }
             
-            await OnSiteSaved.InvokeAsync(CurrentSite);
             await CloseModal();
         }
         catch (Exception ex)

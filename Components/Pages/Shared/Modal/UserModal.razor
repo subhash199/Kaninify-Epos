@@ -1,4 +1,5 @@
-﻿@using EntityFrameworkDatabaseLibrary.Models
+﻿@using DataHandlerLibrary.Models
+@using EntityFrameworkDatabaseLibrary.Models
 @using DataHandlerLibrary.Services
 @inject UserManagementServices UserManagementServices
 @inject IJSRuntime JSRuntime
@@ -67,14 +68,6 @@
                                 <div class="form-text">8-digit passcode for user authentication</div>
                             </div>
 
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <InputCheckbox id="adminUser" class="form-check-input" @bind-Value="CurrentUser.Admin_User" disabled="@IsViewMode" />
-                                    <label class="form-check-label" for="adminUser">
-                                        Administrator User
-                                    </label>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Role and Site Assignment -->
@@ -84,19 +77,18 @@
                             <div class="mb-3">
                                 <label for="roleId" class="form-label">Role *</label>
                                 <InputSelect id="roleId" class="form-select"
-                                             @bind-Value="CurrentUser.Role_ID"
+                                             @bind-Value="CurrentUser.User_Type"
                                              @bind-Value:after="RoleChangedAsync"
                                              disabled="@IsViewMode">
                                     <option value="0">-- Select Role --</option>
-                                    @if (AvailableRoles != null)
+
+                                    @foreach (var role in Enum.GetValues(typeof(PosUserType)))
                                     {
-                                        @foreach (var role in AvailableRoles)
-                                        {
-                                            <option value="@role.Role_ID">@role.Role_Name</option>
-                                        }
+                                        <option value="@role">@role</option>
                                     }
+
                                 </InputSelect>
-                                <ValidationMessage For="@(() => CurrentUser.Role_ID)" />
+                                @* <ValidationMessage For="@(() => CurrentUser.User_Type)" /> *@
                             </div>
 
                             <div class="mb-3">
@@ -115,46 +107,40 @@
                                 </InputSelect>
                                 <div class="form-text">Primary site for staff locked to one location</div>
                             </div>
-
-                            <div class="mb-3">
-                                <label for="tillId" class="form-label">Till ID</label>
-                                <InputNumber id="tillId" class="form-control" @bind-Value="CurrentUser.Till_Id" disabled="@IsViewMode" />
-                                <ValidationMessage For="@(() => CurrentUser.Till_Id)" />
-                            </div>
                         </div>
                     </div>
 
                     <!-- Permissions -->
                     <div class="row mt-3">
                         <div class="col-12">
-                            <h6 class="text-primary mb-3"><i class="fas fa-key me-2"></i>Permissions</h6>
+                            <h6 class="text-primary mb-3"><i class="fas fa-key me-2"></i>Checkout Permissions</h6>
 
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedVoidLine" class="form-label">Allowed Void Line</label>
-                                        <InputNumber id="allowedVoidLine" class="form-control" @bind-Value="CurrentUser.Allowed_Void_Line" disabled="@IsViewMode" />
+                                        <label for="allowedVoidLine" class="form-label">Void Line</label>
+                                        <InputCheckbox id="allowedVoidLine" class="form-check-input" @bind-Value="CurrentUser.Allowed_Void_Line" disabled="@IsViewMode" />
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedVoidSale" class="form-label">Allowed Void Sale</label>
-                                        <InputNumber id="allowedVoidSale" class="form-control" @bind-Value="CurrentUser.Allowed_Void_Sale" disabled="@IsViewMode" />
+                                        <label for="allowedVoidSale" class="form-label">Void Sale</label>
+                                        <InputCheckbox id="allowedVoidSale" class="form-check-input" @bind-Value="CurrentUser.Allowed_Void_Sale" disabled="@IsViewMode" />
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedNoSale" class="form-label">Allowed No Sale</label>
-                                        <InputNumber id="allowedNoSale" class="form-control" @bind-Value="CurrentUser.Allowed_No_Sale" disabled="@IsViewMode" />
+                                        <label for="allowedNoSale" class="form-label">No Sale</label>
+                                        <InputCheckbox id="allowedNoSale" class="form-check-input" @bind-Value="CurrentUser.Allowed_No_Sale" disabled="@IsViewMode" />
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedReturns" class="form-label">Allowed Returns</label>
-                                        <InputNumber id="allowedReturns" class="form-control" @bind-Value="CurrentUser.Allowed_Returns" disabled="@IsViewMode" />
+                                        <label for="allowedReturns" class="form-label">Returns</label>
+                                        <InputCheckbox id="allowedReturns" class="form-check-input" @bind-Value="CurrentUser.Allowed_Returns" disabled="@IsViewMode" />
                                     </div>
                                 </div>
                             </div>
@@ -162,8 +148,141 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedPayout" class="form-label">Allowed Payout</label>
-                                        <InputNumber id="allowedPayout" class="form-control" @bind-Value="CurrentUser.Allowed_Payout" disabled="@IsViewMode" />
+                                        <label for="allowedPayout" class="form-label">Payout</label>
+                                        <InputCheckbox id="allowedPayout" class="form-check-input" @bind-Value="CurrentUser.Allowed_Payout" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedRefund" class="form-label">Refund</label>
+                                        <InputCheckbox id="allowedRefund" class="form-check-input" @bind-Value="CurrentUser.Allowed_Refund" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedChangePrice" class="form-label">Change Price</label>
+                                        <InputCheckbox id="allowedChangePrice" class="form-check-input" @bind-Value="CurrentUser.Allowed_Change_Price" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedDayEnd" class="form-label">Day End</label>
+                                        <InputCheckbox id="allowedDayEnd" class="form-check-input" @bind-Value="CurrentUser.Allowed_Day_End" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Permissions -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3"><i class="fas fa-key me-2"></i>Management Permission</h6>
+                            <!-- Management Permissions -->
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageUsers" class="form-label">Users</label>
+                                        <InputCheckbox id="allowedManageUsers" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Users" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageSites" class="form-label">Sites</label>
+                                        <InputCheckbox id="allowedManageSites" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Sites" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageTills" class="form-label">Tills</label>
+                                        <InputCheckbox id="allowedManageTills" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Tills" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageProducts" class="form-label">Products</label>
+                                        <InputCheckbox id="allowedManageProducts" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Products" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageSuppliers" class="form-label">Suppliers</label>
+                                        <InputCheckbox id="allowedManageSuppliers" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Suppliers" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageStockTransfer" class="form-label">Stock Transfer</label>
+                                        <InputCheckbox id="allowedManageStockTransfer" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_StockTransfer" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageVat" class="form-label">VAT</label>
+                                        <InputCheckbox id="allowedManageVat" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Vat" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageDepartments" class="form-label">Departments</label>
+                                        <InputCheckbox id="allowedManageDepartments" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Departments" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageOrders" class="form-label">Orders</label>
+                                        <InputCheckbox id="allowedManageOrders" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Orders" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageReports" class="form-label">Reports</label>
+                                        <InputCheckbox id="allowedManageReports" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Reports" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageSettings" class="form-label">Settings</label>
+                                        <InputCheckbox id="allowedManageSettings" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Settings" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageTaxRates" class="form-label">Tax Rates</label>
+                                        <InputCheckbox id="allowedManageTaxRates" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Tax_Rates" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManagePromotions" class="form-label">Promotions</label>
+                                        <InputCheckbox id="allowedManagePromotions" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Promotions" disabled="@IsViewMode" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="allowedManageVoidedProducts" class="form-label">Voided Products</label>
+                                        <InputCheckbox id="allowedManageVoidedProducts" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_VoidedProducts" disabled="@IsViewMode" />
                                     </div>
                                 </div>
                             </div>
@@ -263,19 +382,9 @@
     </SiteModal>
 }
 
-@if (showRoleModal)
-{
-    <UserRoleModal IsVisible=showRoleModal
-                   OnUserRoleSaved="OnRoleSaved"
-                   OnUserRoleDeleted="OnRoleDeleted"
-                   OnCloseRoleModal="OnCloseRoleModal">
-    </UserRoleModal>
-
-}
 
 @code {
     [Parameter] public PosUser CurrentUser { get; set; } = new();
-    [Parameter] public List<UserRole> AvailableRoles { get; set; } = new();
     [Parameter] public List<Site> AvailableSites { get; set; } = new();
     [Parameter] public EventCallback<PosUser> OnUserSaved { get; set; }
     [Parameter] public EventCallback OnModalClosed { get; set; }
@@ -289,9 +398,6 @@
     //Site Modal Reference
     private bool showSiteModal = false;
 
-    //Role Modal Reference
-    private bool showRoleModal = false;
-
     protected override void OnParametersSet()
     {
         // Clear messages when parameters change
@@ -301,10 +407,7 @@
         IsViewMode = !IsEditMode;
         if (!IsViewMode)
         {
-            if (!AvailableRoles.Exists(r => r.Role_ID == -1))
-            {
-                AvailableRoles.Add(new UserRole { Role_ID = -1, Role_Name = "-- Create New Role --" });
-            }
+
             if (!AvailableSites.Exists(s => s.Site_Id == -1))
             {
                 AvailableSites.Add(new Site { Site_Id = -1, Site_BusinessName = "-- Create New Site --", Site_AddressLine1 = "" });
@@ -315,58 +418,142 @@
 
     private async Task RoleChangedAsync()
     {
-
-        if (CurrentUser.Role_ID == -1) // Assuming 0 is the ID for creating a new site
+        switch (CurrentUser.User_Type)
         {
-            showRoleModal = true;
-            StateHasChanged(); // Refresh the component to show the site modal
+            case PosUserType.Trainee:
+                // Basic permissions for trainee
+                CurrentUser.Allowed_Void_Line = true;
+                CurrentUser.Allowed_Void_Sale = false;
+                CurrentUser.Allowed_No_Sale = false;
+                CurrentUser.Allowed_Returns = false;
+                CurrentUser.Allowed_Payout = false;
+                CurrentUser.Allowed_Refund = false;
+                CurrentUser.Allowed_Change_Price = false;
+                CurrentUser.Allowed_Manage_Users = false;
+                CurrentUser.Allowed_Manage_Sites = false;
+                CurrentUser.Allowed_Manage_Tills = false;
+                CurrentUser.Allowed_Manage_Products = false;
+                CurrentUser.Allowed_Manage_Suppliers = false;
+                CurrentUser.Allowed_Manage_StockTransfer = false;
+                CurrentUser.Allowed_Manage_Vat = false;
+                CurrentUser.Allowed_Manage_Departments = false;
+                CurrentUser.Allowed_Manage_Orders = false;
+                CurrentUser.Allowed_Manage_Reports = false;
+                CurrentUser.Allowed_Manage_Settings = false;
+                CurrentUser.Allowed_Manage_Tax_Rates = false;
+                CurrentUser.Allowed_Manage_Promotions = false;
+                CurrentUser.Allowed_Manage_VoidedProducts = false;
+                CurrentUser.Allowed_Day_End = false;
+                break;
+
+            case PosUserType.Staff:
+                // Limited permissions for staff
+                CurrentUser.Allowed_Void_Line = true;
+                CurrentUser.Allowed_Void_Sale = true;
+                CurrentUser.Allowed_No_Sale = true;
+                CurrentUser.Allowed_Returns = true;
+                CurrentUser.Allowed_Payout = true;
+                CurrentUser.Allowed_Refund = true;
+                CurrentUser.Allowed_Change_Price = true;
+                CurrentUser.Allowed_Manage_Users = false;
+                CurrentUser.Allowed_Manage_Sites = false;
+                CurrentUser.Allowed_Manage_Tills = false;
+                CurrentUser.Allowed_Manage_Products = true;
+                CurrentUser.Allowed_Manage_Suppliers = true;
+                CurrentUser.Allowed_Manage_StockTransfer = true;
+                CurrentUser.Allowed_Manage_Vat = true;
+                CurrentUser.Allowed_Manage_Departments = true;
+                CurrentUser.Allowed_Manage_Orders = false;
+                CurrentUser.Allowed_Manage_Reports = false;
+                CurrentUser.Allowed_Manage_Settings = false;
+                CurrentUser.Allowed_Manage_Tax_Rates = true;
+                CurrentUser.Allowed_Manage_Promotions = true;
+                CurrentUser.Allowed_Manage_VoidedProducts = false;
+                CurrentUser.Allowed_Day_End = true;
+                break;
+
+            case PosUserType.Manager:
+                // Extended permissions for manager
+                CurrentUser.Allowed_Void_Line = true;
+                CurrentUser.Allowed_Void_Sale = true;
+                CurrentUser.Allowed_No_Sale = true;
+                CurrentUser.Allowed_Returns = true;
+                CurrentUser.Allowed_Payout = true;
+                CurrentUser.Allowed_Refund = true;
+                CurrentUser.Allowed_Change_Price = true;
+                CurrentUser.Allowed_Manage_Users = true;
+                CurrentUser.Allowed_Manage_Sites = true;
+                CurrentUser.Allowed_Manage_Tills = true;
+                CurrentUser.Allowed_Manage_Products = true;
+                CurrentUser.Allowed_Manage_Suppliers = true;
+                CurrentUser.Allowed_Manage_StockTransfer = true;
+                CurrentUser.Allowed_Manage_Vat = true;
+                CurrentUser.Allowed_Manage_Departments = true;
+                CurrentUser.Allowed_Manage_Orders = true;
+                CurrentUser.Allowed_Manage_Reports = true;
+                CurrentUser.Allowed_Manage_Settings = true;
+                CurrentUser.Allowed_Manage_Tax_Rates = true;
+                CurrentUser.Allowed_Manage_Promotions = true;
+                CurrentUser.Allowed_Manage_VoidedProducts = true;
+                CurrentUser.Allowed_Day_End = true;
+                break;
+
+            case PosUserType.Director:
+                // Full permissions for director/admin
+                CurrentUser.Allowed_Void_Line = true;
+                CurrentUser.Allowed_Void_Sale = true;
+                CurrentUser.Allowed_No_Sale = true;
+                CurrentUser.Allowed_Returns = true;
+                CurrentUser.Allowed_Payout = true;
+                CurrentUser.Allowed_Refund = true;
+                CurrentUser.Allowed_Change_Price = true;
+                CurrentUser.Allowed_Manage_Users = true;
+                CurrentUser.Allowed_Manage_Sites = true;
+                CurrentUser.Allowed_Manage_Tills = true;
+                CurrentUser.Allowed_Manage_Products = true;
+                CurrentUser.Allowed_Manage_Suppliers = true;
+                CurrentUser.Allowed_Manage_StockTransfer = true;
+                CurrentUser.Allowed_Manage_Vat = true;
+                CurrentUser.Allowed_Manage_Departments = true;
+                CurrentUser.Allowed_Manage_Orders = true;
+                CurrentUser.Allowed_Manage_Reports = true;
+                CurrentUser.Allowed_Manage_Settings = true;
+                CurrentUser.Allowed_Manage_Tax_Rates = true;
+                CurrentUser.Allowed_Manage_Promotions = true;
+                CurrentUser.Allowed_Manage_VoidedProducts = true;
+                CurrentUser.Allowed_Day_End = true;
+                break;
+
+            default:
+                // Default to minimal permissions
+                CurrentUser.Allowed_Void_Line = false;
+                CurrentUser.Allowed_Void_Sale = false;
+                CurrentUser.Allowed_No_Sale = false;
+                CurrentUser.Allowed_Returns = false;
+                CurrentUser.Allowed_Payout = false;
+                CurrentUser.Allowed_Refund = false;
+                CurrentUser.Allowed_Change_Price = false;
+                CurrentUser.Allowed_Manage_Users = false;
+                CurrentUser.Allowed_Manage_Sites = false;
+                CurrentUser.Allowed_Manage_Tills = false;
+                CurrentUser.Allowed_Manage_Products = false;
+                CurrentUser.Allowed_Manage_Suppliers = false;
+                CurrentUser.Allowed_Manage_StockTransfer = false;
+                CurrentUser.Allowed_Manage_Vat = false;
+                CurrentUser.Allowed_Manage_Departments = false;
+                CurrentUser.Allowed_Manage_Orders = false;
+                CurrentUser.Allowed_Manage_Reports = false;
+                CurrentUser.Allowed_Manage_Settings = false;
+                CurrentUser.Allowed_Manage_Tax_Rates = false;
+                CurrentUser.Allowed_Manage_Promotions = false;
+                CurrentUser.Allowed_Manage_VoidedProducts = false;
+                CurrentUser.Allowed_Day_End = false;
+                break;
         }
-        // Logic to handle site change can be added here
-        // e.g., fetching site-specific data or updating UI elements
+
+        StateHasChanged(); // Refresh the component to show the updated permissions
     }
 
-
-    private async Task RoleChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out int roleId))
-        {
-            CurrentUser.Role_ID = roleId;
-
-            if (roleId == 0)
-            {
-                showRoleModal = true;
-                StateHasChanged();
-            }
-
-            // Add any additional role-specific logic here
-            Console.WriteLine($"Role changed to: {roleId}");
-        }
-    }
-
-    private async Task OnRoleSaved(UserRole role)
-    {
-        // Logic to handle role saved event
-        // For example, you might want to refresh the list of available roles
-        if (role != null)
-        {
-            // Add the new role to the available roles list
-            AvailableRoles.Add(role);
-            CurrentUser.Role_ID = role.Role_ID; // Set the role ID
-        }
-        showRoleModal = false; // Close the role modal after saving
-    }
-
-    private async Task OnRoleDeleted()
-    {
-        AvailableRoles = (await UserManagementServices.GetAllRolesAsync()).ToList(); // Refresh roles after deletion
-        CurrentUser.Role_ID = 0; // Reset role if it was deleted
-        showRoleModal = false; // Close the role modal after deletion
-    }
-
-    private async Task OnCloseRoleModal()
-    {
-        showRoleModal = false;
-    }
 
     private async Task OncloseSiteModal()
     {
@@ -445,8 +632,6 @@
 
     public async Task CloseModal()
     {
-        AvailableRoles = new List<UserRole>
-    (); // Clear roles to avoid stale data
         AvailableSites = new List<Site>
             (); // Clear sites to avoid stale data
         CurrentUser = new PosUser(); // Reset current user to avoid stale data
@@ -476,11 +661,10 @@
         CurrentUser = new PosUser
         {
             User_ID = user.User_ID,
-            Admin_User = user.Admin_User,
             First_Name = user.First_Name,
             Last_Name = user.Last_Name,
             Passcode = user.Passcode,
-            Role_ID = user.Role_ID,
+            User_Type = PosUserType.Staff,
             Primary_Site_Id = user.Primary_Site_Id,
             Allowed_Void_Line = user.Allowed_Void_Line,
             Allowed_Void_Sale = user.Allowed_Void_Sale,

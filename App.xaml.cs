@@ -1,4 +1,5 @@
-﻿namespace EposRetail
+﻿using Microsoft.Maui.Devices;
+namespace EposRetail
 {
     public partial class App : Application
     {

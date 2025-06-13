@@ -356,7 +356,7 @@
                 return;
             }
            
-            Product.Department_ID = Product.Department_ID ?? (await departmentServices.GetDefaultDepartment()).Department_ID;
+            Product.Department_ID = Product.Department_ID ==0 ? (await departmentServices.GetDefaultDepartment()).Department_ID : Product.Department_ID;
             Product.VAT_ID = Product.VAT_ID == 0 ? (await vatServices.GetDefaultVatAsync()).VAT_ID : 0;
 
             if (Product.Product_ID == 0) // If it's a new product

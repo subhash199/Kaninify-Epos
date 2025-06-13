@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using DataHandlerLibrary.Services
 @using EposRetail.Components.Pages.Shared.Modal
@@ -21,13 +22,6 @@
                                     @onclick="SetUsersTab"
                                     type="button" role="tab">
                                 <i class="fas fa-users me-2"></i>Users
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link @(activeTab == "roles" ? "active" : "")"
-                                    @onclick="SetRolesTab"
-                                    type="button" role="tab">
-                                <i class="fas fa-user-tag me-2"></i>Roles
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -64,14 +58,13 @@
                                 </div>
                                 <div class="col-md-3">
                                     <select class="form-select" @bind="selectedRoleFilter" @bind:after="FilterUsers">
-                                        <option value="">All Roles</option>
-                                        @if (roles != null)
+                                        <option value="">User Type</option>
+
+                                        @foreach (var role in Enum.GetValues(typeof(PosUserType)))
                                         {
-                                            @foreach (var role in roles)
-                                            {
-                                                <option value="@role.Role_ID">@role.Role_Name</option>
-                                            }
+                                            <option value="@role">@role</option>
                                         }
+
                                     </select>
                                 </div>
                                 <div class="col-md-3">
@@ -116,7 +109,7 @@
                                                 <tr>
                                                     <td>@($"{user.First_Name} {user.Last_Name}")</td>
                                                     <td>
-                                                        <span class="badge bg-info">@user.UserRole?.Role_Name</span>
+                                                        <span class="badge bg-info">@user.User_Type</span>
                                                     </td>
                                                     <td>@user.PrimarySite?.Site_BusinessName @user.PrimarySite?.Site_AddressLine1</td>
                                                     <td>
@@ -171,82 +164,6 @@
                                         {
                                             <tr>
                                                 <td colspan="6" class="text-center text-muted">No users found</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    }
-
-                    <!-- Roles Tab -->
-                    @if (activeTab == "roles")
-                    {
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h3 class="mb-0">Role Management</h3>
-                                <button class="btn btn-primary" @onclick="ShowCreateRoleModal">
-                                    <i class="fas fa-plus"></i> Add New Role
-                                </button>
-                            </div>
-
-                            <!-- Roles Search -->
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                        <input type="text" class="form-control" placeholder="Search roles..."
-                                               @bind="roleSearchTerm" @bind:event="oninput" @bind:after="FilterRoles" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Roles Table -->
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Role Name</th>
-                                            <th>Description</th>
-                                            <th>Users Count</th>
-                                            <th>Created Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (filteredRoles != null && filteredRoles.Any())
-                                        {
-                                            @foreach (var role in filteredRoles)
-                                            {
-                                                <tr>
-                                                    <td>
-                                                        <strong>@role.Role_Name</strong>
-                                                    </td>
-                                                    <td>@role.Role_Description</td>
-                                                    <td>
-                                                        <span class="badge bg-info">@GetUserCountForRole(role.Role_ID)</span>
-                                                    </td>
-                                                    <td>@role?.Date_Created.ToString("MMM dd, yyyy")</td>
-                                                    <td>
-
-                                                        <div class="btn-group" role="group">
-                                                            <button class="btn btn-sm btn-warning" style="min-width: 80px;" @onclick="() => EditRole(role)">
-                                                                <i class="fas fa-edit me-1"></i>Edit
-                                                            </button>
-                                                            <button class="btn btn-sm btn-danger" style="min-width: 80px;" @onclick="() => DeleteRole(role)"
-                                                                    disabled="@(GetUserCountForRole(role.Role_ID) > 0)">
-                                                                <i class="fas fa-trash me-1"></i>Delete
-                                                            </button>
-                                                        </div>
-                                                    </td>
-
-                                                </tr>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted">No roles found</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -385,45 +302,25 @@
     </div>
 </div>
 
-<!-- Create/Edit Role Modal -->
+@* <!-- Create/Edit Role Modal -->
 @if (showRoleModal)
 {
     <UserRoleModal @bind-IsVisible="showRoleModal"
                    UserRoleToEdit="currentRole"
                    OnUserRoleSaved="HandleUserRoleSaved"
+                   OnUserRoleUpdated="HandleUserRoleUpdated"
                    OnUserRoleDeleted="HandleUserRoleDeleted" />
-}
+} *@
 
 <!-- Create/Edit Site Modal -->
 @if (showSiteModal)
 {
     <SiteModal @bind-IsVisible="showSiteModal"
                SiteToEdit="currentSite"
+               IsViewMode="isViewMode"
+               OnSiteUpdated="HandleSiteOnUpdate"
                OnSiteSaved="HandleSiteSaved"
                OnSiteDeleted="HandleSiteDeleted" />
-}
-
-<!-- Delete Confirmation Modal -->
-@if (showDeleteModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Delete</h5>
-                    <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this @deleteItemType?</p>
-                    <p class="text-muted">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
-                </div>
-            </div>
-        </div>
-    </div>
 }
 
 @if (showUserModal)
@@ -431,7 +328,6 @@
     <!-- Modal Component -->
     <UserModal CurrentUser="currentUser"
                IsEditMode="isEditMode"
-               AvailableRoles="roles"
                AvailableSites="sites"
                OnUserSaved="HandleUserSaved"
                OnModalClosed="OnUserModalClose" />
@@ -446,10 +342,9 @@
 }
 
 <!-- Site User Management Modal -->
-<SiteUserManagementModal IsVisible="showSiteUserManagementModal" 
-                        SelectedSite="selectedSiteForUserManagement"
-                        CurrentUserId="1"
-                        OnModalClosed="CloseSiteUserManagementModal" />
+<SiteUserManagementModal IsVisible="showSiteUserManagementModal"
+                         SelectedSite="selectedSiteForUserManagement"                         
+                         OnModalClosed="CloseSiteUserManagementModal" />
 
 @code {
     private void SetUsersTab() => SetActiveTab("users");
@@ -461,7 +356,7 @@
     //User management
     private bool showUserModal = false;
     private PosUser currentUser = new();
-    
+
     // Add this missing variable for edit mode
     private bool isEditMode = false;
 
@@ -474,13 +369,6 @@
     private Site selectedSiteForUserManagement;
 
 
-    // Role management
-    private List<UserRole> availableRoles = new();
-    private List<UserRole> filteredRoles = new();
-    private UserRole currentRole = new();
-    private bool showRoleModal = false;
-    private bool isEditingRole = false;
-    private string roleSearchTerm = string.Empty;
 
     // Site management
     private List<Site> availableSites = new();
@@ -496,20 +384,13 @@
     private string selectedRoleFilter = string.Empty;
     private string selectedSiteFilter = string.Empty;
     private string selectedStatusFilter = string.Empty;
+    private bool isViewMode = false;
 
     // User management
     private List<PosUser> users = new();
     private List<PosUser> filteredUsers = new();
-    private List<UserRole> roles = new();
     private List<Site> sites = new();
 
-    // Delete confirmation
-    private bool showDeleteModal = false;
-    private string deleteItemType = string.Empty;
-    private object itemToDelete;
-
-
-// Update the ManageSiteUsers method
 
 
     // Update your existing OnInitializedAsync to include:
@@ -519,7 +400,6 @@
         SetSitesTab();
         SetUsersTab();
         await LoadUsers();
-        await LoadRoles();
         await LoadSites();
     }
 
@@ -529,99 +409,24 @@
         activeTab = tab;
         StateHasChanged();
     }
-    // Role Management Methods
 
-    # region
-    private void ShowCreateRoleModal()
-    {
-        currentRole = new UserRole { Is_Active = true, Date_Created = DateTime.Now };
-        isEditingRole = false;
-        showRoleModal = true;
-    }
 
-    private void EditRole(UserRole role)
-    {
-        currentRole = new UserRole
-        {
-            Role_ID = role.Role_ID,
-            Role_Name = role.Role_Name,
-            Role_Description = role.Role_Description,
-            Is_Active = role.Is_Active,
-            Date_Created = role.Date_Created
-        };
-        isEditingRole = true;
-        showRoleModal = true;
-    }
 
-    private void CloseRoleModal()
-    {
-        showRoleModal = false;
-        currentRole = new UserRole();
-    }
-
-    private async Task SaveRole()
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(currentRole.Role_Name))
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Role name is required.");
-                return;
-            }
-
-            if (isEditingRole)
-            {
-                await UserManagementServices.UpdateRoleAsync(currentRole);
-                await JSRuntime.InvokeVoidAsync("alert", "Role updated successfully!");
-            }
-            else
-            {
-                await UserManagementServices.CreateRoleAsync(currentRole);
-                await JSRuntime.InvokeVoidAsync("alert", "Role created successfully!");
-            }
-
-            CloseRoleModal();
-            await LoadRoles();
-            FilterRoles();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error saving role: {ex.Message}");
-        }
-    }
-
-    private void DeleteRole(UserRole role)
-    {
-        if (GetUserCountForRole(role.Role_ID) > 0)
-        {
-            JSRuntime.InvokeVoidAsync("alert", "Cannot delete role that has assigned users.");
-            return;
-        }
-
-        deleteItemType = "role";
-        itemToDelete = role;
-        showDeleteModal = true;
-    }
 
     private void FilterRoles()
     {
-        if (roles == null) return;
 
-        filteredRoles = roles.Where(r =>
-            string.IsNullOrEmpty(roleSearchTerm) ||
-            r.Role_Name.Contains(roleSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-            (r.Role_Description?.Contains(roleSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-        ).ToList();
 
         StateHasChanged();
     }
-    #endregion
+
     // Site Management Methods
     #region
     private void ShowCreateSiteModal()
     {
         currentSite = new Site { Is_Active = true, Date_Created = DateTime.Now };
         isEditingSite = false;
+        isViewMode = false;
         showSiteModal = true;
     }
 
@@ -641,6 +446,7 @@
             Date_Created = site.Date_Created
         };
         isEditingSite = true;
+        isViewMode = false;
         showSiteModal = true;
     }
 
@@ -648,6 +454,7 @@
     {
         showSiteModal = false;
         currentSite = new Site();
+        isViewMode = false;
     }
 
     private async Task SaveSite()
@@ -710,9 +517,9 @@
     }
     #endregion
     // Helper Methods
-    private int GetUserCountForRole(int roleId)
+    private int GetUserCountForRole(PosUserType posUserType)
     {
-        return users?.Count(u => u.Role_ID == roleId && !u.Is_Deleted) ?? 0;
+        return users?.Count(u => u.User_Type == posUserType && !u.Is_Deleted) ?? 0;
     }
 
     private int GetUserCountForSite(int siteId)
@@ -720,33 +527,6 @@
         return users?.Count(u => u.Primary_Site_Id == siteId && !u.Is_Deleted) ?? 0;
     }
 
-    // Delete confirmation
-    private void CloseDeleteModal()
-    {
-        showDeleteModal = false;
-        itemToDelete = null;
-        deleteItemType = string.Empty;
-    }
-
-    private async Task ConfirmDelete()
-    {
-        try
-        {
-            if (deleteItemType == "role" && itemToDelete is UserRole role)
-            {
-                await UserManagementServices.DeleteRoleAsync(role.Role_ID);
-                await LoadRoles();
-                FilterRoles();
-                await JSRuntime.InvokeVoidAsync("alert", "Role deleted successfully!");
-            }
-
-            CloseDeleteModal();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error deleting {deleteItemType}: {ex.Message}");
-        }
-    }
 
     // Load data methods (add these to your existing OnInitializedAsync)
     private async Task LoadUsers()
@@ -762,18 +542,6 @@
         }
     }
 
-    private async Task LoadRoles()
-    {
-        try
-        {
-            roles = await UserManagementServices.GetAllRolesAsync();
-            FilterRoles();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading roles: {ex.Message}");
-        }
-    }
 
     private async Task LoadSites()
     {
@@ -802,13 +570,6 @@
         ).ToList();
         StateHasChanged();
     }
-
-  @*   private void ShowCreateUserModal()
-    {
-        showUserModal = true;
-    }
- *@
-    // Replace the placeholder methods with these complete implementations:
 
     private async Task ViewUserDetails(PosUser user)
     {
@@ -934,6 +695,12 @@
     {
         try
         {
+            if(currentUser.User_Type == PosUserType.Staff || currentUser.User_Type == PosUserType.Trainee)
+            {
+                // Only allow Directors and Admins to create new users
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to create new users.");
+                return;
+            }
             // Reset for new user creation
             currentUser = new PosUser();
             isEditMode = true;
@@ -982,8 +749,10 @@
 
     private void ViewSiteDetails(Site site)
     {
-        // Implement site details view
-        JSRuntime.InvokeVoidAsync("alert", $"View details for {site.Site_BusinessName}");
+        currentSite = site;
+        isViewMode = true;
+        showSiteModal = true;
+        StateHasChanged();
     }
 
     private void ManageSiteUsers(Site site)
@@ -993,14 +762,6 @@
         StateHasChanged();
     }
 
-    private void HandleUserRoleSaved(UserRole role)
-    {
-
-    }
-    private void HandleUserRoleDeleted()
-    {
-
-    }
 
     private async Task HandleSiteSaved(Site site)
     {
@@ -1023,6 +784,32 @@
 
             // Optional: Show success message
             await JSRuntime.InvokeVoidAsync("alert", $"Site '{site.Site_BusinessName}' created successfully!");
+        }
+    }
+
+    private async Task HandleSiteOnUpdate(Site site)
+    {
+        if (site != null)
+        {
+            // Update the site in the main sites list
+            var existingSiteIndex = sites.FindIndex(s => s.Site_Id == site.Site_Id);
+            if (existingSiteIndex >= 0)
+            {
+                sites[existingSiteIndex] = site;
+            }
+            // Also update in availableSites for the UserModal
+            var existingAvailableSiteIndex = availableSites.FindIndex(s => s.Site_Id == site.Site_Id);
+            if (existingAvailableSiteIndex >= 0)
+            {
+                availableSites[existingAvailableSiteIndex] = site;
+            }
+            // Refresh the filtered sites to show the updated site
+            FilterSites();
+            // Close the site modal
+            showSiteModal = false;
+            // Trigger UI update
+            StateHasChanged();
+
         }
     }
 
@@ -1078,7 +865,7 @@
             //FilterUsers();
         }
     }
-    
+
     private void CloseSiteAccessModal()
     {
         showSiteAccessModal = false;
@@ -1092,6 +879,6 @@
         selectedSiteForUserManagement = null;
         StateHasChanged();
     }
-    
+
 
 }
