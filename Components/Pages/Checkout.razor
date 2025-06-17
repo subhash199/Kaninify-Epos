@@ -1,4 +1,4 @@
-﻿@page "/checkout"
+﻿@page "/"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Constants
@@ -11,6 +11,12 @@
 @inject ScreenInfoService ScreenInfoService
 @inject ProductServices productServices
 @inject SalesTransactionServices salesTransactionServices
+@inject DepartmentServices DepartmentServices
+
+@inject PosUser loggedInUser
+@inject Site loggedInSite
+@inject Till loggedInTill
+
 @inject IJSRuntime JS
 
 @* <h3 class="text-center">Checkout Dashboard</h3> *@
@@ -31,7 +37,7 @@
             </div>
 
             <div class="row col-md-12 mb-2">
-                <DepartmentButtons State="_state" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
+                <DepartmentButtons State="_state" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
                 <NumberPadComponent OnNumberClick="HandleNumPadClick" />
             </div>
         </div>
@@ -50,10 +56,6 @@
                           onapply="applyquantityasync" />
 
 </div>
-
-
-
-
 
 
 @code {
@@ -158,15 +160,19 @@
             return;
         }
 
-        await AddProductToBasketAsync(product);
+        await AddProductToBasketAsync(product, false);
         await JS.InvokeVoidAsync("scrollTableToBottom");
         StateHasChanged();
     }
 
-    private async Task AddProductToBasketAsync(Product product)
+    private async Task AddProductToBasketAsync(Product product, bool isGeneric)
     {
+        if (_state.SalesBaskets.Count < 1)
+        {
+            await InitializeSalesTransactionAsync(false);
+        }
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-        CheckoutService.AddProductToBasket(currentBasket, product);
+        CheckoutService.AddProductToBasket(currentBasket, product, isGeneric);
 
         UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
         await SetFocusOnSearchBoxAsync();
@@ -244,6 +250,10 @@
     }
     protected override async Task OnInitializedAsync()
     {
+        loggedInUser.User_ID = 0;
+        loggedInSite.Site_Id = 0;
+        loggedInTill.Till_Id = 0;
+
         await InitializeScreenSettingsAsync();
     }
 
@@ -485,7 +495,7 @@
     {
         if (_state.ModalSettings.ModalEnum == ModalEnum.Payment)
         {
-           await ProcessCashOrCardPaymentAsync(_state.PaymentType);
+            await ProcessCashOrCardPaymentAsync(_state.PaymentType);
         }
         _state.ModalSettings.ShowModal = false;
         StateHasChanged();
@@ -502,7 +512,39 @@
     {
         // Handle product save/update from modal
         _state.ModalSettings.ShowModal = false;
-        await AddProductToBasketAsync(product);
+        await AddProductToBasketAsync(product, false);
         StateHasChanged();
+    }
+
+    private async void HandleDepartmentClick(string departmentClickName)
+    {
+        decimal amount = generalServices.ConvertStringToDecimal(_state.SearchText);
+        if (amount < 1)
+            return;
+
+        Product departmentProduct = await productServices.GetProductByBarcode(departmentClickName);
+        if (departmentProduct == null)
+        {
+            _state.ModalSettings.ModalTitle = "Add Generic Product";
+            _state.ModalSettings.ModalEnum = ModalEnum.GenericProduct;
+            _state.ModalProduct = new Product
+            {
+                Product_Barcode = departmentClickName,
+                Product_Name = departmentClickName,
+                Product_Selling_Price = amount,
+                Expiry_Date = DateTime.MaxValue,
+                Is_activated = true
+            };
+            _state.ModalSettings.ShowModal = true;
+
+        }
+        else
+        {
+            departmentProduct.Product_Selling_Price = amount;
+            await AddProductToBasketAsync(departmentProduct, true);
+            await JS.InvokeVoidAsync("scrollTableToBottom");
+        }
+        StateHasChanged();
+
     }
 }

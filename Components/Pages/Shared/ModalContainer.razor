@@ -4,7 +4,7 @@
 
 <!-- Generic Message Modal -->
 @if (State.ModalSettings.ModalEnum == ModalEnum.ProductActivate ||
-State.ModalSettings.ModalEnum == ModalEnum.ProductNotFound)
+State.ModalSettings.ModalEnum == ModalEnum.ProductNotFound || State.ModalSettings.ModalEnum == ModalEnum.GenericProduct)
 {
     <ProductModal IsVisible="@(State.ModalSettings.ShowModal)"
                   Title="@State.ModalSettings.ModalTitle"
@@ -38,6 +38,7 @@ else
         {
             ModalEnum.ProductActivate => "Activate",
             ModalEnum.ProductNotFound => "Add Product",
+            ModalEnum.GenericProduct=>"Add Product",
             ModalEnum.Error => "OK",
             ModalEnum.Payment => "Confirm",
             ModalEnum.Default => "OK",

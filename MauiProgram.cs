@@ -24,6 +24,8 @@ public static class MauiProgram
 		builder.Services.AddScoped<SiteServices>();          // Changed from AddSingleton
         builder.Services.AddScoped<UserManagementServices>(); // Changed from AddSingleton
 		builder.Services.AddSingleton<PosUser>();
+		builder.Services.AddSingleton<Site>();
+		builder.Services.AddSingleton<Till>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>

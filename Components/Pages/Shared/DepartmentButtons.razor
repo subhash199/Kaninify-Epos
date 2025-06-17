@@ -2,21 +2,21 @@
 {
     <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
 
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(1)">
             <img src="images/icons/liquor.png" class="img-fluid mb-2" />
             <span class="fw-bold">Alcohol</span>
         </button>
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(2)">
             <img src="images/icons/smoking_rooms_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Tobacco</span>
         </button>
-        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(3)">
             <img src="images/icons/grocery_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Grocery</span>
         </button>
         <button @onclick="CollapseDepartmentClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
             <img src="@State.CollapseButtonImage" class="img-fluid mb-2" />
-            <span class="fw-bold">@State.CollapseButtonLabel</span>
+            <span class="fw-bold">More</span>
         </button>
         @*  <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
             <img src="images/icons/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
@@ -29,21 +29,21 @@
 {
     <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
 
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(4)">
             <img src="images/icons/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Lottery</span>
         </button>
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill">
+        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(5)">
             <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Scratch</span>
         </button>
-        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
+        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(6)">
             <img src="images/icons/mode_cool_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
             <span class="fw-bold">Frozen</span>
         </button>
         <button @onclick="CollapseDepartmentClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
             <img src="@State.CollapseButtonImage" class="img-fluid mb-2" />
-            <span class="fw-bold">@State.CollapseButtonLabel</span>
+            <span class="fw-bold">More</span>
         </button>
 
     </div>
@@ -60,7 +60,7 @@
 
 @code {
     [Parameter] public CheckoutState State { get; set; } = new();
-    [Parameter] public EventCallback OnDepartmentClick { get; set; }
+    [Parameter] public EventCallback<string> OnDepartmentClick { get; set; }
     [Parameter] public EventCallback<int> OnCashSuggestionClick { get; set; }
 
     bool IsCollapsed { get; set; } = false;
@@ -75,4 +75,38 @@
         if (OnCashSuggestionClick.HasDelegate)
             await OnCashSuggestionClick.InvokeAsync(amount);
     }
+
+    private async Task HandleDepartmentClick(int id)
+    {
+        string department = "";
+        switch (id)
+        {
+            case 1:
+                department = "Alcohol";
+                break;
+            case 2:
+                department = "Tobacco";
+                break;
+            case 3:
+                department = "Grocery";
+                break;
+            case 4:
+                department = "Lottery";
+                break;
+            case 5:
+                department = "Scratch";
+                break;
+            case 6:
+                department = "Frozen";
+                break;
+
+            default:
+                break;
+        }
+        if (!string.IsNullOrEmpty(department))
+        {
+            OnDepartmentClick.InvokeAsync(department);
+        }
+    }
+
 }

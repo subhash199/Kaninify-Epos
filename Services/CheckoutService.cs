@@ -8,7 +8,7 @@ public class CheckoutService
     private readonly SalesTransactionServices _salesTransactionServices;
     private readonly GeneralServices _generalServices;
 
-    public CheckoutService(ProductServices productServices, 
+    public CheckoutService(ProductServices productServices,
                           SalesTransactionServices salesTransactionServices,
                           GeneralServices generalServices)
     {
@@ -30,19 +30,19 @@ public class CheckoutService
     public decimal CalculateGrandTotal(SalesBasket basket)
     {
         if (basket?.SalesItemsList?.Count == 0) return 0;
-        
+
         var grandTotal = basket.Transaction.SaleTransaction_Total_Amount;
         var totalPaid = basket.Transaction.SaleTransaction_Cash + basket.Transaction.SaleTransaction_Card;
         return grandTotal - totalPaid;
     }
 
-    public void AddProductToBasket(SalesBasket basket, Product product)
+    public void AddProductToBasket(SalesBasket basket, Product product, bool isGeneric)
     {
         basket.SalesItemsList ??= new List<SalesItemTransaction>();
-        
+
         var existingItem = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == product.Product_ID);
-        
-        if (existingItem != null)
+
+        if (existingItem != null && !isGeneric)
         {
             existingItem.Product_QTY += 1;
             existingItem.Product_Total_Amount = existingItem.Product_QTY * product.Product_Selling_Price;
@@ -60,7 +60,7 @@ public class CheckoutService
                 Product_Total_Amount_Before_Discount = product.Product_Selling_Price
             });
         }
-        
+
         basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
     }
 }

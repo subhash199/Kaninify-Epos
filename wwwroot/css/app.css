@@ -7,6 +7,13 @@ a, .btn-link {
     color: #006bb7;
 }
 
+.btn {
+}
+
+    .btn:hover {
+        background-color: #ffffff !important;
+    }
+
 .btn-light {
     background-color: #e0e0e0; /* Light gray */
     color: #333;

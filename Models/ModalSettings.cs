@@ -17,6 +17,7 @@ namespace EposRetail.Models
     {
         ProductActivate,
         ProductNotFound,
+        GenericProduct,
         Error,
         Payment,
         Default
