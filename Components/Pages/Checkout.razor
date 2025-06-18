@@ -12,6 +12,7 @@
 @inject ProductServices productServices
 @inject SalesTransactionServices salesTransactionServices
 @inject DepartmentServices DepartmentServices
+@inject MigrateDataServices MigrateDataServices
 
 @inject PosUser loggedInUser
 @inject Site loggedInSite
@@ -32,7 +33,8 @@
                            class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
                 <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
-                <CheckoutButtons State="_state" OnPaymentClicked="PaymentButtonClickedAsync" OnQtyClicked="QtyButtonClick" OnMoreSalesClicked="MoreSalesButtonClick"></CheckoutButtons>
+                <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
+                                 OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync" OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked" OnMoreSalesClicked="MoreSalesButtonClick"></CheckoutButtons>
 
             </div>
 
@@ -250,6 +252,13 @@
     }
     protected override async Task OnInitializedAsync()
     {
+        // string departmentsCsvPath = "../../../../EposRetailData/Departments.csv";
+        // string vatsCsvPath = "../../../../EposRetailData/Vats.csv";
+        // string productsCsvPath = "../../../../EposRetailData/Products.csv";
+        // await MigrateDataServices.InsertVatsFromCsvAsync(vatsCsvPath, null, null, null);
+        // await MigrateDataServices.InsertDepartmentsFromCsvAsync(departmentsCsvPath, null, null, null);
+        // await MigrateDataServices.InsertProductsFromCsvAsync(productsCsvPath, null, null, null);
+
         loggedInUser.User_ID = 0;
         loggedInSite.Site_Id = 0;
         loggedInTill.Till_Id = 0;
@@ -417,7 +426,26 @@
         currentBasket.Transaction = new SalesTransaction();
         currentBasket.SalesItemsList.Clear();
         _state.SearchText = "";
-        _state.HoldBasketIndex = 0;
+
+        // Check if there are held baskets and switch to the first one
+        if (_state.SalesBaskets.Count > 1)
+        {
+            // Find the first basket with items (held basket)
+            for (int i = 0; i < _state.SalesBaskets.Count; i++)
+            {
+                if (_state.SalesBaskets[i].SalesItemsList?.Count < 1)
+                {
+                    _state.SalesBaskets.RemoveAt(i);
+                    break;
+                }
+            }
+            _state.HoldBasketIndex = _state.SalesBaskets.Count > 0 ? 0 : -1; // Reset to first basket or -1 if none left
+        }
+        else
+        {
+            _state.HoldBasketIndex = 0;
+        }
+
         StateHasChanged();
     }
 
@@ -497,6 +525,10 @@
         {
             await ProcessCashOrCardPaymentAsync(_state.PaymentType);
         }
+        else if (_state.ModalSettings.ModalEnum == ModalEnum.Confirmation)
+        {
+            VoidBasketConfirmed();
+        }
         _state.ModalSettings.ShowModal = false;
         StateHasChanged();
     }
@@ -546,5 +578,116 @@
         }
         StateHasChanged();
 
+    }
+
+    private void HandleVoidLineButtonClicked()
+    {
+        if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
+                _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+        {
+            int removeIndex = _state.SelectedItemIndex < 0 ? _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.Count - 1 ?? -1
+            : _state.SelectedItemIndex;
+            if (removeIndex > -1)
+            {
+                _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.RemoveAt(removeIndex);
+                StateHasChanged();
+            }
+        }
+        SetFocusOnSearchBoxAsync().GetAwaiter();
+        _state.SelectedItemIndex = -1; // Reset selected item index after voiding
+    }
+    private void HandleVoidBasketClicked()
+    {
+        if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
+            _state.SalesBaskets[_state.HoldBasketIndex] != null &&
+            _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.Count > 0)
+        {
+            // Show confirmation modal
+            _state.ModalSettings = new ModalSettings
+            {
+                ModalTitle = "Void Basket",
+                ModalMessage = "Are you sure you want to void the basket? This action cannot be undone.",
+                ShowModal = true,
+                ModalEnum = ModalEnum.Confirmation
+            };
+            StateHasChanged();
+        }
+    }
+
+    private void VoidBasketConfirmed()
+    {
+        if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
+            _state.SalesBaskets[_state.HoldBasketIndex] != null)
+        {
+            _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
+            _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
+            {
+                SaleTransaction_Total_Amount = 0,
+                SaleTransaction_Cash = 0,
+                SaleTransaction_Card = 0,
+                SaleTransaction_Change = 0
+            };
+            _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList = new List<SalesItemTransaction>();
+            _state.SelectedItemIndex = -1;
+            UpdateCashSuggestions(0);
+            _state.SearchText = "";
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleHoldButtonClicked()
+    {
+        // Check if there are held baskets (more than one basket)
+        if (_state.SalesBaskets?.Count > 1)
+        {
+            // Recall functionality - switch to the first held basket
+            int currentIndex = _state.HoldBasketIndex;
+
+            // Find the next basket with items
+            for (int i = 0; i < _state.SalesBaskets.Count; i++)
+            {
+                if (i != currentIndex && _state.SalesBaskets[i].SalesItemsList?.Count > 0)
+                {
+                    _state.HoldBasketIndex = i;
+                    StateHasChanged();
+                    return;
+                }
+            }
+
+            // If no held baskets with items found, create a new basket
+            _state.HoldBasketIndex = 0;
+        }
+        else
+        {
+            if (_state.SalesBaskets.Count == 0 || _state.SalesBaskets[_state.HoldBasketIndex] == null)
+            {
+                return; // No baskets to hold
+            }
+            // Hold functionality - put current basket on hold and create new one
+
+            // Only hold if current basket has items
+            if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+            {
+                // Add a new empty basket and switch to it
+                _state.SalesBaskets.Add(new SalesBasket
+                {
+                    Transaction = new SalesTransaction
+                    {
+                        SaleTransaction_Total_Amount = 0,
+                        SaleTransaction_Cash = 0,
+                        SaleTransaction_Card = 0,
+                        SaleTransaction_Change = 0
+                    },
+                    SalesItemsList = new List<SalesItemTransaction>()
+                });
+
+                _state.HoldBasketIndex = _state.SalesBaskets.Count - 1;
+                _state.SelectedItemIndex = -1;
+                _state.SearchText = "";
+                UpdateCashSuggestions(0);
+            }
+        }
+
+        StateHasChanged();
     }
 }

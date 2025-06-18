@@ -28,15 +28,18 @@
     {
         <div class="col-md-12 mb-2">
             <div class="d-flex gap-2 mb-2">
-                <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
+                        @onclick="() => OnVoidLineClicked.InvokeAsync()">
                     <img src="images/icons/remove_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                     <span class="fw-bold">Void Line</span>
                 </button>
-                <button class="col-md-3 btn background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                <button class="col-md-3 btn background-colour-light-blue d-flex flex-column align-items-center flex-fill"
+                        @onclick="() => OnHoldClicked.InvokeAsync()">
                     <img src="images/icons/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                    <span class="fw-bold">Hold</span>
+                    <span class="fw-bold">@GetHoldButtonText()</span>
                 </button>
-                <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
+                        @onclick="() => OnVoidBasketClicked.InvokeAsync()">
                     <img src="images/icons/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                     <span class="fw-bold">Void Basket</span>
                 </button>
@@ -73,7 +76,10 @@
 @code {
     [Parameter] public CheckoutState State { get; set; } = new();
     [Parameter] public EventCallback<PaymentType> OnPaymentClicked { get; set; }
+    [Parameter] public EventCallback OnVoidLineClicked { get; set; }
+    [Parameter] public EventCallback OnVoidBasketClicked { get; set; }
     [Parameter] public EventCallback OnQtyClicked { get; set; }
+    [Parameter] public EventCallback OnHoldClicked { get; set; }
     [Parameter] public EventCallback<bool> OnMoreSalesClicked { get; set; }
 
     bool IsCollapsed = true;
@@ -85,6 +91,13 @@
         State.LeftPanelLabel = IsCollapsed ? "More" : "Collapse";        
         await OnMoreSalesClicked.InvokeAsync(IsCollapsed);
         
+    }
+
+    private string GetHoldButtonText()
+    {
+        // Check if there are any held baskets (baskets other than the current active one)
+        bool hasHeldBaskets = State.SalesBaskets?.Count > 1;
+        return hasHeldBaskets ? "Recall" : "Hold";
     }
 
 }

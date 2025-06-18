@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +20,8 @@ namespace EposRetail.Models
         GenericProduct,
         Error,
         Payment,
-        Default
+        Default,
+        Confirmation
     }
 
 }

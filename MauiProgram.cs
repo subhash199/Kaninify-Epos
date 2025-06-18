@@ -23,6 +23,7 @@ public static class MauiProgram
 		builder.Services.AddScoped<UserSiteAccessServices>(); // Changed from AddSingleton
 		builder.Services.AddScoped<SiteServices>();          // Changed from AddSingleton
         builder.Services.AddScoped<UserManagementServices>(); // Changed from AddSingleton
+		builder.Services.AddScoped<MigrateDataServices>();
 		builder.Services.AddSingleton<PosUser>();
 		builder.Services.AddSingleton<Site>();
 		builder.Services.AddSingleton<Till>();
