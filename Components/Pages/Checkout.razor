@@ -13,6 +13,7 @@
 @inject SalesTransactionServices salesTransactionServices
 @inject DepartmentServices DepartmentServices
 @inject MigrateDataServices MigrateDataServices
+@inject VoidedProductServices VoidedProductServices
 
 @inject PosUser loggedInUser
 @inject Site loggedInSite
@@ -24,6 +25,13 @@
 <div class="d-flex flex-column vh-100 mt-1 disable-scroll">
     <div class="container-fluid">
         <!-- Make the row full height and align items to the start -->
+        @if ((_state.SalesBaskets?.Count ?? 0) > 0 &&
+                (_state.SalesBaskets[_state.HoldBasketIndex]?.Transaction?.Is_Refund ?? false))
+        {
+            <div class="text-center mb-2">
+                <h1 class="text-danger">Refund Mode</h1>
+            </div>
+        }
         <div class="d-flex align-items-start">
             <div class="col-md-6 row">
                 <!-- Search Box -->
@@ -34,7 +42,9 @@
                 </div>
                 <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
                 <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
-                                 OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync" OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked" OnMoreSalesClicked="MoreSalesButtonClick"></CheckoutButtons>
+                                 OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
+                                 OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
+                                 OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"></CheckoutButtons>
 
             </div>
 
@@ -145,7 +155,7 @@
 
         if (_state.SalesBaskets.Count < 1)
         {
-            await InitializeSalesTransactionAsync(false);
+            await InitializeSalesTransactionAsync();
         }
 
         var product = await CheckoutService.GetProductByBarcodeAsync(_state.SearchText);
@@ -171,7 +181,7 @@
     {
         if (_state.SalesBaskets.Count < 1)
         {
-            await InitializeSalesTransactionAsync(false);
+            await InitializeSalesTransactionAsync();
         }
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
         CheckoutService.AddProductToBasket(currentBasket, product, isGeneric);
@@ -186,7 +196,7 @@
         _state.SecondRoundupCashSuggestion = generalServices.RoundUpToNearestFive((int)Math.Ceiling(totalAmount));
     }
 
-    private async Task InitializeSalesTransactionAsync(bool clearSearch = true)
+    private async Task InitializeSalesTransactionAsync()
     {
         if (!(_state.SalesBaskets != null && _state.SalesBaskets.Count > _state.HoldBasketIndex && _state.HoldBasketIndex >= 0))
         {
@@ -527,7 +537,11 @@
         }
         else if (_state.ModalSettings.ModalEnum == ModalEnum.Confirmation)
         {
-            VoidBasketConfirmed();
+            await VoidBasketConfirmed();
+        }
+        else if (_state.ModalSettings.ModalEnum == ModalEnum.Refund)
+        {
+            await VoidBasketConfirmed();
         }
         _state.ModalSettings.ShowModal = false;
         StateHasChanged();
@@ -580,7 +594,7 @@
 
     }
 
-    private void HandleVoidLineButtonClicked()
+    private async Task HandleVoidLineButtonClicked()
     {
         if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
                 _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
@@ -589,6 +603,11 @@
             : _state.SelectedItemIndex;
             if (removeIndex > -1)
             {
+                var itemToVoid = _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList[removeIndex];
+
+                // Track the voided item
+                await TrackVoidedItemAsync(new List<SalesItemTransaction> { itemToVoid });
+
                 _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.RemoveAt(removeIndex);
                 StateHasChanged();
             }
@@ -614,11 +633,20 @@
         }
     }
 
-    private void VoidBasketConfirmed()
+    private async Task VoidBasketConfirmed()
     {
         if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
             _state.SalesBaskets[_state.HoldBasketIndex] != null)
         {
+            var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+
+            // Track all voided items before clearing the basket
+            if (currentBasket.SalesItemsList?.Count > 0)
+            {
+
+                await TrackVoidedItemAsync(currentBasket.SalesItemsList);
+            }
+
             _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
             _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
             {
@@ -689,5 +717,92 @@
         }
 
         StateHasChanged();
+    }
+
+    private async Task TrackVoidedItemAsync(List<SalesItemTransaction> voidedItems)
+    {
+        List<VoidedProduct> voidedProducts = new List<VoidedProduct>();
+        if (voidedItems == null || voidedItems.Count == 0)
+            return;
+
+        foreach (var voidedItem in voidedItems)
+        {
+            try
+            {
+                var voidedProduct = new VoidedProduct
+                {
+                    Product_ID = voidedItem.Product_ID,
+                    Voided_Quantity = voidedItem.Product_QTY,
+                    Voided_Amount = voidedItem.Product_Total_Amount,
+                    Voided_By_User_ID = loggedInUser?.User_ID ?? 1, // Use logged in user or default
+                    Void_Date = DateTime.Now,
+                    Additional_Notes = "Item voided from basket",
+                    Created_By_Id = loggedInUser?.User_ID ?? 1,
+                    Last_Modified_By_Id = loggedInUser?.User_ID ?? 1,
+                    Site_Id = loggedInSite?.Site_Id,
+                    Till_Id = loggedInTill?.Till_Id
+                };
+                voidedProducts.Add(voidedProduct);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't prevent the void operation
+                Console.WriteLine($"Error tracking voided item: {ex.Message}");
+            }
+        }
+        if (voidedProducts.Count > 0)
+        {
+            try
+            {
+                await VoidedProductServices.AddListAsync(voidedProducts);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't prevent the void operation
+                Console.WriteLine($"Error saving voided products: {ex.Message}");
+            }
+        }
+    }
+    private async Task HandleRefundClick()
+    {
+        if (_state.SalesBaskets?.Count > 0)
+        {
+            if (_state.SalesBaskets[_state.HoldBasketIndex]?.Transaction.Is_Refund ?? false)
+            {
+                _state.ModalSettings = new ModalSettings
+                {
+                    ModalTitle = "Refund",
+                    ModalMessage = "Would you like to exit the Refund Mode? All the items in the checkout basket will be cleared!",
+                    ShowModal = true,
+                    ModalEnum = ModalEnum.Refund
+                };
+            }
+            else if(_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+            {
+                _state.ModalSettings = new ModalSettings
+                {
+                    ModalTitle = "Refund Error",
+                    ModalMessage = "Please process the current transaction before processing refund!",
+                    ShowModal = true,
+                    ModalEnum = ModalEnum.Error
+                };
+            }
+            else
+            {
+                InitiateRefundMode();                
+            }
+
+        }
+        else
+        {
+            InitiateRefundMode();
+        }
+        StateHasChanged();
+    }
+
+    private async Task InitiateRefundMode()
+    {
+        await InitializeSalesTransactionAsync();
+        _state.SalesBaskets[_state.HoldBasketIndex].Transaction.Is_Refund = true;        
     }
 }

@@ -47,17 +47,25 @@ public class CheckoutService
             existingItem.Product_QTY += 1;
             existingItem.Product_Total_Amount = existingItem.Product_QTY * product.Product_Selling_Price;
             existingItem.Product_Total_Amount_Before_Discount = existingItem.Product_Total_Amount;
+
+            if (basket.Transaction.Is_Refund)
+            {
+                existingItem.Product_Total_Amount = -existingItem.Product_Total_Amount;
+                existingItem.Product_Total_Amount_Before_Discount = -existingItem.Product_Total_Amount_Before_Discount;
+            }
+
+
         }
         else
-        {
+        {         
             basket.SalesItemsList.Add(new SalesItemTransaction
             {
                 Product_ID = product.Product_ID,
                 Product = product,
                 Product_QTY = 1,
                 Product_Amount = product.Product_Selling_Price,
-                Product_Total_Amount = product.Product_Selling_Price,
-                Product_Total_Amount_Before_Discount = product.Product_Selling_Price
+                Product_Total_Amount = basket.Transaction.Is_Refund ? -product.Product_Selling_Price : product.Product_Selling_Price,
+                Product_Total_Amount_Before_Discount = basket.Transaction.Is_Refund ? - product.Product_Selling_Price :  product.Product_Selling_Price
             });
         }
 

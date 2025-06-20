@@ -54,7 +54,8 @@
                         <img src="images/icons/search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Enquiry</span>
                     </button>
-                    <button class="col-md-3 btn background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button class="col-md-3 btn background-colour-light-blue d-flex flex-column align-items-center flex-fill"
+                            @onclick="() => OnRefundClicked.InvokeAsync()">
                         <img src="images/icons/send_money_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Refund</span>
                     </button>
@@ -81,6 +82,8 @@
     [Parameter] public EventCallback OnQtyClicked { get; set; }
     [Parameter] public EventCallback OnHoldClicked { get; set; }
     [Parameter] public EventCallback<bool> OnMoreSalesClicked { get; set; }
+    [Parameter] public EventCallback OnEnquiryClicked { get; set; }
+    [Parameter] public EventCallback OnRefundClicked { get; set; }
 
     bool IsCollapsed = true;
 

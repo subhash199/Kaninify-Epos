@@ -21,7 +21,8 @@ namespace EposRetail.Models
         Error,
         Payment,
         Default,
-        Confirmation
+        Confirmation,
+        Refund
     }
 
 }

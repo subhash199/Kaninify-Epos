@@ -1,4 +1,4 @@
-﻿using DataHandlerLibrary.Services;
+using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Data;
 using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Services;
@@ -27,6 +27,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<PosUser>();
 		builder.Services.AddSingleton<Site>();
 		builder.Services.AddSingleton<Till>();
+		builder.Services.AddScoped<VoidedProductServices>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
