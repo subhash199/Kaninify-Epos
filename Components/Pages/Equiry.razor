@@ -1,5 +1,68 @@
-﻿<h3>Equiry</h3>
+﻿@page "/"
+<PageTitle>Equiry</PageTitle>
+<div class="d-flex flex-column vh-100 mt-1 disable-scroll">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Search Box -->
+                <div class="d-flex justify-content-center align-items-center">
+                    <input type="text" @ref="searchBox" @bind-value="searchText"
+                           @bind-value:event="oninput" @onkeydown="SearchKeyDownAsync"
+                           class="form-control" placeholder="Search for products..." style="max-width: 600px;" />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle" style="table-layout:fixed; width:100%">
+                        <colgroup>
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                            <col style="width:10%" />
+                        </colgroup>
+                        <thead class="table-primary">
+                            <tr>
+                                <th class="text-truncate">Barcode</th>
+                                <th class="text-truncate">Name</th>
+                                <th class="text-truncate">Unit Price</th>
+                                <th class="text-truncate">Expiry</th>
+                                <th class="text-truncate">Shelf Qty</th>
+                                <th class="text-truncate">Backroom qty</th>
+                                <th class="text-truncate">Department</th>
+                                <th class="text-truncate">Vat</th>
+                                <th class="text-truncate">Profit %</th>
+                                <th class="text-truncate">Active</th>                                
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if(searchProducts?.Count>0)
+                            {
+                                
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
+            </div>
+        </div>
+
+    </div>
+</div>
 @code {
+    ElementReference searchBox;
+    private string searchText = "";
 
+    List<Product> searchProducts = new();
+    Product selectedProduct = new();
+
+    private void SearchKeyDownAsync(KeyboardEventArgs args)
+    {
+        throw new NotImplementedException();
+    }
 }
