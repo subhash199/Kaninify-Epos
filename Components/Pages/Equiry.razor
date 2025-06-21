@@ -22,13 +22,12 @@
                             <col style="width:15%" />
                             <col style="width:15%" />
                             <col style="width:10%" />
+                            <col style="width:15%" />
                             <col style="width:10%" />
-                            <col style="width:10%" />
-                            <col style="width:10%" />
-                            <col style="width:10%" />
+                            <col style="width:15%" />
+                            <col style="width:15%" />
                             <col style="width:5%" />
-                            <col style="width:10%" />
-                            <col style="width:5%" />
+
                         </colgroup>
                         <thead class="table-primary">
                             <tr>
@@ -40,8 +39,6 @@
                                 <th class="text-truncate">Stockroom Qty</th>
                                 <th class="text-truncate">Department</th>
                                 <th class="text-truncate">Vat</th>
-                                <th class="text-truncate">Profit %</th>
-                                <th class="text-truncate">Active</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -49,18 +46,16 @@
                             {
                                 foreach (var product in searchProducts)
                                 {
-                                    <tr @ondblclick=@(() => HandleRowDoubleClick(product))
+                                    <tr @onclick="@(() => OnProductSelectClick(product))" @ondblclick=@(() => HandleRowDoubleClick(product))
                                         class="@(selectedProduct == product ? "table-primary" : "")">
                                         <td class="text-truncate">@product.Product_Barcode</td>
                                         <td class="text-truncate">@product.Product_Name</td>
                                         <td class="text-truncate">@product.Product_Selling_Price</td>
-                                        <td class="text-truncate">@product.Expiry_Date</td>
+                                        <td class="text-truncate">@product.Expiry_Date.ToShortDateString()</td>
                                         <td class="text-truncate">@product.ShelfQuantity</td>
                                         <td class="text-truncate">@product.StockroomQuantity</td>
                                         <td class="text-truncate">@product.Department?.Department_Name</td>
                                         <td class="text-truncate">@product.VAT?.VAT_Value</td>
-                                        <td class="text-truncate">@product.Profit_On_Return_Percentage</td>
-                                        <td class="text-truncate">@product.Is_activated</td>
                                     </tr>
                                 }
 
@@ -71,8 +66,7 @@
 
             </div>
             <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;">
-                <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
-                       >
+                <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
                     <img src="images/icons/arrow_circle_left_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                     <span class="fw-bold">Back</span>
                 </button>
@@ -92,16 +86,18 @@
         </div>
 
     </div>
-   
+
 </div>
 
-        <ModalContainer State="_state"
-                        OnModalOk="onmodalokasync"
-                        OnModalClose="onmodalcloseasync"
-                        OnProductSave="onmodalproductupsertedasync" />
+<ModalContainer State="_state"
+                OnModalOk="onmodalokasync"
+                OnModalClose="onmodalcloseasync"
+                OnProductSave="onmodalproductupsertedasync" />
 @code {
-    [Parameter] public CheckoutState _state { get; set; } = new();
+    [Parameter] public CheckoutState _state { get; set; } = new(); 
+    [Parameter] public string BackButtonNavigationLink { get; set; } = "/"; // Default navigation link for the back button
     ElementReference searchBox;
+
 
     List<Product> searchProducts = new();
     Product selectedProduct = new();
@@ -165,11 +161,11 @@
     }
 
 
-    private async Task HandleRowDoubleClick(Product selectedProduct)
+    private async Task HandleRowDoubleClick(Product product)
     {
-        if (selectedProduct == null) return;
+        if (product == null) return;
 
-        _state.ModalProduct = selectedProduct;
+        _state.ModalProduct = product;
         _state.ModalSettings = new ModalSettings
         {
             ShowModal = true,
@@ -178,6 +174,16 @@
         };
 
     }
+
+    private async Task OnProductSelectClick(Product product)
+    {
+        if (product != null)
+        {
+            selectedProduct = product;
+            StateHasChanged();
+        }
+    }
+
     private async Task onmodalokasync()
     {
         await HideModal();
@@ -199,4 +205,21 @@
         _state.ModalSettings.ShowModal = false;
         StateHasChanged();
     }
+
+    private async Task HandleEditClick()
+    {
+        if (selectedProduct == null)
+        {
+            await ShowErrorModalAsync("No Product Selected", "Please select or double click a product to edit.");
+            return;
+        }
+        _state.ModalProduct = selectedProduct;
+        _state.ModalSettings = new ModalSettings
+        {
+            ShowModal = true,
+            ModalEnum = ModalEnum.GenericProduct,
+            ModalTitle = "Edit Product"
+        };
+    }
+
 }
