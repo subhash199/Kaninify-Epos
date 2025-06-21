@@ -166,7 +166,7 @@
             return;
         }
 
-        if (!product.Is_activated)
+        if (!product.Is_activated || product.Is_deleted)
         {
             await ShowProductActivationModalAsync(product);
             return;
