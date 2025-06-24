@@ -3,6 +3,8 @@
 @using EposRetail.Components.Pages.Shared
 @using EposRetail.Models
 @inject ProductServices _productServices
+@inject NavigationManager _navigationManager
+
 <PageTitle>Equiry</PageTitle>
 <div class="d-flex flex-column vh-100 mt-1 disable-scroll">
     <div class="container-fluid">
@@ -74,7 +76,8 @@
                     <img src="images/icons/assignment_add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                     <span class="fw-bold">Edit</span>
                 </button>
-                <button class="col-md-3 btn background-colour-light-yellow d-flex flex-column align-items-center flex-fill">
+                <button class="col-md-3 btn background-colour-light-yellow d-flex flex-column align-items-center flex-fill"
+                @onclick="HandleSaleItemHistory">
                     <img src="images/icons/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                     <span class="fw-bold">Sale History</span>
                 </button>
@@ -221,5 +224,20 @@
             ModalTitle = "Edit Product"
         };
     }
+    private void HandleSaleItemHistory(MouseEventArgs args)
+    {
+        if(searchProducts?.Count>0)
+        {
+            if (selectedProduct == null)
+            {
+                selectedProduct = searchProducts.FirstOrDefault();
+            }
+            _navigationManager.NavigateTo($"/itemhistory/{selectedProduct.Product_Barcode}");
+        }
+        else
+        {
+            _navigationManager.NavigateTo("/itemhistory");
+        }
 
+    }
 }

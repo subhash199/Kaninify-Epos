@@ -1,3 +1,4 @@
+using DataHandlerLibrary.Models;
 using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Data;
 using EntityFrameworkDatabaseLibrary.Models;
@@ -23,11 +24,14 @@ public static class MauiProgram
 		builder.Services.AddScoped<UserSiteAccessServices>(); // Changed from AddSingleton
 		builder.Services.AddScoped<SiteServices>();          // Changed from AddSingleton
         builder.Services.AddScoped<UserManagementServices>(); // Changed from AddSingleton
-		builder.Services.AddScoped<MigrateDataServices>();
+        builder.Services.AddScoped<VoidedProductServices>();
+		builder.Services.AddScoped<DayLogServices>();
+
+        builder.Services.AddScoped<MigrateDataServices>();
 		builder.Services.AddSingleton<PosUser>();
 		builder.Services.AddSingleton<Site>();
 		builder.Services.AddSingleton<Till>();
-		builder.Services.AddScoped<VoidedProductServices>();
+		builder.Services.AddSingleton<DayLog>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>

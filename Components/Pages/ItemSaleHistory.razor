@@ -1,5 +1,8 @@
-﻿@page "/"
+﻿@page "/itemhistory"
 <PageTitle>Sale History</PageTitle>
+@using DataHandlerLibrary.Services
+@using EposRetail.Services
+@inject SalesItemTransactionServices _salesItemTransactionServices
 
 <div class="d-flex flex-column vh-100 mt-1 disable-scroll">
     <div class="container-fluid">
@@ -100,8 +103,38 @@
     private DateTime StartDate { get; set; }
     private DateTime EndDate { get; set; }
 
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(_state.SearchText))
+        {
+            if (StartDate == default)
+            {
+                StartDate = DateTime.Now.AddDays(-10); // Default to 30 days ago
+            }
+            if (EndDate == default)
+            {
+                EndDate = DateTime.Now; // Default to today
+            }
+            SearchItemHistory(_state.SearchText, StartDate, EndDate);
+        }
+    }
+
     private void SearchKeyDownAsync(KeyboardEventArgs args)
     {
         throw new NotImplementedException();
+    }
+
+    private async void SearchItemHistory(string barcode, DateTime startDate, DateTime endDate)
+    {
+        var result = await _salesItemTransactionServices.GetByConditionAsync(
+        item => item.Product.Product_Barcode == barcode && item.Date_Created >= startDate && item.Date_Created <= endDate, true);
+        if (result != null)
+        {
+            salesItems = result.ToList();
+        }
+        else
+        {
+            salesItems = new List<SalesItemTransaction>();
+        }
     }
 }

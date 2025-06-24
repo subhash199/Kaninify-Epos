@@ -1,4 +1,4 @@
-﻿@page "/checkout"
+﻿@page "/"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Constants
@@ -14,10 +14,12 @@
 @inject DepartmentServices DepartmentServices
 @inject MigrateDataServices MigrateDataServices
 @inject VoidedProductServices VoidedProductServices
+@inject NavigationManager NavigationManager
 
 @inject PosUser loggedInUser
 @inject Site loggedInSite
 @inject Till loggedInTill
+@inject DayLog dayLog
 
 @inject IJSRuntime JS
 
@@ -44,7 +46,8 @@
                 <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
                                  OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
                                  OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
-                                 OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"></CheckoutButtons>
+                                 OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"
+                OnEnquiryClicked="HandleOnEnquiryClick"></CheckoutButtons>
 
             </div>
 
@@ -205,12 +208,15 @@
 
         _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
         {
-
-            Date_Created = DateTime.Now,
+            DayLog_Id = dayLog.DayLog_Id,
+            Created_By_Id = loggedInUser.User_ID,
+            Last_Modified_By_Id=loggedInUser.User_ID,
             SaleTransaction_Total_Amount = 0,
             SaleTransaction_Cash = 0,
             SaleTransaction_Card = 0,
-            SaleTransaction_Change = 0
+            SaleTransaction_Change = 0,
+            Date_Created = DateTime.Now,
+            Sale_Start_Date = DateTime.Now            
         };
 
         StateHasChanged();
@@ -269,9 +275,10 @@
         // await MigrateDataServices.InsertDepartmentsFromCsvAsync(departmentsCsvPath, null, null, null);
         // await MigrateDataServices.InsertProductsFromCsvAsync(productsCsvPath, null, null, null);
 
-        loggedInUser.User_ID = 0;
-        loggedInSite.Site_Id = 0;
-        loggedInTill.Till_Id = 0;
+        loggedInUser.User_ID = 3;
+        loggedInSite.Site_Id = 1;
+        loggedInTill.Till_Id = 2;
+        dayLog.DayLog_Id = 1;
 
         await InitializeScreenSettingsAsync();
     }
@@ -378,6 +385,7 @@
                 currentBasket.Transaction.SaleTransaction_Card += paymentAmount;
             }
 
+            currentBasket.Transaction.SaleTransaction_Total_Paid += paymentAmount;
             currentBasket.Transaction.SaleTransaction_Change =
                 currentBasket.Transaction.SaleTransaction_Total_Amount -
                 (currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card);
@@ -488,6 +496,11 @@
     {
         try
         {
+            transaction.SaleTransaction_Total_QTY = transaction.SalesItemTransactions?.Count??0;
+            transaction.Sale_Date = DateTime.Now;
+            transaction.Last_Modified = DateTime.Now;
+            transaction.Last_Modified_By_Id = loggedInUser.User_ID;
+
             await CheckoutService.SaveTransactionAsync(transaction);
         }
         catch (Exception ex)
@@ -804,5 +817,9 @@
     {
         await InitializeSalesTransactionAsync();
         _state.SalesBaskets[_state.HoldBasketIndex].Transaction.Is_Refund = true;        
+    }
+    private void HandleOnEnquiryClick()
+    {
+        NavigationManager.NavigateTo("/enquiry");
     }
 }
