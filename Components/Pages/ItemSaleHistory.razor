@@ -1,0 +1,107 @@
+﻿@page "/"
+<PageTitle>Sale History</PageTitle>
+
+<div class="d-flex flex-column vh-100 mt-1 disable-scroll">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12 mb-2">
+                <!-- Search Box -->
+                <div class="d-flex justify-content-center align-items-center flex-row w-100">
+                    <div class="flex-fill mx-1">
+                        <input type="text" @ref="searchBox" @bind-value="_state.SearchText"
+                               @bind-value:event="oninput" @onkeydown="SearchKeyDownAsync"
+                               class="form-control" placeholder="Search for products..." />
+                    </div>
+                    <div class="flex-fill mx-1">
+                        <label>Start Date</label>
+                    </div>
+                    <div class="flex-fill mx-1">
+                        <InputDate @bind-Value="StartDate" class="form-control"></InputDate>
+                    </div>
+                    <div class="flex-fill mx-1">
+                        <label>End Date</label>
+                    </div>
+                    <div class="flex-fill mx-1">
+                        <InputDate @bind-Value="EndDate" class="form-control"></InputDate>
+                    </div>
+                    <div class="flex-fill mx-1 d-flex align-items-end">
+                        <button class="btn btn-primary w-100">Search history</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 mb-2">
+                <div class="table-responsive" style="@_state.TableStyle">
+                    <table class="table table-bordered table-striped align-middle" style="table-layout:fixed; width:100%">
+                        <colgroup>
+                            <col style="width:15%" />
+                            <col style="width:15%" />
+                            <col style="width:15%" />
+                            <col style="width:15%" />
+                            <col style="width:15%" />
+                            <col style="width:15%" />
+                            <col style="width:10%" />
+
+                        </colgroup>
+                        <thead class="table-primary">
+                            <tr>
+                                <th class="text-truncate">Barcode</th>
+                                <th class="text-truncate">Name</th>
+                                <th class="text-truncate">Price</th>
+                                <th class="text-truncate">Sale Qty</th>
+                                <th class="text-truncate">Promotion</th>
+                                <th class="text-truncate">Date Time</th>
+                                <th class="text-truncate">Pos User</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (salesItems?.Count > 0)
+                            {
+                                foreach (var item in salesItems)
+                                {
+                                    <tr>
+                                        <td class="text-truncate">@item.Product.Product_Barcode</td>
+                                        <td class="text-truncate">@item.Product.Product_Name</td>
+                                        <td class="text-truncate">@item.Product_Amount</td>
+                                        <td class="text-truncate">@item.Product_QTY</td>
+                                        <td class="text-truncate">@item.Promotion?.Promotion_Name</td>
+                                        <td class="text-truncate">@item.SalesTransaction.Sale_Date</td>
+                                        <td class="text-truncate">@item.SalesTransaction.Created_By?.First_Name</td>
+                                    </tr>
+                                }
+
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="col-md-12 mb-2">
+                <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;">
+                    <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                        <img src="images/icons/arrow_circle_left_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+                        <span class="fw-bold">Back</span>
+                    </button>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    ElementReference searchBox;
+    [Parameter] public CheckoutState _state { get; set; } = new();
+
+    private List<SalesItemTransaction> salesItems { get; set; }
+    private DateTime StartDate { get; set; }
+    private DateTime EndDate { get; set; }
+
+    private void SearchKeyDownAsync(KeyboardEventArgs args)
+    {
+        throw new NotImplementedException();
+    }
+}
