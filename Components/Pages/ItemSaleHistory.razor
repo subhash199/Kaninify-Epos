@@ -80,7 +80,8 @@
             </div>
             <div class="col-md-12 mb-2">
                 <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;">
-                    <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                    <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
+                            @onclick="() => OnBackClick.InvokeAsync()">
                         <img src="images/icons/arrow_circle_left_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Back</span>
                     </button>
@@ -97,7 +98,9 @@
 @code {
 
     ElementReference searchBox;
-    [Parameter] public CheckoutState _state { get; set; } = new();
+    [Parameter] public EventCallback OnBackClick { get; set; }
+    [Parameter] public CheckoutState _state { get; set; } = new();    
+    [Parameter] public Product _product { get; set; }
 
     private List<SalesItemTransaction> salesItems { get; set; }
     private DateTime StartDate { get; set; }
@@ -105,8 +108,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!string.IsNullOrEmpty(_state.SearchText))
+        if (_product!=null)
         {
+            
             if (StartDate == default)
             {
                 StartDate = DateTime.Now.AddDays(-10); // Default to 30 days ago
@@ -115,7 +119,7 @@
             {
                 EndDate = DateTime.Now; // Default to today
             }
-            SearchItemHistory(_state.SearchText, StartDate, EndDate);
+            SearchItemHistory(_product.Product_ID, StartDate, EndDate);
         }
     }
 
@@ -124,10 +128,10 @@
         throw new NotImplementedException();
     }
 
-    private async void SearchItemHistory(string barcode, DateTime startDate, DateTime endDate)
+    private async void SearchItemHistory(int productId, DateTime startDate, DateTime endDate)
     {
         var result = await _salesItemTransactionServices.GetByConditionAsync(
-        item => item.Product.Product_Barcode == barcode && item.Date_Created >= startDate && item.Date_Created <= endDate, true);
+        item => item.Product_ID == productId && item.Date_Created >= startDate && item.Date_Created <= endDate, true);
         if (result != null)
         {
             salesItems = result.ToList();
@@ -136,5 +140,7 @@
         {
             salesItems = new List<SalesItemTransaction>();
         }
+        StateHasChanged();
     }
+
 }

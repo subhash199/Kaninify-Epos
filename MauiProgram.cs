@@ -18,7 +18,8 @@ public static class MauiProgram
 		builder.Services.AddScoped<DepartmentServices>();     // Changed from AddSingleton
         builder.Services.AddScoped<VatServices>();            // Changed from AddSingleton
 		builder.Services.AddScoped<SalesTransactionServices>(); // Changed from AddSingleton
-		builder.Services.AddScoped<GeneralServices>();        // Changed from AddSingleton
+		builder.Services.AddScoped<SalesItemTransactionServices>(); // Changed from AddSingleton
+        builder.Services.AddScoped<GeneralServices>();        // Changed from AddSingleton
 		builder.Services.AddSingleton<CheckoutService>();     // Keep as singleton if it doesn't use DbContext directly
 		builder.Services.AddScoped<PosUserServices>();       // Changed from AddSingleton
 		builder.Services.AddScoped<UserSiteAccessServices>(); // Changed from AddSingleton
