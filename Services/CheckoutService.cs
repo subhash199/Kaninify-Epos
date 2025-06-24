@@ -1,20 +1,23 @@
 using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Models;
+using EposRetail.Services;
 
 public class CheckoutService
 {
     private readonly ProductServices _productServices;
     private readonly SalesTransactionServices _salesTransactionServices;
+    private readonly SalesItemTransactionServices _salesItemTransactionServices;
     private readonly GeneralServices _generalServices;
 
     public CheckoutService(ProductServices productServices,
                           SalesTransactionServices salesTransactionServices,
-                          GeneralServices generalServices)
+                          GeneralServices generalServices, SalesItemTransactionServices salesItemTransactionServices)
     {
         _productServices = productServices;
         _salesTransactionServices = salesTransactionServices;
         _generalServices = generalServices;
+        _salesItemTransactionServices = salesItemTransactionServices;
     }
 
     public async Task<Product?> GetProductByBarcodeAsync(string barcode)
@@ -24,7 +27,24 @@ public class CheckoutService
 
     public async Task SaveTransactionAsync(SalesTransaction transaction)
     {
+        // Save the main transaction first
+        var salesItems = transaction.SalesItemTransactions?.ToList() ?? new List<SalesItemTransaction>();
+        transaction.SalesItemTransactions = null; // Detach to avoid circular reference issues
         await _salesTransactionServices.AddAsync(transaction);
+
+        //Save all sales item transactions in bulk if they exist
+        if (salesItems?.Any() == true)
+        {
+            // Set the transaction ID for all sales items
+            foreach (var salesItem in salesItems)
+            {
+                salesItem.SaleTransaction_ID = transaction.SaleTransaction_ID;
+                salesItem.SalesTransaction = transaction;
+            }
+
+            // Save all sales items in a single bulk operation
+            await _salesItemTransactionServices.AddRangeAsync(salesItems);
+        }
     }
 
     public decimal CalculateGrandTotal(SalesBasket basket)

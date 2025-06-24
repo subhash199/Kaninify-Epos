@@ -427,8 +427,7 @@
     private async Task CompleteTransactionAsync(SalesBasket basket)
     {
         var transactionToSave = basket.Transaction;
-        var itemTransactions = basket.SalesItemsList;
-
+        transactionToSave.SalesItemTransactions = basket.SalesItemsList.ToList(); // Copy items to transaction
         // Clear UI immediately
         await ClearCurrentTransactionAsync();
 
@@ -437,7 +436,6 @@
 
         // Save in background
         _ = SaveTransactionInBackgroundAsync(transactionToSave);
-        _ = SaveItemTransactionInBackgroundAsync(itemTransactions);
     }
 
     private async Task ClearCurrentTransactionAsync()
@@ -514,10 +512,7 @@
             });
         }
     }
-
-    private async Task SaveItemTransactionInBackgroundAsync(List<SalesItemTransaction> itemTransactions)
-    {
-    }
+ 
 
     private async Task ShowErrorModalAsync(string title, string message)
     {
