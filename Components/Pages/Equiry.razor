@@ -69,7 +69,8 @@
                     </div>
 
                 </div>
-                <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;">
+                <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;"
+                @onclick="HandleBackClick">
                     <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
                         <img src="images/icons/arrow_circle_left_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Back</span>
@@ -115,6 +116,14 @@ else
     List<Product> searchProducts = new();
     Product selectedProduct;
     bool showItemSaleHistory = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            await SetFocusOnSearchBoxAsync();
+        }
+    }
 
     private async Task SearchKeyDownAsync(KeyboardEventArgs e)
     {
@@ -253,5 +262,9 @@ else
         showItemSaleHistory = false;
         selectedProduct = null;
         StateHasChanged();
+    }
+    private async Task HandleBackClick(MouseEventArgs args)
+    {
+        _navigationManager.NavigateTo(BackButtonNavigationLink, false);
     }
 }

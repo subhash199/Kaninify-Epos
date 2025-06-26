@@ -3,6 +3,7 @@
 @using DataHandlerLibrary.Services
 @using EposRetail.Services
 @inject SalesItemTransactionServices _salesItemTransactionServices
+@inject ProductServices _productServices
 
 <div class="d-flex flex-column vh-100 mt-1 disable-scroll">
     <div class="container-fluid">
@@ -62,13 +63,13 @@
                                 foreach (var item in salesItems)
                                 {
                                     <tr>
-                                        <td class="text-truncate">@item.Product.Product_Barcode</td>
-                                        <td class="text-truncate">@item.Product.Product_Name</td>
-                                        <td class="text-truncate">@item.Product_Amount</td>
-                                        <td class="text-truncate">@item.Product_QTY</td>
-                                        <td class="text-truncate">@item.Promotion?.Promotion_Name</td>
-                                        <td class="text-truncate">@item.SalesTransaction.Sale_Date</td>
-                                        <td class="text-truncate">@item.SalesTransaction.Created_By?.First_Name</td>
+                                        <td class="text-truncate">@item?.Product?.Product_Barcode</td>
+                                        <td class="text-truncate">@item?.Product?.Product_Name</td>
+                                        <td class="text-truncate">@item?.Product_Amount</td>
+                                        <td class="text-truncate">@item?.Product_QTY</td>
+                                        <td class="text-truncate">@item?.Promotion?.Promotion_Name</td>
+                                        <td class="text-truncate">@item?.SalesTransaction.Sale_Date</td>
+                                        <td class="text-truncate">@item?.SalesTransaction.Created_By?.First_Name</td>
                                     </tr>
                                 }
 
@@ -78,7 +79,7 @@
                 </div>
 
             </div>
-            <div class="col-md-12 mb-2">
+            <div class="col-md-12 mb-2">                
                 <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;">
                     <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
                             @onclick="() => OnBackClick.InvokeAsync()">
@@ -99,37 +100,58 @@
 
     ElementReference searchBox;
     [Parameter] public EventCallback OnBackClick { get; set; }
-    [Parameter] public CheckoutState _state { get; set; } = new();    
+    [Parameter] public CheckoutState _state { get; set; } = new();
     [Parameter] public Product _product { get; set; }
 
     private List<SalesItemTransaction> salesItems { get; set; }
     private DateTime StartDate { get; set; }
     private DateTime EndDate { get; set; }
 
+    private async Task SetFocusOnSearchBoxAsync()
+    {
+        _state.SearchText = "";
+        await searchBox.FocusAsync();
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        if (_product!=null)
+        if (_product != null)
         {
-            
-            if (StartDate == default)
-            {
-                StartDate = DateTime.Now.AddDays(-10); // Default to 30 days ago
-            }
-            if (EndDate == default)
-            {
-                EndDate = DateTime.Now; // Default to today
-            }
             SearchItemHistory(_product.Product_ID, StartDate, EndDate);
         }
     }
 
-    private void SearchKeyDownAsync(KeyboardEventArgs args)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        throw new NotImplementedException();
+        if (firstRender)
+        {
+            await SetFocusOnSearchBoxAsync();
+        }
+    }
+
+    private async Task SearchKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (!string.IsNullOrEmpty(_state.SearchText))
+        {
+            _product = await _productServices.GetProductByBarcode(_state.SearchText);
+            if (_product != null)
+            {
+                SearchItemHistory(_product.Product_ID, StartDate, EndDate);
+            }
+        }
     }
 
     private async void SearchItemHistory(int productId, DateTime startDate, DateTime endDate)
     {
+        if (startDate == default)
+        {
+            StartDate = startDate = DateTime.Now.AddDays(-10); // Default to 30 days ago
+        }
+        if (endDate == default)
+        {
+            EndDate = endDate = DateTime.Now; // Default to today
+        }
+
         var result = await _salesItemTransactionServices.GetByConditionAsync(
         item => item.Product_ID == productId && item.Date_Created >= startDate && item.Date_Created <= endDate, true);
         if (result != null)
@@ -141,6 +163,7 @@
             salesItems = new List<SalesItemTransaction>();
         }
         StateHasChanged();
+        await SetFocusOnSearchBoxAsync();
     }
 
 }
