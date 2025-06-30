@@ -27,6 +27,7 @@ public static class MauiProgram
         builder.Services.AddScoped<UserManagementServices>(); // Changed from AddSingleton
         builder.Services.AddScoped<VoidedProductServices>();
 		builder.Services.AddScoped<DayLogServices>();
+        builder.Services.AddScoped<PromotionServices>();
 
         builder.Services.AddScoped<MigrateDataServices>();
 		builder.Services.AddSingleton<PosUser>();
