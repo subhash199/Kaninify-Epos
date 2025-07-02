@@ -286,7 +286,7 @@
                                                 <br><small class="text-muted">@product.Product_Barcode - £@product.Product_Selling_Price.ToString("F2")</small>
                                             </div>
                                             <button class="btn btn-sm btn-outline-primary" @onclick="() => AddProductToPromotion(product)">
-                                                <i class="fas fa-plus"></i>
+                                                <i class="fas fa-plus">Add</i>
                                             </button>
                                         </div>
                                     }
@@ -418,9 +418,6 @@
     {
         try
         {
-            // Set the Is_Deleted property based on the checkbox
-            currentPromotion.Is_Deleted = !isPromotionActive;
-
             // Validate the promotion
             var validationResult = await PromotionServices.ValidateAsync(currentPromotion);
             if (!string.IsNullOrEmpty(validationResult))

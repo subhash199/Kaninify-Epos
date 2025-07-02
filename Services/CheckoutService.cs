@@ -65,6 +65,30 @@ public class CheckoutService
         if (existingItem != null && !isGeneric)
         {
             existingItem.Product_QTY += 1;
+            // Promotions and discounts can be handled here if needed
+            if (existingItem.Product?.Promotions.Count>0)
+            {
+                foreach (var promotion in existingItem.Product.Promotions)
+                {
+                    // Handle promotions logic here
+                    switch (promotion.Promotion_Type)
+                    {
+                        case PromotionType.Discount:
+                            int discountQty = existingItem.Product_QTY / promotion.Buy_Quantity;
+                            existingItem.Product_Amount = (promotion?.Discount_Amount * discountQty)??0;
+                            break;
+                        case PromotionType.BuyXGetXFree:
+                            // Logic for BOGO promotions
+                            if (promotion.Buy_Quantity>= existingItem.Product_QTY)
+                            {
+                                existingItem.Product_QTY += 1; // Free item
+                            }
+                            break;
+                        // Add more promotion types as needed
+                    }
+                }
+                
+            }
             existingItem.Product_Total_Amount = existingItem.Product_QTY * product.Product_Selling_Price;
             existingItem.Product_Total_Amount_Before_Discount = existingItem.Product_Total_Amount;
 
@@ -73,7 +97,7 @@ public class CheckoutService
                 existingItem.Product_Total_Amount = -existingItem.Product_Total_Amount;
                 existingItem.Product_Total_Amount_Before_Discount = -existingItem.Product_Total_Amount_Before_Discount;
             }
-
+           
 
         }
         else
