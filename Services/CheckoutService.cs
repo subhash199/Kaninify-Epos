@@ -291,6 +291,7 @@ public class CheckoutService
     /// Applies BundleBuy promotion (buy specific combination of products for a special price)
     /// For the new direct relationship, BundleBuy works on products that share the same promotion
     /// All products with the same promotion_id form a bundle
+    /// Supports both multi-product bundles and same-product quantity bundles (e.g., "Any 3 for £2")
     /// </summary>
     private async Task ApplyBundleBuyPromotion(SalesBasket basket, Promotion promotion)
     {
@@ -299,41 +300,81 @@ public class CheckoutService
             .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID)
             .ToList();
 
-        if (bundleItemsInBasket.Count < 2) return; // Bundle needs at least 2 different products
+        if (!bundleItemsInBasket.Any()) return;
 
-        // For bundle promotions, we need at least 1 of each product type
-        // Calculate how many complete bundles we can make (minimum quantity of all items)
-        int completeBundles = bundleItemsInBasket.Min(item => item.Product_QTY);
+        // Check if this is a same-product bundle (quantity-based) or multi-product bundle
+        bool isSameProductBundle = bundleItemsInBasket.Count == 1;
+        int requiredBundleQuantity = promotion.Buy_Quantity;
 
-        if (completeBundles == 0) return;
-
-        // Apply bundle pricing
-        decimal bundlePrice = promotion.Discount_Amount ?? 0;
-        decimal originalBundlePrice = bundleItemsInBasket.Sum(item => item.Product.Product_Selling_Price);
-
-        // If no bundle price is set, apply percentage discount to the bundle
-        if (bundlePrice == 0 && promotion.Discount_Percentage > 0)
+        if (isSameProductBundle)
         {
-            bundlePrice = originalBundlePrice * (1 - promotion.Discount_Percentage ?? 0 / 100);
+            // Handle same-product bundle (e.g., "Any 3 for £2")
+            var item = bundleItemsInBasket.First();
+            
+            if (item.Product_QTY < requiredBundleQuantity) return;
+
+            int completeBundles = item.Product_QTY / requiredBundleQuantity;
+            int bundleQuantities = completeBundles * requiredBundleQuantity;
+            int remainingQuantity = item.Product_QTY - bundleQuantities;
+
+            // Apply bundle pricing
+            decimal bundlePrice = promotion.Discount_Amount ?? 0;
+            decimal originalUnitPrice = item.Product.Product_Selling_Price;
+            decimal originalBundlePrice = originalUnitPrice * requiredBundleQuantity;
+
+            // If no bundle price is set, apply percentage discount
+            if (bundlePrice == 0 && promotion.Discount_Percentage > 0)
+            {
+                bundlePrice = originalBundlePrice * (1 - (promotion.Discount_Percentage ?? 0) / 100);
+            }
+
+            // Calculate total: bundle price for bundle quantities + regular price for remaining
+            decimal bundleTotal = bundlePrice * completeBundles;
+            decimal remainingTotal = remainingQuantity * originalUnitPrice;
+
+            item.Promotion = promotion;
+            item.Promotion_ID = promotion.Promotion_ID;
+            item.Product_Total_Amount = bundleTotal + remainingTotal;
         }
-
-        // Calculate the discount per item in the bundle
-        decimal totalDiscount = (originalBundlePrice - bundlePrice) * completeBundles;
-        decimal discountPerItem = totalDiscount / bundleItemsInBasket.Count;
-
-        foreach (var basketItem in bundleItemsInBasket)
+        else
         {
-            basketItem.Promotion = promotion;
-            basketItem.Promotion_ID = promotion.Promotion_ID;
-            // Apply discount to bundle quantities only
-            int bundleQuantity = completeBundles;
-            int remainingQuantity = basketItem.Product_QTY - bundleQuantity;
+            // Handle multi-product bundle (original logic)
+            if (bundleItemsInBasket.Count < 2) return; // Multi-product bundle needs at least 2 different products
 
-            // Calculate new total: discounted bundle items + regular price remaining items
-            decimal bundleItemTotal = (basketItem.Product.Product_Selling_Price * bundleQuantity) - discountPerItem;
-            decimal remainingItemTotal = remainingQuantity * basketItem.Product.Product_Selling_Price;
+            // For multi-product bundles, we need at least 1 of each product type
+            // Calculate how many complete bundles we can make (minimum quantity of all items)
+            int completeBundles = bundleItemsInBasket.Min(item => item.Product_QTY);
 
-            basketItem.Product_Total_Amount = bundleItemTotal + remainingItemTotal;
+            if (completeBundles == 0) return;
+
+            // Apply bundle pricing
+            decimal bundlePrice = promotion.Discount_Amount ?? 0;
+            decimal originalBundlePrice = bundleItemsInBasket.Sum(item => item.Product.Product_Selling_Price);
+
+            // If no bundle price is set, apply percentage discount to the bundle
+            if (bundlePrice == 0 && promotion.Discount_Percentage > 0)
+            {
+                bundlePrice = originalBundlePrice * (1 - (promotion.Discount_Percentage ?? 0) / 100);
+            }
+
+            // Calculate the discount per item in the bundle
+            decimal totalDiscount = (originalBundlePrice - bundlePrice) * completeBundles;
+            decimal discountPerItem = totalDiscount / bundleItemsInBasket.Count;
+
+            foreach (var basketItem in bundleItemsInBasket)
+            {
+                basketItem.Promotion = promotion;
+                basketItem.Promotion_ID = promotion.Promotion_ID;
+                // Apply discount to bundle quantities only
+                int bundleQuantity = completeBundles;
+                int remainingQuantity = basketItem.Product_QTY - bundleQuantity;
+
+                // Calculate new total: discounted bundle items + regular price remaining items
+                decimal bundleItemTotal = (basketItem.Product.Product_Selling_Price * bundleQuantity) - discountPerItem;
+                decimal remainingItemTotal = remainingQuantity * basketItem.Product.Product_Selling_Price;
+
+                basketItem.Product_Total_Amount = bundleItemTotal + remainingItemTotal;
+            }
         }
     }
 
