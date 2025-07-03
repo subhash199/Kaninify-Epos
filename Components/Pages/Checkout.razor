@@ -1,4 +1,4 @@
-﻿@page "/checkout"
+@page "/"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Constants
@@ -187,7 +187,7 @@
             await InitializeSalesTransactionAsync();
         }
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-        CheckoutService.AddProductToBasket(currentBasket, product, isGeneric);
+        await CheckoutService.AddProductToBasketAsync(currentBasket, product, isGeneric);
 
         UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
         await SetFocusOnSearchBoxAsync();

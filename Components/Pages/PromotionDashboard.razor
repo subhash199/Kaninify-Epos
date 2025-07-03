@@ -1,4 +1,4 @@
-@page "/"
+@page "/promotiondashboard"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using DataHandlerLibrary.Services
@@ -7,7 +7,7 @@
 @inject PromotionServices PromotionServices
 @inject GeneralServices generalServices
 @inject IJSRuntime JSRuntime
-
+@inject NavigationManager NavigationManager
 <PageTitle>Promotion Management</PageTitle>
 
 <div class="container-fluid">
@@ -20,6 +20,9 @@
                         <button class="btn btn-primary" @onclick="ShowCreatePromotionModal">
                             <i class="fas fa-plus"></i> Create New Promotion
                         </button>
+                        <button class="btn btn-primary" @onclick="NavigateToCheckout">
+                            <i class="fas fa-plus"></i> Back to checkout
+                        </button>
                     </div>
                 </div>
 
@@ -27,7 +30,7 @@
                     @if (promotions?.Any() == true)
                     {
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover">
+                            <table class="table table-light table-bordered table-hover">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Name</th>
@@ -68,7 +71,7 @@
                                                 }
                                             </td>
                                             <td>
-                                                <span class="badge bg-primary">@(promotion.PromotionItems?.Count ?? 0) Products</span>
+                                                <span class="badge bg-primary">@(promotion.Products?.Count ?? 0) Products</span>
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group">
@@ -180,8 +183,35 @@
                                 </div>
                             </div>
                             }
-                        
                         </div>
+                        
+                        @* Show helpful information based on promotion type *@
+                        @if(currentPromotion.Promotion_Type == PromotionType.MultiBuy)
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>MultiBuy Promotion:</strong> Customers get special pricing when buying multiple quantities.
+                                <br><small>Example: "Buy 3 for £10" - Set Buy Quantity = 3, Discount Amount = 10.00</small>
+                            </div>
+                        }
+                        
+                        @if(currentPromotion.Promotion_Type == PromotionType.BundleBuy)
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Bundle Promotion:</strong> Customers get special pricing when buying specific product combinations.
+                                <br><small>Example: "Burger + Fries + Drink for £8.99" - Add all products to promotion, set Discount Amount = 8.99</small>
+                            </div>
+                        }
+                        
+                        @if(currentPromotion.Promotion_Type == PromotionType.Discount && currentPromotion.Minimum_Spend_Amount > 0)
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Minimum Spend Discount:</strong> Discount only applies when basket total reaches £@currentPromotion.Minimum_Spend_Amount?.ToString("F2")
+                            </div>
+                        }
+                        
                          <div class="col-md-12">
                              <div class="mb-3">
                                     <label class="form-label">Enter Discount Percentage Or Discount Amount</label>
@@ -307,15 +337,14 @@
                             <div class="border rounded p-2" style="height: 450px; overflow-y: auto;">
                                 @if (selectedPromotionProducts?.Any() == true)
                                 {
-                                    @foreach (var promotionProduct in selectedPromotionProducts)
+                                    @foreach (var product in selectedPromotionProducts)
                                     {
                                         <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
                                             <div>
-                                                <strong>@promotionProduct.Product?.Product_Name</strong>
-                                                <br><small class="text-muted">@promotionProduct.Product?.Product_Barcode - £@promotionProduct.Product?.Product_Selling_Price.ToString("F2")</small>
-                                                <br><small class="text-success">Added: @promotionProduct.DateCreated.ToString("dd/MM/yyyy")</small>
+                                                <strong>@product.Product_Name</strong>
+                                                <br><small class="text-muted">@product.Product_Barcode - £@product.Product_Selling_Price.ToString("F2")</small>
                                             </div>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveProductFromPromotion(promotionProduct)">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveProductFromPromotion(product)">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
@@ -347,7 +376,7 @@
     private List<Promotion> promotions = new();
     private List<Product> allProducts = new();
     private List<Product> filteredAvailableProducts = new();
-    private List<PromotionalProduct> selectedPromotionProducts = new();
+    private List<Product> selectedPromotionProducts = new();
     private List<Department> departments = new();
 
     private bool showPromotionModal = false;
@@ -484,9 +513,9 @@
         try
         {
             selectedPromotion = promotion;
-            selectedPromotionProducts = (await PromotionServices.GetPromotionProductsAsync(promotion.Promotion_ID))?.ToList() ?? new List<PromotionalProduct>();
+            selectedPromotionProducts = (await PromotionServices.GetProductsWithPromotionAsync(promotion.Promotion_ID))?.ToList() ?? new List<Product>();
             filteredAvailableProducts = allProducts.Where(p =>
-                !selectedPromotionProducts.Any(pp => pp.ProductId == p.Product_ID)).ToList();
+                p.Promotion_Id != promotion.Promotion_ID).ToList();
             showProductsModal = true;
             StateHasChanged();
         }
@@ -509,12 +538,12 @@
         if (string.IsNullOrWhiteSpace(productSearchTerm))
         {
             filteredAvailableProducts = allProducts.Where(p =>
-                !selectedPromotionProducts.Any(pp => pp.ProductId == p.Product_ID)).ToList();
+                p.Promotion_Id != selectedPromotion?.Promotion_ID).ToList();
         }
         else
         {
             filteredAvailableProducts = allProducts.Where(p =>
-                !selectedPromotionProducts.Any(pp => pp.ProductId == p.Product_ID) &&
+                p.Promotion_Id != selectedPromotion?.Promotion_ID &&
                 (p.Product_Name.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase) ||
                  p.Product_Barcode.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
         }
@@ -525,19 +554,9 @@
     {
         try
         {
-            await PromotionServices.AddProductToPromotionAsync(selectedPromotion!.Promotion_ID, product.Product_ID);
+            await PromotionServices.AssignPromotionToProductAsync(selectedPromotion!.Promotion_ID, product.Product_ID);
 
-            var promotionalProduct = new PromotionalProduct
-            {
-                PromotionId = selectedPromotion!.Promotion_ID,
-                ProductId = product.Product_ID,
-                Product = product,
-                IsActive = true,
-                DateCreated = DateTime.Now,
-                LastModified = DateTime.Now
-            };
-
-            selectedPromotionProducts.Add(promotionalProduct);
+            selectedPromotionProducts.Add(product);
             filteredAvailableProducts.Remove(product);
             StateHasChanged();
         }
@@ -547,17 +566,14 @@
         }
     }
 
-    private async void RemoveProductFromPromotion(PromotionalProduct promotionalProduct)
+    private async void RemoveProductFromPromotion(Product product)
     {
         try
         {
-            await PromotionServices.RemoveProductFromPromotionAsync(promotionalProduct.PromotionId, promotionalProduct.ProductId);
+            await PromotionServices.RemovePromotionFromProductAsync(product.Product_ID);
 
-            selectedPromotionProducts.Remove(promotionalProduct);
-            if (promotionalProduct.Product != null)
-            {
-                filteredAvailableProducts.Add(promotionalProduct.Product);
-            }
+            selectedPromotionProducts.Remove(product);
+            filteredAvailableProducts.Add(product);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -637,5 +653,11 @@
         
        
         StateHasChanged();
+    }
+
+    private async Task NavigateToCheckout()
+    {
+        // Logic to navigate back to the checkout page
+        NavigationManager.NavigateTo("/");
     }
 }

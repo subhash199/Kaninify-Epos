@@ -2,6 +2,7 @@ using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Models;
 using EposRetail.Services;
+using NetTopologySuite.Index.HPRtree;
 
 public class CheckoutService
 {
@@ -9,15 +10,19 @@ public class CheckoutService
     private readonly SalesTransactionServices _salesTransactionServices;
     private readonly SalesItemTransactionServices _salesItemTransactionServices;
     private readonly GeneralServices _generalServices;
+    private readonly PromotionServices _promotionServices;
 
     public CheckoutService(ProductServices productServices,
                           SalesTransactionServices salesTransactionServices,
-                          GeneralServices generalServices, SalesItemTransactionServices salesItemTransactionServices)
+                          GeneralServices generalServices,
+                          SalesItemTransactionServices salesItemTransactionServices,
+                          PromotionServices promotionServices)
     {
         _productServices = productServices;
         _salesTransactionServices = salesTransactionServices;
         _generalServices = generalServices;
         _salesItemTransactionServices = salesItemTransactionServices;
+        _promotionServices = promotionServices;
     }
 
     public async Task<Product?> GetProductByBarcodeAsync(string barcode)
@@ -56,7 +61,7 @@ public class CheckoutService
         return grandTotal - totalPaid;
     }
 
-    public void AddProductToBasket(SalesBasket basket, Product product, bool isGeneric)
+    public async Task AddProductToBasketAsync(SalesBasket basket, Product product, bool isGeneric)
     {
         basket.SalesItemsList ??= new List<SalesItemTransaction>();
 
@@ -65,54 +70,451 @@ public class CheckoutService
         if (existingItem != null && !isGeneric)
         {
             existingItem.Product_QTY += 1;
-            // Promotions and discounts can be handled here if needed
-            if (existingItem.Product?.Promotions.Count>0)
-            {
-                foreach (var promotion in existingItem.Product.Promotions)
-                {
-                    // Handle promotions logic here
-                    switch (promotion.Promotion_Type)
-                    {
-                        case PromotionType.Discount:
-                            int discountQty = existingItem.Product_QTY / promotion.Buy_Quantity;
-                            existingItem.Product_Amount = (promotion?.Discount_Amount * discountQty)??0;
-                            break;
-                        case PromotionType.BuyXGetXFree:
-                            // Logic for BOGO promotions
-                            if (promotion.Buy_Quantity>= existingItem.Product_QTY)
-                            {
-                                existingItem.Product_QTY += 1; // Free item
-                            }
-                            break;
-                        // Add more promotion types as needed
-                    }
-                }
-                
-            }
-            existingItem.Product_Total_Amount = existingItem.Product_QTY * product.Product_Selling_Price;
-            existingItem.Product_Total_Amount_Before_Discount = existingItem.Product_Total_Amount;
-
-            if (basket.Transaction.Is_Refund)
-            {
-                existingItem.Product_Total_Amount = -existingItem.Product_Total_Amount;
-                existingItem.Product_Total_Amount_Before_Discount = -existingItem.Product_Total_Amount_Before_Discount;
-            }
-           
-
         }
         else
-        {         
+        {
             basket.SalesItemsList.Add(new SalesItemTransaction
             {
                 Product_ID = product.Product_ID,
                 Product = product,
                 Product_QTY = 1,
                 Product_Amount = product.Product_Selling_Price,
-                Product_Total_Amount = basket.Transaction.Is_Refund ? -product.Product_Selling_Price : product.Product_Selling_Price,
-                Product_Total_Amount_Before_Discount = basket.Transaction.Is_Refund ? - product.Product_Selling_Price :  product.Product_Selling_Price
+                Product_Total_Amount = product.Product_Selling_Price,
+                Product_Total_Amount_Before_Discount = product.Product_Selling_Price
             });
+        }
+
+        // Apply promotions to the entire basket
+        await ApplyPromotionsToBasketAsync(basket);
+
+        // Handle refund scenario
+        if (basket.Transaction.Is_Refund)
+        {
+            foreach (var item in basket.SalesItemsList)
+            {
+                item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
+                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount ?? 0);
+            }
         }
 
         basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
     }
+
+    /// <summary>
+    /// Applies all active promotions to the basket items
+    /// </summary>
+    private async Task ApplyPromotionsToBasketAsync(SalesBasket basket)
+    {
+        if (basket?.SalesItemsList?.Any() != true) return;
+
+        // Reset all items to original prices before applying promotions
+        foreach (var item in basket.SalesItemsList)
+        {
+            item.Product_Total_Amount_Before_Discount = item.Product_QTY * item.Product?.Product_Selling_Price;
+            item.Product_Total_Amount = item.Product_Total_Amount_Before_Discount ?? 0;
+            item.Product_Amount = item.Product?.Product_Selling_Price ?? 0;
+        }
+
+        // Apply promotions directly from products in the basket
+        var processedPromotions = new HashSet<int>();
+        
+        foreach (var item in basket.SalesItemsList)
+        {
+            if (item.Product?.Promotion_Id.HasValue == true && 
+                !processedPromotions.Contains(item.Product.Promotion_Id.Value))
+            {
+                var promotion = await _promotionServices.GetByIdAsync(item.Product.Promotion_Id.Value);
+                if (promotion != null && IsPromotionActive(promotion))
+                {
+                    await ApplyPromotionToBasketAsync(basket, promotion);
+                    processedPromotions.Add(item.Product.Promotion_Id.Value);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies a specific promotion to the basket
+    /// </summary>
+    private async Task ApplyPromotionToBasketAsync(SalesBasket basket, Promotion promotion)
+    {
+        // Get products in basket that have this promotion assigned
+        var eligibleItems = basket.SalesItemsList
+            .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID)
+            .ToList();
+
+        if (!eligibleItems.Any()) return;
+
+        switch (promotion.Promotion_Type)
+        {
+            case PromotionType.Discount:
+                ApplyDiscountPromotion(basket, eligibleItems, promotion);
+                break;
+
+            case PromotionType.BuyXGetXFree:
+                ApplyBuyXGetXFreePromotion(basket, eligibleItems, promotion);
+                break;
+
+            case PromotionType.MultiBuy:
+                ApplyMultiBuyPromotion(eligibleItems, promotion);
+                break;
+
+            case PromotionType.BundleBuy:
+                await ApplyBundleBuyPromotion(basket, promotion);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Applies discount promotion (percentage or fixed amount) with minimum spend check
+    /// </summary>
+    private void ApplyDiscountPromotion(SalesBasket basket, List<SalesItemTransaction> eligibleItems, Promotion promotion)
+    {
+        // Check minimum spend requirement if specified
+        if (promotion.Minimum_Spend_Amount > 0)
+        {
+            decimal currentTotal = basket.SalesItemsList.Sum(item => item.Product_Total_Amount_Before_Discount) ?? 0;
+            if (currentTotal < promotion.Minimum_Spend_Amount)
+            {
+                return; // Don't apply discount if minimum spend not met
+            }
+        }
+
+        foreach (var item in eligibleItems)
+        {
+            item.Promotion = promotion;
+            item.Promotion_ID = promotion.Promotion_ID;
+
+            decimal discountAmount = 0;
+
+            if (promotion.Discount_Percentage > 0)
+            {
+                // Percentage discount
+                discountAmount = (item.Product_Total_Amount_Before_Discount * promotion.Discount_Percentage ?? 0) / 100;
+            }
+            else if (promotion.Discount_Amount > 0)
+            {
+                // Fixed amount discount per item
+                discountAmount = promotion.Discount_Amount ?? 0 * item.Product_QTY;
+            }
+
+            // Apply discount but ensure total doesn't go below 0
+            item.Product_Total_Amount += discountAmount;
+
+
+        }
+    }
+
+    /// <summary>
+    /// Applies Buy X Get X Free promotion
+    /// </summary>
+    private void ApplyBuyXGetXFreePromotion(SalesBasket basket, List<SalesItemTransaction> eligibleItems, Promotion promotion)
+    {
+        foreach (var item in eligibleItems)
+        {
+            item.Promotion = promotion;
+            item.Promotion_ID = promotion.Promotion_ID;
+            if (item.Product_QTY >= promotion.Buy_Quantity)
+            {
+                // Calculate how many free items the customer gets                
+                int freeItemSets = item.Product_QTY / promotion.Buy_Quantity;
+                int totalFreeItems = freeItemSets * promotion.Free_Quantity ?? 0;
+
+                // Calculate the effective quantity to charge for
+                int chargeableQuantity = item.Product_QTY - Math.Min(totalFreeItems, item.Product_QTY);
+
+                // Update the total amount (charge only for non-free items)
+                item.Product_Total_Amount = chargeableQuantity * item.Product.Product_Selling_Price;
+
+                // Update unit price to reflect the promotion
+                if (item.Product_QTY > 0)
+                {
+                    item.Product_Amount = item.Product_Total_Amount / item.Product_QTY;
+                }
+
+                // Add free items to basket if they don't already exist
+                if (totalFreeItems > 0)
+                {
+                    AddFreeItemsToBasket(basket, item.Product, totalFreeItems, promotion);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds free items to the basket for Buy X Get X Free promotions
+    /// </summary>
+    private void AddFreeItemsToBasket(SalesBasket basket, Product product, int freeQuantity, Promotion promotion)
+    {
+        // Check if free item already exists in basket
+        var existingFreeItem = basket.SalesItemsList
+            .FirstOrDefault(x => x.Product_ID == product.Product_ID && x.Product_Amount == 0);
+
+        if (existingFreeItem != null)
+        {
+            // Update existing free item quantity
+            existingFreeItem.Product_QTY = freeQuantity;
+            existingFreeItem.Product_Total_Amount = 0;
+            existingFreeItem.Product_Total_Amount_Before_Discount = freeQuantity * product.Product_Selling_Price;
+        }
+        else
+        {
+            // Add new free item entry
+            basket.SalesItemsList.Add(new SalesItemTransaction
+            {
+                Product_ID = product.Product_ID,
+                Product = product,
+                Product_QTY = freeQuantity,
+                Product_Amount = 0, // Free item
+                Product_Total_Amount = 0,
+                Product_Total_Amount_Before_Discount = freeQuantity * product.Product_Selling_Price
+            });
+        }
+    }
+
+    /// <summary>
+    /// Applies MultiBuy promotion (e.g., buy 3 for £10, buy 2 get 1 at 50% off)
+    /// Uses Buy_Quantity for the required quantity and Discount_Amount for the special price
+    /// </summary>
+    private void ApplyMultiBuyPromotion(List<SalesItemTransaction> eligibleItems, Promotion promotion)
+    {
+        foreach (var item in eligibleItems)
+        {
+            item.Promotion = promotion;
+            item.Promotion_ID = promotion.Promotion_ID;
+
+            if (item.Product_QTY >= promotion.Buy_Quantity)
+            {
+                // Calculate how many multi-buy sets the customer gets
+                int multiBuySets = item.Product_QTY / promotion.Buy_Quantity;
+                int remainingItems = item.Product_QTY % promotion.Buy_Quantity;
+
+                decimal multiBuyTotal = 0;
+
+                if (promotion.Discount_Amount > 0)
+                {
+                    // Fixed price for the multi-buy set (e.g., 3 for £10)
+                    multiBuyTotal = multiBuySets * promotion.Discount_Amount ?? 0;
+                }
+                else if (promotion.Discount_Percentage > 0)
+                {
+                    // Percentage discount on the multi-buy set
+                    decimal originalSetPrice = promotion.Buy_Quantity * item.Product.Product_Selling_Price;
+                    decimal discountedSetPrice = originalSetPrice * (1 - promotion.Discount_Percentage ?? 0 / 100);
+                    multiBuyTotal = multiBuySets * discountedSetPrice;
+                }
+
+                // Add remaining items at regular price
+                decimal remainingTotal = remainingItems * item.Product.Product_Selling_Price;
+
+                // Update the total amount
+                item.Product_Total_Amount = multiBuyTotal + remainingTotal;
+
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies BundleBuy promotion (buy specific combination of products for a special price)
+    /// For the new direct relationship, BundleBuy works on products that share the same promotion
+    /// All products with the same promotion_id form a bundle
+    /// </summary>
+    private async Task ApplyBundleBuyPromotion(SalesBasket basket, Promotion promotion)
+    {
+        // Get all products in basket that have this promotion assigned
+        var bundleItemsInBasket = basket.SalesItemsList
+            .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID)
+            .ToList();
+
+        if (bundleItemsInBasket.Count < 2) return; // Bundle needs at least 2 different products
+
+        // For bundle promotions, we need at least 1 of each product type
+        // Calculate how many complete bundles we can make (minimum quantity of all items)
+        int completeBundles = bundleItemsInBasket.Min(item => item.Product_QTY);
+
+        if (completeBundles == 0) return;
+
+        // Apply bundle pricing
+        decimal bundlePrice = promotion.Discount_Amount ?? 0;
+        decimal originalBundlePrice = bundleItemsInBasket.Sum(item => item.Product.Product_Selling_Price);
+
+        // If no bundle price is set, apply percentage discount to the bundle
+        if (bundlePrice == 0 && promotion.Discount_Percentage > 0)
+        {
+            bundlePrice = originalBundlePrice * (1 - promotion.Discount_Percentage ?? 0 / 100);
+        }
+
+        // Calculate the discount per item in the bundle
+        decimal totalDiscount = (originalBundlePrice - bundlePrice) * completeBundles;
+        decimal discountPerItem = totalDiscount / bundleItemsInBasket.Count;
+
+        foreach (var basketItem in bundleItemsInBasket)
+        {
+            basketItem.Promotion = promotion;
+            basketItem.Promotion_ID = promotion.Promotion_ID;
+            // Apply discount to bundle quantities only
+            int bundleQuantity = completeBundles;
+            int remainingQuantity = basketItem.Product_QTY - bundleQuantity;
+
+            // Calculate new total: discounted bundle items + regular price remaining items
+            decimal bundleItemTotal = (basketItem.Product.Product_Selling_Price * bundleQuantity) - discountPerItem;
+            decimal remainingItemTotal = remainingQuantity * basketItem.Product.Product_Selling_Price;
+
+            basketItem.Product_Total_Amount = bundleItemTotal + remainingItemTotal;
+        }
+    }
+
+    /// <summary>
+    /// Recalculates the basket totals after promotions are applied
+    /// </summary>
+    public void RecalculateBasketTotals(SalesBasket basket)
+    {
+        if (basket?.SalesItemsList?.Any() != true) return;
+
+        basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
+    }
+
+    /// <summary>
+    /// Gets the total discount amount applied to the basket
+    /// </summary>
+    public decimal GetTotalDiscountAmount(SalesBasket basket)
+    {
+        if (basket?.SalesItemsList?.Any() != true) return 0;
+
+        return basket.SalesItemsList.Sum(item =>
+            item.Product_Total_Amount_Before_Discount ?? 0 - item.Product_Total_Amount);
+    }
+
+    /// <summary>
+    /// Removes a product from the basket and recalculates promotions
+    /// </summary>
+    public async Task RemoveProductFromBasketAsync(SalesBasket basket, int productId, int quantityToRemove = 1)
+    {
+        if (basket?.SalesItemsList?.Any() != true) return;
+
+        var itemToRemove = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == productId);
+        if (itemToRemove == null) return;
+
+        if (itemToRemove.Product_QTY <= quantityToRemove)
+        {
+            // Remove the entire item
+            basket.SalesItemsList.Remove(itemToRemove);
+        }
+        else
+        {
+            // Reduce quantity
+            itemToRemove.Product_QTY -= quantityToRemove;
+        }
+
+        // Remove any free items associated with this product
+        var freeItemsToRemove = basket.SalesItemsList
+            .Where(x => x.Product_ID == productId && x.Product_Amount == 0)
+            .ToList();
+
+        foreach (var freeItem in freeItemsToRemove)
+        {
+            basket.SalesItemsList.Remove(freeItem);
+        }
+
+        // Reapply promotions to the entire basket
+        await ApplyPromotionsToBasketAsync(basket);
+
+        // Handle refund scenario
+        if (basket.Transaction.Is_Refund)
+        {
+            foreach (var item in basket.SalesItemsList)
+            {
+                item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
+                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount ?? 0);
+            }
+        }
+
+        basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
+    }
+
+    /// <summary>
+    /// Manually refreshes all promotions on the basket (useful when promotions change)
+    /// </summary>
+    public async Task RefreshPromotionsAsync(SalesBasket basket)
+    {
+        if (basket?.SalesItemsList?.Any() != true) return;
+
+        await ApplyPromotionsToBasketAsync(basket);
+
+        // Handle refund scenario
+        if (basket.Transaction.Is_Refund)
+        {
+            foreach (var item in basket.SalesItemsList)
+            {
+                item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
+                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount ?? 0);
+            }
+        }
+
+        basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
+    }
+
+    /// <summary>
+    /// Gets detailed promotion information applied to the basket
+    /// </summary>
+    public async Task<List<AppliedPromotionInfo>> GetAppliedPromotionsAsync(SalesBasket basket)
+    {
+        var appliedPromotions = new List<AppliedPromotionInfo>();
+
+        if (basket?.SalesItemsList?.Any() != true) return appliedPromotions;
+
+        // Group items by their promotion
+        var promotionGroups = basket.SalesItemsList
+            .Where(item => item.Product?.Promotion_Id.HasValue == true)
+            .GroupBy(item => item.Product.Promotion_Id.Value);
+
+        foreach (var group in promotionGroups)
+        {
+            var promotion = await _promotionServices.GetByIdAsync(group.Key);
+            if (promotion != null && IsPromotionActive(promotion))
+            {
+                var eligibleItems = group.ToList();
+                decimal totalDiscount = eligibleItems.Sum(item =>
+                    item.Product_Total_Amount_Before_Discount ?? 0 - item.Product_Total_Amount);
+
+                if (totalDiscount > 0)
+                {
+                    appliedPromotions.Add(new AppliedPromotionInfo
+                    {
+                        PromotionName = promotion.Promotion_Name,
+                        PromotionType = promotion.Promotion_Type,
+                        DiscountAmount = totalDiscount,
+                        AffectedProducts = eligibleItems.Select(i => i.Product.Product_Name).ToList()
+                    });
+                }
+            }
+        }
+
+        return appliedPromotions;
+    }
+
+    /// <summary>
+    /// Checks if a promotion is currently active
+    /// </summary>
+    private bool IsPromotionActive(Promotion promotion)
+    {
+        var now = DateTime.Now;
+        return promotion.Is_Active && 
+               promotion.Start_Date <= now && 
+               promotion.End_Date >= now;
+    }
+}
+
+/// <summary>
+/// Information about promotions applied to the basket
+/// </summary>
+public class AppliedPromotionInfo
+{
+    public string PromotionName { get; set; }
+    public PromotionType PromotionType { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public List<string> AffectedProducts { get; set; } = new List<string>();
 }
