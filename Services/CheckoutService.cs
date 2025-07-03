@@ -118,7 +118,10 @@ public class CheckoutService
         // Apply promotions directly from products in the basket
         var processedPromotions = new HashSet<int>();
         
-        foreach (var item in basket.SalesItemsList)
+        // Create a copy of the list to avoid collection modification during enumeration
+        var itemsToProcess = basket.SalesItemsList.ToList();
+        
+        foreach (var item in itemsToProcess)
         {
             if (item.Product?.Promotion_Id.HasValue == true && 
                 !processedPromotions.Contains(item.Product.Promotion_Id.Value))
@@ -198,11 +201,11 @@ public class CheckoutService
             else if (promotion.Discount_Amount > 0)
             {
                 // Fixed amount discount per item
-                discountAmount = promotion.Discount_Amount ?? 0 * item.Product_QTY;
+                discountAmount = (promotion.Discount_Amount ?? 0 )* item.Product_QTY;
             }
 
             // Apply discount but ensure total doesn't go below 0
-            item.Product_Total_Amount += discountAmount;
+            item.Product_Total_Amount = discountAmount;
 
 
         }
@@ -210,6 +213,7 @@ public class CheckoutService
 
     /// <summary>
     /// Applies Buy X Get X Free promotion
+    /// Increases the product quantity to include free items but only charges for the purchased quantity
     /// </summary>
     private void ApplyBuyXGetXFreePromotion(SalesBasket basket, List<SalesItemTransaction> eligibleItems, Promotion promotion)
     {
@@ -219,61 +223,27 @@ public class CheckoutService
             item.Promotion_ID = promotion.Promotion_ID;
             if (item.Product_QTY >= promotion.Buy_Quantity)
             {
-                // Calculate how many free items the customer gets                
-                int freeItemSets = item.Product_QTY / promotion.Buy_Quantity;
-                int totalFreeItems = freeItemSets * promotion.Free_Quantity ?? 0;
+                // Calculate how many complete promotion sets we have
+                int promotionSets = item.Product_QTY / (promotion.Buy_Quantity + (promotion.Free_Quantity ?? 0));
+                int remainingItems = item.Product_QTY % (promotion.Buy_Quantity + (promotion.Free_Quantity ?? 0));
+                
+                // Calculate chargeable items from complete sets
+                int chargeableFromSets = promotionSets * promotion.Buy_Quantity;
+                
+                // For remaining items, charge for items up to Buy_Quantity, rest are free
+                int chargeableFromRemaining = Math.Min(remainingItems, promotion.Buy_Quantity);
+                
+                // Total chargeable quantity
+                int totalChargeableQuantity = chargeableFromSets + chargeableFromRemaining;
 
-                // Calculate the effective quantity to charge for
-                int chargeableQuantity = item.Product_QTY - Math.Min(totalFreeItems, item.Product_QTY);
+                // Update the total amount (charge only for chargeable items)
+                item.Product_Total_Amount = totalChargeableQuantity * item.Product.Product_Selling_Price;
 
-                // Update the total amount (charge only for non-free items)
-                item.Product_Total_Amount = chargeableQuantity * item.Product.Product_Selling_Price;
-
-                // Update unit price to reflect the promotion
-                if (item.Product_QTY > 0)
-                {
-                    item.Product_Amount = item.Product_Total_Amount / item.Product_QTY;
-                }
-
-                // Add free items to basket if they don't already exist
-                if (totalFreeItems > 0)
-                {
-                    AddFreeItemsToBasket(basket, item.Product, totalFreeItems, promotion);
-                }
             }
         }
     }
 
-    /// <summary>
-    /// Adds free items to the basket for Buy X Get X Free promotions
-    /// </summary>
-    private void AddFreeItemsToBasket(SalesBasket basket, Product product, int freeQuantity, Promotion promotion)
-    {
-        // Check if free item already exists in basket
-        var existingFreeItem = basket.SalesItemsList
-            .FirstOrDefault(x => x.Product_ID == product.Product_ID && x.Product_Amount == 0);
 
-        if (existingFreeItem != null)
-        {
-            // Update existing free item quantity
-            existingFreeItem.Product_QTY = freeQuantity;
-            existingFreeItem.Product_Total_Amount = 0;
-            existingFreeItem.Product_Total_Amount_Before_Discount = freeQuantity * product.Product_Selling_Price;
-        }
-        else
-        {
-            // Add new free item entry
-            basket.SalesItemsList.Add(new SalesItemTransaction
-            {
-                Product_ID = product.Product_ID,
-                Product = product,
-                Product_QTY = freeQuantity,
-                Product_Amount = 0, // Free item
-                Product_Total_Amount = 0,
-                Product_Total_Amount_Before_Discount = freeQuantity * product.Product_Selling_Price
-            });
-        }
-    }
 
     /// <summary>
     /// Applies MultiBuy promotion (e.g., buy 3 for £10, buy 2 get 1 at 50% off)
@@ -409,15 +379,8 @@ public class CheckoutService
             itemToRemove.Product_QTY -= quantityToRemove;
         }
 
-        // Remove any free items associated with this product
-        var freeItemsToRemove = basket.SalesItemsList
-            .Where(x => x.Product_ID == productId && x.Product_Amount == 0)
-            .ToList();
-
-        foreach (var freeItem in freeItemsToRemove)
-        {
-            basket.SalesItemsList.Remove(freeItem);
-        }
+        // Note: With the new unified approach, free items are included in the main product quantity
+        // so no separate free item removal is needed
 
         // Reapply promotions to the entire basket
         await ApplyPromotionsToBasketAsync(basket);
