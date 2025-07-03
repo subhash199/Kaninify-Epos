@@ -610,24 +610,71 @@
 
     private async Task HandleVoidLineButtonClicked()
     {
-        if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
-                _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+        try
         {
-            int removeIndex = _state.SelectedItemIndex < 0 ? _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.Count - 1 ?? -1
-            : _state.SelectedItemIndex;
-            if (removeIndex > -1)
+            // Validate basket state
+            if (!IsValidBasketForVoiding())
             {
-                var itemToVoid = _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList[removeIndex];
-
-                // Track the voided item
-                await TrackVoidedItemAsync(new List<SalesItemTransaction> { itemToVoid });
-
-                _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.RemoveAt(removeIndex);
-                StateHasChanged();
+                await SetFocusOnSearchBoxAsync();
+                return;
             }
+
+            var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+            var removeIndex = GetItemIndexToVoid(currentBasket);
+            
+            if (removeIndex == -1)
+            {
+                await SetFocusOnSearchBoxAsync();
+                return;
+            }
+
+            var itemToVoid = currentBasket.SalesItemsList[removeIndex];
+            
+            // Track the voided item for audit purposes
+            await TrackVoidedItemAsync(new List<SalesItemTransaction> { itemToVoid });
+
+            // Remove product using service method (handles promotion recalculation)
+            await CheckoutService.RemoveProductFromBasketAsync(currentBasket, itemToVoid.Product_ID, itemToVoid.Product_QTY);
+            
+            // Update UI state
+            await UpdateUIAfterVoid(currentBasket);
         }
-        SetFocusOnSearchBoxAsync().GetAwaiter();
-        _state.SelectedItemIndex = -1; // Reset selected item index after voiding
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Void Error", $"Failed to void item: {ex.Message}");
+        }
+        finally
+        {
+            // Always reset state and focus
+            _state.SelectedItemIndex = -1;
+            await SetFocusOnSearchBoxAsync();
+        }
+    }
+
+    private bool IsValidBasketForVoiding()
+    {
+        return _state.SalesBaskets?.Count > _state.HoldBasketIndex &&
+               _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0;
+    }
+
+    private int GetItemIndexToVoid(SalesBasket basket)
+    {
+        if (_state.SelectedItemIndex >= 0 && _state.SelectedItemIndex < basket.SalesItemsList.Count)
+        {
+            return _state.SelectedItemIndex;
+        }
+        
+        // Default to last item if no specific selection
+        return basket.SalesItemsList.Count > 0 ? basket.SalesItemsList.Count - 1 : -1;
+    }
+
+    private async Task UpdateUIAfterVoid(SalesBasket basket)
+    {
+        // Update cash suggestions with recalculated total
+        UpdateCashSuggestions(basket.Transaction.SaleTransaction_Total_Amount);
+        
+        // Refresh UI
+        StateHasChanged();
     }
     private void HandleVoidBasketClicked()
     {
