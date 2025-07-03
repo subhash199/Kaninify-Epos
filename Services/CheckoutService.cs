@@ -103,7 +103,7 @@ public class CheckoutService
     /// <summary>
     /// Applies all active promotions to the basket items
     /// </summary>
-    private async Task ApplyPromotionsToBasketAsync(SalesBasket basket)
+    public async Task ApplyPromotionsToBasketAsync(SalesBasket basket)
     {
         if (basket?.SalesItemsList?.Any() != true) return;
 
@@ -240,6 +240,7 @@ public class CheckoutService
                 item.Product_Total_Amount = totalChargeableQuantity * item.Product.Product_Selling_Price;
 
             }
+           
         }
     }
 
@@ -255,7 +256,6 @@ public class CheckoutService
         {
             item.Promotion = promotion;
             item.Promotion_ID = promotion.Promotion_ID;
-
             if (item.Product_QTY >= promotion.Buy_Quantity)
             {
                 // Calculate how many multi-buy sets the customer gets
@@ -267,13 +267,13 @@ public class CheckoutService
                 if (promotion.Discount_Amount > 0)
                 {
                     // Fixed price for the multi-buy set (e.g., 3 for £10)
-                    multiBuyTotal = multiBuySets * promotion.Discount_Amount ?? 0;
+                    multiBuyTotal = multiBuySets * (promotion.Discount_Amount ?? 0);
                 }
                 else if (promotion.Discount_Percentage > 0)
                 {
                     // Percentage discount on the multi-buy set
                     decimal originalSetPrice = promotion.Buy_Quantity * item.Product.Product_Selling_Price;
-                    decimal discountedSetPrice = originalSetPrice * (1 - promotion.Discount_Percentage ?? 0 / 100);
+                    decimal discountedSetPrice = originalSetPrice * (1 - (promotion.Discount_Percentage ?? 0) / 100);
                     multiBuyTotal = multiBuySets * discountedSetPrice;
                 }
 
@@ -282,8 +282,8 @@ public class CheckoutService
 
                 // Update the total amount
                 item.Product_Total_Amount = multiBuyTotal + remainingTotal;
-
             }
+            // If quantity is below minimum, promotion data remains cleared (from reset phase)
         }
     }
 

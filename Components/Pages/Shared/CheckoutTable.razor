@@ -33,7 +33,7 @@
                         style="cursor: pointer;">
                         <td class="text-truncate">@item.Product_QTY</td>
                         <td class="text-truncate">@item.Product?.Product_Name</td>
-                        <td class="@(item.Product_Total_Amount != item.Product_Total_Amount_Before_Discount ? "background-colour-light-green text-truncate" : "text-truncate")">@item.Promotion?.Promotion_Name</td>
+                        <td class="@(item.Product_Total_Amount != item.Product_Total_Amount_Before_Discount ? "background-colour-light-green text-truncate" : "text-truncate")">@item.Product?.Promotion?.Promotion_Name</td>
                         <td class="text-truncate">@item.Product_Amount.ToString("C2")</td>
                         <td class="text-truncate fw-bold fs-5">@item.Product_Total_Amount.ToString("C2")</td>
                     </tr>
