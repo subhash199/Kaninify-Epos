@@ -54,7 +54,7 @@
             </div>
 
             <div class="row col-md-12 mb-2">
-                <DepartmentButtons State="_state" PayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
+                <DepartmentButtons State="_state" OnPayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
                 <NumberPadComponent OnNumberClick="HandleNumPadClick" />
             </div>
         </div>
@@ -593,6 +593,15 @@
         try
         {
             transaction.SaleTransaction_Total_QTY = transaction.SalesItemTransactions?.Count??0;
+            transaction.SaleTransaction_Total_Amount = transaction.SalesItemTransactions?.Sum(s => s.Product_Total_Amount) ?? 0;
+            transaction.SaleTransaction_Total_Paid = transaction.SaleTransaction_Cash + transaction.SaleTransaction_Card;
+            transaction.SaleTransaction_Change = transaction.SaleTransaction_Total_Amount - transaction.SaleTransaction_Total_Paid;
+            transaction.SaleTransaction_Payout = transaction.SaleTransaction_Payout;
+            // Sum the total promotion amount from all items with a Promotion_ID
+            transaction.SaleTransaction_Promotion = (transaction.SalesItemTransactions?
+                .Where(s => s.Promotion_ID != null)
+                .Sum(s => s.Product_Total_Amount) ?? 0) - (transaction.SalesItemTransactions?
+                    .Where(s => s.Promotion_ID != null).Sum(x => x.Product_Total_Amount_Before_Discount)??0);
             transaction.Sale_Date = DateTime.Now;
             transaction.Last_Modified = DateTime.Now;
             transaction.Last_Modified_By_Id = loggedInUser.User_ID;
@@ -975,7 +984,8 @@
             currentPayoutType = payoutAction.PayoutType;
 
             // Get amount from search text
-            if (!decimal.TryParse(_state.SearchText, out payoutAmount) || payoutAmount <= 0)
+            payoutAmount = generalServices.ConvertStringToDecimal(_state.SearchText);
+            if (payoutAmount <=0)
             {
                 await ShowErrorModalAsync("Invalid Amount", "Please enter a valid amount in the search box before selecting a payout.");
                 return;
@@ -1085,7 +1095,7 @@
             
             // Set specific barcode for payout products
             newProduct.Product_Barcode = $"PAYOUT-{payoutDescription.ToUpper()}";
-            await productServices.UpdateAsync(newProduct);
+            await productServices.AddAsync(newProduct);
             
             return newProduct;
         }
@@ -1132,7 +1142,7 @@
                 // Create new payout
                 payoutToUse = await PayoutServices.CreatePayoutAsync(
                     newPayoutDescription.Trim(),
-                    loggedInUser?.User_ID ?? 1,
+                    loggedInUser.User_ID,
                     loggedInSite?.Site_Id,
                     loggedInTill?.Till_Id
                 );
@@ -1171,12 +1181,9 @@
             var payoutProduct = await GetOrCreatePayoutProduct(payout.Payout_Description);
             
             // Update product selling price for this transaction
-            payoutProduct.Product_Selling_Price = payoutAmount;
+            payoutProduct.Product_Selling_Price = -payoutAmount;
             
-            // Add to current basket as negative amount
-            var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-            if (currentBasket != null)
-            {
+           
                 var payoutItem = new SalesItemTransaction
                 {
                     Product_ID = payoutProduct.Product_ID,
@@ -1188,24 +1195,7 @@
                     SalesPayout_ID = payout.Payout_Id
                     
                 };
-                
-                currentBasket.SalesItemsList.Add(payoutItem);
-                
-                // Recalculate totals
-                currentBasket.Transaction.SaleTransaction_Total_Amount = 
-                    currentBasket.SalesItemsList.Sum(s => s.Product_Total_Amount);
-                
-                // Update UI
-                UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
-                StateHasChanged();
-                
-                // Clear search text
-                _state.SearchText = string.Empty;
-                await SetFocusOnSearchBoxAsync();
-                
-                // Show success message
-                await ShowSuccessMessage($"Payout of £{payoutAmount:F2} for {payout.Payout_Description} added successfully.");
-            }
+                await AddProductToBasketAsync(payoutProduct, true);
         }
         catch (Exception ex)
         {

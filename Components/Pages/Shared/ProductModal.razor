@@ -341,8 +341,8 @@
 
     private async Task LoadDepartmentsAndVat()
     {
-        Departments = (await departmentServices.GetAllAsync()).ToList();
-        VatRates = (await vatServices.GetAllAsync()).ToList();
+        Departments = (await departmentServices.GetAllAsync()).OrderBy(d => d.Department_Name).ToList();
+        VatRates = (await vatServices.GetAllAsync()).OrderBy(v => v.VAT_Value).ToList();
     }
 
     private async Task SaveChanges()

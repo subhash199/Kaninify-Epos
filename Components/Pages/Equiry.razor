@@ -69,13 +69,14 @@
                     </div>
 
                 </div>
-                <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;"
-                @onclick="HandleBackClick">
-                    <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill">
+                <div class="d-flex gap-2 mb-2 justify-content-center align-items-baseline position-fixed bottom-0 start-0 w-100 pb-3 bg-white" style="z-index: 100;">
+                    <button class="col-md-3 btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
+                            @onclick="HandleBackClick">
                         <img src="images/icons/arrow_circle_left_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Back</span>
                     </button>
-                    <button class="col-md-3 btn background-colour-light-blue d-flex flex-column align-items-center flex-fill">
+                    <button class="col-md-3 btn background-colour-light-blue d-flex flex-column align-items-center flex-fill"
+                    @onclick="HandleEditClick">
                         <img src="images/icons/assignment_add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Edit</span>
                     </button>
@@ -84,7 +85,8 @@
                         <img src="images/icons/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Sale History</span>
                     </button>
-                    <button class="col-md-3 btn background-colour-light-pink  d-flex flex-column align-items-center flex-fill">
+                    <button class="col-md-3 btn background-colour-light-pink  d-flex flex-column align-items-center flex-fill"
+                    @onclick=HandlePrintLabelClick>
                         <img src="images/icons/print_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Print Label</span>
                     </button>
@@ -266,5 +268,12 @@ else
     private async Task HandleBackClick(MouseEventArgs args)
     {
         _navigationManager.NavigateTo(BackButtonNavigationLink, false);
+    }
+    private void HandlePrintLabelClick(MouseEventArgs args)
+    {
+        if(selectedProduct != null)
+        {
+            
+        }
     }
 }

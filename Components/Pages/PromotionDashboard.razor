@@ -399,8 +399,8 @@
         {
             // Load products, departments, and promotions
             allProducts = (await ProductServices.GetAllAsync())?.ToList() ?? new List<Product>();
-            departments = (await DepartmentServices.GetAllAsync())?.ToList() ?? new List<Department>();
-            promotions = (await PromotionServices.GetAllAsync())?.ToList() ?? new List<Promotion>();
+            departments = (await DepartmentServices.GetAllAsync())?.OrderBy(d =>d.Department_Name).ToList() ?? new List<Department>();
+            promotions = (await PromotionServices.GetAllAsync())?.OrderBy(d =>d.Promotion_Name).ToList() ?? new List<Promotion>();
 
             filteredAvailableProducts = allProducts.ToList();
             StateHasChanged();

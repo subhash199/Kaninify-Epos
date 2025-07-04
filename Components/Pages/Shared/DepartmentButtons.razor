@@ -1,4 +1,5 @@
-﻿﻿@if (!IsCollapsed)
+﻿@using EposRetail.Models
+@if (!IsCollapsed)
 {
     <div class="col-md-6 gap-2 d-flex align-items-start ms-2 mb-2">
 
@@ -50,7 +51,7 @@
 }
 @if ((IsCollapsed && State.ScreenModel.Height < 800) || State.ScreenModel.Height > 800)
 {
-    <PayoutButtonComponents></PayoutButtonComponents>
+    <PayoutButtonComponents PayoutClick="OnPayoutClick"></PayoutButtonComponents>
 }
 
 @if ((!IsCollapsed && State.ScreenModel.Height < 800) || State.ScreenModel.Height > 800)
@@ -62,6 +63,7 @@
     [Parameter] public CheckoutState State { get; set; } = new();
     [Parameter] public EventCallback<string> OnDepartmentClick { get; set; }
     [Parameter] public EventCallback<int> OnCashSuggestionClick { get; set; }
+    [Parameter] public EventCallback<PayoutActionModel> OnPayoutClick { get; set; }
 
     bool IsCollapsed { get; set; } = false;
 
