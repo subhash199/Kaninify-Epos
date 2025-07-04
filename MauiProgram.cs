@@ -28,9 +28,10 @@ public static class MauiProgram
         builder.Services.AddScoped<VoidedProductServices>();
 		builder.Services.AddScoped<DayLogServices>();
         builder.Services.AddScoped<PromotionServices>();
-
         builder.Services.AddScoped<MigrateDataServices>();
-		builder.Services.AddSingleton<PosUser>();
+		builder.Services.AddScoped<PayoutServices>(); // Ensure DbContext is scoped
+
+        builder.Services.AddSingleton<PosUser>();
 		builder.Services.AddSingleton<Site>();
 		builder.Services.AddSingleton<Till>();
 		builder.Services.AddSingleton<DayLog>();

@@ -12,9 +12,11 @@
 @inject ProductServices productServices
 @inject SalesTransactionServices salesTransactionServices
 @inject DepartmentServices DepartmentServices
+@inject VatServices VatServices
 @inject MigrateDataServices MigrateDataServices
 @inject VoidedProductServices VoidedProductServices
 @inject NavigationManager NavigationManager
+@inject PayoutServices PayoutServices
 
 @inject PosUser loggedInUser
 @inject Site loggedInSite
@@ -52,7 +54,7 @@
             </div>
 
             <div class="row col-md-12 mb-2">
-                <DepartmentButtons State="_state" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
+                <DepartmentButtons State="_state" PayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
                 <NumberPadComponent OnNumberClick="HandleNumPadClick" />
             </div>
         </div>
@@ -65,6 +67,89 @@
                     OnModalClose="onmodalcloseasync"
                     OnProductSave="onmodalproductupsertedasync" />
 
+    <!-- Payout Selection Modal -->
+    @if (showPayoutModal)
+    {
+        <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Select Payout Type</h5>
+                        <button type="button" class="btn-close" @onclick="ClosePayoutModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <h6>Payout Amount: £@payoutAmountText</h6>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(payoutErrorMessage))
+                        {
+                            <div class="alert alert-danger">@payoutErrorMessage</div>
+                        }
+                        
+                        @if (!isCreatingNewPayout)
+                        {
+                            <div class="mb-3">
+                                <h6>Select from existing payouts:</h6>
+                                <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+                                    @if (availablePayouts?.Any() == true)
+                                    {
+                                        @foreach (var payout in availablePayouts)
+                                        {
+                                            <button type="button" 
+                                                    class="list-group-item list-group-item-action @(selectedPayout?.Payout_Id == payout.Payout_Id ? "active" : "")"
+                                                    @onclick="() => OnPayoutSelected(payout)">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">@payout.Payout_Description</h6>
+                                                    <small>ID: @payout.Payout_Id</small>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(payout.Payout_Description))
+                                                {
+                                                    <p class="mb-1">@payout.Payout_Description</p>
+                                                }
+                                            </button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted p-3">No existing payouts found.</div>
+                                    }
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-secondary" @onclick="ToggleCreateNewPayout">
+                                    <i class="fas fa-plus"></i> Create New Payout Type
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <h6>Create new payout type:</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Payout Description:</label>
+                                    <input type="text" class="form-control" @bind="newPayoutDescription" 
+                                           placeholder="Enter payout description" maxlength="100" />
+                                </div>
+                                <button type="button" class="btn btn-secondary" @onclick="ToggleCreateNewPayout">
+                                    <i class="fas fa-arrow-left"></i> Back to Selection
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="ClosePayoutModal">Cancel</button>
+                        <button type="button" class="btn btn-primary" @onclick="ConfirmPayoutSelection"
+                                disabled="@((!isCreatingNewPayout && selectedPayout == null) || (isCreatingNewPayout && string.IsNullOrWhiteSpace(newPayoutDescription)))">
+                            Confirm Payout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <QuantityBoxComponent IsVisible="_state.ShowQuantityBox"
                           value="_state.QuantityValue"
                           ValueChanged="QuantityValueEntered"
@@ -76,6 +161,17 @@
 @code {
     ElementReference searchBox;
     CheckoutState _state = new CheckoutState();
+
+    // Payout-related properties
+    private bool showPayoutModal = false;
+    private List<Payout> availablePayouts = new List<Payout>();
+    private Payout selectedPayout = null;
+    private string newPayoutDescription = string.Empty;
+    private decimal payoutAmount = 0;
+    private string payoutAmountText = string.Empty;
+    private bool isCreatingNewPayout = false;
+    private string payoutErrorMessage = string.Empty;
+    private PayoutType currentPayoutType;
 
     private async Task QuantityValueEntered(string value)
     {
@@ -512,7 +608,7 @@
             });
         }
     }
- 
+
 
     private async Task ShowErrorModalAsync(string title, string message)
     {
@@ -621,7 +717,7 @@
 
             var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
             var removeIndex = GetItemIndexToVoid(currentBasket);
-            
+
             if (removeIndex == -1)
             {
                 await SetFocusOnSearchBoxAsync();
@@ -629,13 +725,13 @@
             }
 
             var itemToVoid = currentBasket.SalesItemsList[removeIndex];
-            
+
             // Track the voided item for audit purposes
             await TrackVoidedItemAsync(new List<SalesItemTransaction> { itemToVoid });
 
             // Remove product using service method (handles promotion recalculation)
             await CheckoutService.RemoveProductFromBasketAsync(currentBasket, itemToVoid.Product_ID, itemToVoid.Product_QTY);
-            
+
             // Update UI state
             await UpdateUIAfterVoid(currentBasket);
         }
@@ -663,7 +759,7 @@
         {
             return _state.SelectedItemIndex;
         }
-        
+
         // Default to last item if no specific selection
         return basket.SalesItemsList.Count > 0 ? basket.SalesItemsList.Count - 1 : -1;
     }
@@ -672,7 +768,7 @@
     {
         // Update cash suggestions with recalculated total
         UpdateCashSuggestions(basket.Transaction.SaleTransaction_Total_Amount);
-        
+
         // Refresh UI
         StateHasChanged();
     }
@@ -869,5 +965,273 @@
     private void HandleOnEnquiryClick()
     {
         NavigationManager.NavigateTo("/enquiry", false);
+    }
+
+    // Payout handling methods
+    private async Task HandlePayoutClick(PayoutActionModel payoutAction)
+    {
+        try
+        {
+            currentPayoutType = payoutAction.PayoutType;
+
+            // Get amount from search text
+            if (!decimal.TryParse(_state.SearchText, out payoutAmount) || payoutAmount <= 0)
+            {
+                await ShowErrorModalAsync("Invalid Amount", "Please enter a valid amount in the search box before selecting a payout.");
+                return;
+            }
+
+            payoutAmountText = payoutAmount.ToString("F2");
+
+            if (payoutAction.PayoutType == PayoutType.Other)
+            {
+                // Show modal for other payouts
+                await ShowPayoutSelectionModal();
+            }
+            else
+            {
+                // Handle specific payout types (Lottery, ScratchCard)
+                await ProcessDirectPayout(payoutAction.PayoutType.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Payout Error", $"Error processing payout: {ex.Message}");
+        }
+    }
+
+    private async Task ShowPayoutSelectionModal()
+    {
+        try
+        {
+            payoutErrorMessage = string.Empty;
+            selectedPayout = null;
+            newPayoutDescription = string.Empty;
+            isCreatingNewPayout = false;
+
+            // Load available payouts
+            availablePayouts = (await PayoutServices.GetActivePayoutsAsync()).ToList();
+
+            showPayoutModal = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Error", $"Error loading payouts: {ex.Message}");
+        }
+    }
+
+    private async Task ProcessDirectPayout(string payoutType)
+    {
+        try
+        {
+            // Create or get payout by type
+            var payout = await PayoutServices.GetByDescriptionAsync(payoutType);
+            if (payout == null)
+            {
+                // Create new payout type if it doesn't exist
+                payout = await PayoutServices.CreatePayoutAsync(
+                    payoutType, 
+                    loggedInUser?.User_ID ?? 1,
+                    loggedInSite?.Site_Id,
+                    loggedInTill?.Till_Id
+                );
+            }
+
+            await ExecutePayout(payout);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Payout Error", $"Error processing {payoutType} payout: {ex.Message}");
+        }
+    }
+
+    private async Task<Product> GetOrCreatePayoutProduct(string payoutDescription)
+    {
+        try
+        {
+            // First try to get existing payout product by barcode/name
+            var existingProduct = await productServices.GetProductByBarcode($"PAYOUT-{payoutDescription.ToUpper()}");
+            if (existingProduct != null)
+            {
+                return existingProduct;
+            }
+
+            // Get or create Payout department
+            var payoutDepartment = await DepartmentServices.GetDepartmentByName("Payout");
+            if (payoutDepartment == null)
+            {
+                payoutDepartment = await DepartmentServices.AddGenericDepartment(
+                    "Payout",
+                    loggedInUser?.User_ID ?? 1,
+                    loggedInSite?.Site_Id ?? 1,
+                    loggedInTill?.Till_Id ?? 1
+                );
+                await DepartmentServices.UpdateAsync(payoutDepartment);
+            }
+            
+            // Get or create 0% VAT
+            var zeroVat = await VatServices.GetDefaultVatAsync();
+            
+            // Create new payout product
+            var newProduct = await productServices.AddGenericProduct(
+                $"Payout - {payoutDescription}",
+                payoutDepartment.Department_ID,
+                zeroVat.VAT_ID,
+                loggedInUser?.User_ID ?? 1,
+                loggedInSite?.Site_Id ?? 1,
+                loggedInTill?.Till_Id ?? 1
+            );
+            
+            // Set specific barcode for payout products
+            newProduct.Product_Barcode = $"PAYOUT-{payoutDescription.ToUpper()}";
+            await productServices.UpdateAsync(newProduct);
+            
+            return newProduct;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Failed to get or create payout product: {ex.Message}");
+        }
+    }
+    
+    private async Task OnPayoutSelected(Payout payout)
+    {
+        selectedPayout = payout;
+        isCreatingNewPayout = false;
+        payoutErrorMessage = string.Empty;
+        StateHasChanged();
+    }
+    
+    private void ToggleCreateNewPayout()
+    {
+        isCreatingNewPayout = !isCreatingNewPayout;
+        selectedPayout = null;
+        newPayoutDescription = string.Empty;
+        payoutErrorMessage = string.Empty;
+        StateHasChanged();
+    }
+    
+    private async Task ConfirmPayoutSelection()
+    {
+        try
+        {
+            payoutErrorMessage = string.Empty;
+            
+            Payout payoutToUse = null;
+            
+            if (isCreatingNewPayout)
+            {
+                if (string.IsNullOrWhiteSpace(newPayoutDescription))
+                {
+                    payoutErrorMessage = "Please enter a payout description.";
+                    StateHasChanged();
+                    return;
+                }
+                
+                // Create new payout
+                payoutToUse = await PayoutServices.CreatePayoutAsync(
+                    newPayoutDescription.Trim(),
+                    loggedInUser?.User_ID ?? 1,
+                    loggedInSite?.Site_Id,
+                    loggedInTill?.Till_Id
+                );
+            }
+            else if (selectedPayout != null)
+            {
+                payoutToUse = selectedPayout;
+            }
+            else
+            {
+                payoutErrorMessage = "Please select a payout or create a new one.";
+                StateHasChanged();
+                return;
+            }
+            
+            await ExecutePayout(payoutToUse);
+            ClosePayoutModal();
+        }
+        catch (Exception ex)
+        {
+            payoutErrorMessage = $"Error: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ExecutePayout(Payout payout)
+    {
+        try
+        {
+            if (_state.SalesBaskets.Count < 1)
+            {
+                await InitializeSalesTransactionAsync();
+            }
+            
+            // Fetch or create payout product using the dedicated method
+            var payoutProduct = await GetOrCreatePayoutProduct(payout.Payout_Description);
+            
+            // Update product selling price for this transaction
+            payoutProduct.Product_Selling_Price = payoutAmount;
+            
+            // Add to current basket as negative amount
+            var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+            if (currentBasket != null)
+            {
+                var payoutItem = new SalesItemTransaction
+                {
+                    Product_ID = payoutProduct.Product_ID,
+                    Product = payoutProduct,
+                    Product_QTY = 1,
+                    Product_Amount = -payoutAmount, // Negative for payout
+                    Product_Total_Amount = -payoutAmount,
+                    Product_Total_Amount_Before_Discount = -payoutAmount,
+                    SalesPayout_ID = payout.Payout_Id
+                    
+                };
+                
+                currentBasket.SalesItemsList.Add(payoutItem);
+                
+                // Recalculate totals
+                currentBasket.Transaction.SaleTransaction_Total_Amount = 
+                    currentBasket.SalesItemsList.Sum(s => s.Product_Total_Amount);
+                
+                // Update UI
+                UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
+                StateHasChanged();
+                
+                // Clear search text
+                _state.SearchText = string.Empty;
+                await SetFocusOnSearchBoxAsync();
+                
+                // Show success message
+                await ShowSuccessMessage($"Payout of £{payoutAmount:F2} for {payout.Payout_Description} added successfully.");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Failed to execute payout: {ex.Message}");
+        }
+    }
+    
+    private void ClosePayoutModal()
+    {
+        showPayoutModal = false;
+        selectedPayout = null;
+        newPayoutDescription = string.Empty;
+        isCreatingNewPayout = false;
+        payoutErrorMessage = string.Empty;
+        StateHasChanged();
+    }
+    
+    private async Task ShowSuccessMessage(string message)
+    {
+        _state.ModalSettings = new ModalSettings
+        {
+            ModalTitle = "Success",
+            ModalMessage = message,
+            ShowModal = true,
+            ModalEnum = ModalEnum.Default
+        };
+        StateHasChanged();
     }
 }
