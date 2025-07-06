@@ -36,6 +36,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<Site>();
 		builder.Services.AddSingleton<Till>();
 		builder.Services.AddSingleton<DayLog>();
+		builder.Services.AddSingleton<ReceiptPrinter>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
