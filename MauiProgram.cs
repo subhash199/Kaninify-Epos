@@ -30,6 +30,7 @@ public static class MauiProgram
         builder.Services.AddScoped<PromotionServices>();
         builder.Services.AddScoped<MigrateDataServices>();
 		builder.Services.AddScoped<PayoutServices>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<PrinterServices>(); // Ensure DbContext is scoped
 
         builder.Services.AddSingleton<PosUser>();
 		builder.Services.AddSingleton<Site>();

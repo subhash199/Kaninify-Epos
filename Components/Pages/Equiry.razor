@@ -4,6 +4,7 @@
 @using EposRetail.Models
 @inject ProductServices _productServices
 @inject NavigationManager _navigationManager
+@inject PrinterServices _printerServices
 <PageTitle>Equiry</PageTitle>
 
 @if (!showItemSaleHistory)
@@ -211,6 +212,11 @@ else
 
     private async Task onmodalokasync()
     {
+        if (_state.ModalSettings.ModalEnum == ModalEnum.Confirmation)
+        {
+            // User confirmed to print all labels
+            await PrintAllLabelsAsync();
+        }
         await HideModal();
     }
     private async Task onmodalcloseasync()
@@ -269,11 +275,61 @@ else
     {
         _navigationManager.NavigateTo(BackButtonNavigationLink, false);
     }
-    private void HandlePrintLabelClick(MouseEventArgs args)
+    private async Task HandlePrintLabelClick(MouseEventArgs args)
     {
-        if(selectedProduct != null)
+        if (selectedProduct != null)
         {
-            
+            // Print label for selected product
+            await PrintSingleLabelAsync(selectedProduct);
+        }
+        else
+        {
+            // Show confirmation modal for printing all labels
+            await ShowPrintAllLabelsConfirmationAsync();
+        }
+    }
+
+    private async Task ShowPrintAllLabelsConfirmationAsync()
+    {
+        _state.ModalSettings = new ModalSettings
+        {
+            ModalTitle = "No Product Selected",
+            ModalMessage = "No product was selected to print label. Would you like to print all enquired products label?",
+            ShowModal = true,
+            ModalEnum = ModalEnum.Confirmation
+        };
+        StateHasChanged();
+    }
+
+    private async Task PrintSingleLabelAsync(Product product)
+    {
+        try
+        {
+            List<Product> products = new List<Product> { product };
+            _printerServices.PrintLabel(products);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Print Error", $"Failed to print label: {ex.Message}");
+        }
+    }
+
+    private async Task PrintAllLabelsAsync()
+    {
+        try
+        {
+            if (searchProducts?.Any() == true)
+            {
+                _printerServices.PrintLabel(searchProducts);
+            }
+            else
+            {
+                await ShowErrorModalAsync("Print Error", "No products available to print labels.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Print Error", $"Failed to print labels: {ex.Message}");
         }
     }
 }
