@@ -9,7 +9,7 @@
 @implements IDisposable
 
 <!-- Modal -->
-<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+<div class="modal fade show d-block" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
@@ -21,7 +21,7 @@
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label for="departmentFilter" class="form-label">Department Filter:</label>
-                        <select id="departmentFilter" class="form-select" @bind="SelectedDepartmentId" @onchange="OnDepartmentFilterChanged">
+                        <select id="departmentFilter" class="form-select" value="@SelectedDepartmentId" @onchange="OnDepartmentFilterChanged">
                             <option value="0">All Departments</option>
                             @if (Departments != null)
                             {
@@ -61,7 +61,7 @@
                                     <tr>
                                         <th>Product Name</th>
                                         <th>Price</th>
-                                        <th>Qty Needed to Refill</th>
+                                        <th>Refill Qty</th>
                                         <th>Shelf Qty</th>
                                         <th>Stock Room Qty</th>
                                         <th>Expiry Date</th>
@@ -69,19 +69,19 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (FilteredProducts?.Any() == true)
+                                    @if (FilteredRefillProducts?.Any() == true)
                                     {
-                                        @foreach (var product in FilteredProducts)
+                                        @foreach (var product in FilteredRefillProducts)
                                         {
                                             <tr>
-                                                <td>@product.Product_Name</td>
-                                                <td>£@product.Product_Selling_Price.ToString("F2")</td>
-                                                <td>@CalculateRefillQuantity(product)</td>
-                                                <td>@product.ShelfQuantity</td>
-                                                <td>@product.StockroomQuantity</td>
-                                                <td>@(product.Expiry_Date?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                                <td>@product.Product.Product_Name</td>
+                                                <td>£@product.Product.Product_Selling_Price.ToString("F2")</td>
+                                                <td>@product.Refill_QTY</td>
+                                                <td>@product.Product.ShelfQuantity</td>
+                                                <td>@product.Product.StockroomQuantity</td>
+                                                <td>@product.Product.Expiry_Date.ToString("dd/MM/yyyy")</td>
                                                 <td>
-                                                    <button class="btn btn-success btn-sm" @onclick="() => MarkAsRefilled(product.Product_ID)">
+                                                    <button class="btn btn-success btn-sm" @onclick="() => MarkAsRefilled(product)">
                                                         Mark Refilled
                                                     </button>
                                                 </td>
@@ -121,7 +121,7 @@
                                             <tr class="@GetExpiryRowClass(product)">
                                                 <td>@product.Product_Name</td>
                                                 <td>£@product.Product_Selling_Price.ToString("F2")</td>
-                                                <td>@(product.Expiry_Date?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                                <td>@(product.Expiry_Date.ToString("dd/MM/yyyy") ?? "N/A")</td>
                                                 <td>@CalculateDaysUntilExpiry(product)</td>
                                                 <td>
                                                     <button class="btn btn-warning btn-sm me-2" @onclick="() => AddToPromotion(product.Product_ID)">
@@ -202,6 +202,9 @@
     [Parameter] public InventoryManagementType ModalType { get; set; }
     [Parameter] public EventCallback OnDataChanged { get; set; }
 
+    private List<ProductRefillDTO>? AllRefillProducts { get; set; }
+    private List<ProductRefillDTO>? FilteredRefillProducts { get; set; }
+
     private List<Product>? AllProducts { get; set; }
     private List<Product>? FilteredProducts { get; set; }
     private List<Department>? Departments { get; set; }
@@ -214,9 +217,20 @@
 
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-    public async Task ShowModalAsync(InventoryManagementType modalType)
+    protected override async Task OnInitializedAsync()
     {
-        ModalType = modalType;
+        // Initialize lists
+        AllRefillProducts = new List<ProductRefillDTO>();
+        FilteredRefillProducts = new List<ProductRefillDTO>();
+        AllProducts = new List<Product>();
+        FilteredProducts = new List<Product>();
+        Departments = new List<Department>();
+        // Load initial data
+        await ShowModalAsync();
+    }
+
+    public async Task ShowModalAsync()
+    {
         IsLoading = true;
         StateHasChanged();
 
@@ -248,7 +262,7 @@
             switch (ModalType)
             {
                 case InventoryManagementType.Refill:
-                    AllProducts = await GetRefillProductsAsync();
+                    AllRefillProducts = await GetRefillProductsAsync();
                     break;
                 case InventoryManagementType.Expiry:
                     AllProducts = await GetExpiryProductsAsync();
@@ -264,61 +278,70 @@
         }
     }
 
-    private async Task<List<Product>> GetRefillProductsAsync()
+    private async Task<List<ProductRefillDTO>> GetRefillProductsAsync()
     {
-        var products = await productService.GetByConditionAsync(p => p.Is_activated == true, false);
-        var refillProducts = new List<Product>();
+        var salesItems = await SalesItemTransactionService.GetByConditionAsync(
+            s => s.Stock_Refilled == false, true
 
-        if (CurrentDayLog != null)
-        {
-            var salesData = await salesService.GetByConditionAsync(
-                s => s.SalesTransaction.DayLog_Id == CurrentDayLog.DayLog_Id,
-               true
-            );
-
-            foreach (var product in products)
-            {
-                var totalSold = salesData.Where(s => s.Product_ID == product.Product_ID).Sum(s => s.Product_QTY);
-                var currentAvailableQty = product.ProductTotalQuantity - totalSold;               
-
-                if (currentAvailableQty <= product.Product_Minimum_Stock_Level && stockroomQty > 0)
-                {
-                    refillProducts.Add(product);
-                }
-            }
-        }
-
-        return refillProducts.OrderBy(p => p.Product_Name).ToList();
-    }
-
-    private async Task<List<Product>> GetExpiryProductsAsync(ProductServices productService)
-    {
-        var expiryDate = DateTime.Now.AddDays(7);
-        var products = await productService.GetByConditionAsync(
-            p => p.Product_Active == true &&
-                 p.Product_Expiry_Date.HasValue &&
-                 p.Product_Expiry_Date <= expiryDate
         );
 
-        return products.OrderBy(p => p.Product_Expiry_Date).ThenBy(p => p.Product_Name).ToList();
+        // Group sales items by product and sum the quantities
+        var refillData = salesItems
+            .Where(s => s.Product != null && s.Product.Is_activated == true)
+            .GroupBy(s => s.Product_ID)
+            .Select(g => new {
+                Product = g.First().Product,
+                TotalRefillQty = g.Sum(s => s.Product_QTY)
+            })
+            .Where(r => r.TotalRefillQty > 0)
+            .ToList();
+
+        // Create a list of products with refill quantities
+        var refillProducts = new List<ProductRefillDTO>();
+        foreach (var item in refillData)
+        {
+            ProductRefillDTO refillProduct = new ProductRefillDTO
+            {
+                Refill_QTY = item.TotalRefillQty,
+                Product = item.Product,
+                Is_Refill = false
+            };
+            // Store the refill quantity in a custom property or use existing logic
+            // For now, we'll add all products that need refilling
+            refillProducts.Add(refillProduct);
+        }
+
+        return refillProducts.OrderBy(p => p.Product.Product_Name).ToList();
     }
 
-    private async Task<List<Product>> GetShortageProductsAsync(ProductServices productService, SalesItemTransactionServices salesService)
+    private async Task<List<Product>> GetExpiryProductsAsync()
     {
-        var products = await productService.GetByConditionAsync(p => p.Product_Active == true);
+        var expiryDate = DateTime.Now.AddDays(7);
+        var products = await ProductService.GetByConditionAsync(
+            p => p.Is_activated == true &&
+                 p.Expiry_Date != default(DateTime) &&
+                 p.Expiry_Date <= expiryDate, false
+        );
+
+        return products.OrderBy(p => p.Expiry_Date).ThenBy(p => p.Product_Name).ToList();
+    }
+
+    private async Task<List<Product>> GetShortageProductsAsync()
+    {
+        var products = await ProductService.GetByConditionAsync(p => p.Is_activated == true, false);
         var shortageProducts = new List<Product>();
         var thirtyDaysAgo = DateTime.Now.AddDays(-30);
 
-        var salesData = await salesService.GetByConditionAsync(
-            s => s.SalesTransaction.Sale_Date >= thirtyDaysAgo,
-            includeProperties: "SalesTransaction,Product"
+        var salesData = await SalesItemTransactionService.GetByConditionAsync(
+            s => s.SalesTransaction.Sale_Date >= thirtyDaysAgo, true
+            
         );
 
         foreach (var product in products)
         {
-            var productSales = salesData.Where(s => s.Product_ID == product.Product_ID).Sum(s => s.Quantity_Sold);
+            var productSales = salesData.Where(s => s.Product_ID == product.Product_ID).Sum(s => s.Product_QTY);
             var averageDailySales = productSales / 30.0;
-            var totalStock = product.Product_Shelf_Quantity + product.Product_Stockroom_Quantity;
+            var totalStock = product.ShelfQuantity + product.StockroomQuantity;
             var daysOfStock = averageDailySales > 0 ? totalStock / averageDailySales : double.MaxValue;
 
             if (daysOfStock < 7 && averageDailySales > 0)
@@ -392,19 +415,36 @@
         return days <= 1 ? "table-danger" : days <= 3 ? "table-warning" : "";
     }
 
-    // private int CalculateUnitsNeeded(Product product)
-    // {
-    //     // Assuming we want to maintain 7 days of stock
-    //     // This would need to be calculated based on sales data
-    //     return Math.Max(0, product.ProductTotalQuantity - GetTotalQuantity(product));
-    // }
+    private int CalculateRefillQuantity(Product product)
+    {
+        // Calculate how much needs to be moved from stockroom to shelf
+        var maxShelfCapacity = product.Product_Min_Stock_Level > 0 ? product.Product_Min_Stock_Level : 50; // Default shelf capacity
+        var currentShelfQty = product.ShelfQuantity;
+        var availableStockroom = product.StockroomQuantity;
+        
+        var refillNeeded = Math.Max(0, maxShelfCapacity - currentShelfQty);
+        return Math.Min(refillNeeded, availableStockroom);
+    }
 
-    // private int CalculateCasesNeeded(Product product)
-    // {
-    //     var unitsNeeded = CalculateUnitsNeeded(product);
-    //     var unitsPerCase = product.Product_Unit_Per_Case > 0 ? product.Product_Unit_Per_Case : 1;
-    //     return (int)Math.Ceiling((double)unitsNeeded / unitsPerCase);
-    // }
+    private int GetTotalQuantity(Product product)
+    {
+        return product.ProductTotalQuantity;
+    }
+
+    private int CalculateUnitsNeeded(Product product)
+    {
+        // Calculate units needed to maintain minimum stock level
+        var minStockLevel = product.Product_Min_Stock_Level > 0 ? product.Product_Min_Stock_Level : 7;
+        var currentTotal = product.ProductTotalQuantity;
+        return Math.Max(0, minStockLevel - currentTotal);
+    }
+
+    private int CalculateCasesNeeded(Product product)
+    {
+        var unitsNeeded = CalculateUnitsNeeded(product);
+        var unitsPerCase = product.Product_Unit_Per_Case > 0 ? product.Product_Unit_Per_Case : 1;
+        return (int)Math.Ceiling((double)unitsNeeded / unitsPerCase);
+    }
 
     private string GetModalTitle()
     {
@@ -418,11 +458,16 @@
     }
 
     // Action methods
-    private async Task MarkAsRefilled(int productId)
+    private async Task MarkAsRefilled(ProductRefillDTO refillProduct)
     {
-        // Implementation for marking product as refilled
-        // This would typically update the shelf quantity from stockroom
-        await OnDataChanged.InvokeAsync();
+       var product = FilteredRefillProducts?.FirstOrDefault(p => p.Product.Product_ID == refillProduct.Product.Product_ID);
+        if (product != null)
+        {
+            product.Is_Refill = true;
+            await ProductService.UpdateAsync(product.Product);
+            await OnDataChanged.InvokeAsync();
+        }
+
     }
 
     private async Task AddToPromotion(int productId)
