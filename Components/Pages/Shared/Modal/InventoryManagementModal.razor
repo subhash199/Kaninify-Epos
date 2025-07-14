@@ -1,6 +1,7 @@
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
 @using EposRetail.Services
+@using EntityFrameworkDatabaseLibrary.Data
 @inject DepartmentServices DepartmentService
 @inject ProductServices ProductService
 @inject SalesItemTransactionServices SalesItemTransactionService
@@ -14,7 +15,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="productDetailsModalLabel">@GetModalTitle()</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" @onclick="Modalclose" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <!-- Filters and Search -->
@@ -23,9 +24,9 @@
                         <label for="departmentFilter" class="form-label">Department Filter:</label>
                         <select id="departmentFilter" class="form-select" value="@SelectedDepartmentId" @onchange="OnDepartmentFilterChanged">
                             <option value="0">All Departments</option>
-                            @if (Departments != null)
+                            @if (FilteredDepartments != null)
                             {
-                                @foreach (var dept in Departments)
+                                @foreach (var dept in FilteredDepartments)
                                 {
                                     <option value="@dept.Department_ID">@dept.Department_Name</option>
                                 }
@@ -69,9 +70,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (FilteredRefillProducts?.Any() == true)
+                                    @if (AllRefillProducts?.Any() == true)
                                     {
-                                        @foreach (var product in FilteredRefillProducts)
+                                        @foreach (var product in AllRefillProducts)
                                         {
                                             <tr>
                                                 <td>@product.Product.Product_Name</td>
@@ -82,7 +83,7 @@
                                                 <td>@product.Product.Expiry_Date.ToString("dd/MM/yyyy")</td>
                                                 <td>
                                                     <button class="btn btn-success btn-sm" @onclick="() => MarkAsRefilled(product)">
-                                                        Mark Refilled
+                                                        @((product.Is_Refill ? "Refilled" : "Mark Refilled"))
                                                     </button>
                                                 </td>
                                             </tr>
@@ -108,6 +109,7 @@
                                     <tr>
                                         <th>Product Name</th>
                                         <th>Price</th>
+                                        <th>Expire Qty</th>
                                         <th>Expiry Date</th>
                                         <th>Days Until Expiry</th>
                                         <th>Actions</th>
@@ -121,13 +123,14 @@
                                             <tr class="@GetExpiryRowClass(product)">
                                                 <td>@product.Product_Name</td>
                                                 <td>£@product.Product_Selling_Price.ToString("F2")</td>
+                                                <td>@product.ProductTotalQuantity</td>
                                                 <td>@(product.Expiry_Date.ToString("dd/MM/yyyy") ?? "N/A")</td>
                                                 <td>@CalculateDaysUntilExpiry(product)</td>
                                                 <td>
-                                                    <button class="btn btn-warning btn-sm me-2" @onclick="() => AddToPromotion(product.Product_ID)">
+                                                    @*  <button class="btn btn-warning btn-sm me-2" @onclick="() => AddToPromotion(product.Product_ID)">
                                                         Add to Promotion
-                                                    </button>
-                                                    <button class="btn btn-danger btn-sm" @onclick="() => TransferToExpired(product.Product_ID)">
+                                                    </button> *@
+                                                    <button class="btn btn-danger btn-sm" @onclick="() => TransferToExpired(product)">
                                                         Mark as Expired
                                                     </button>
                                                 </td>
@@ -192,7 +195,7 @@
                 }
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @onclick="Modalclose">Close</button>
             </div>
         </div>
     </div>
@@ -200,20 +203,27 @@
 
 @code {
     [Parameter] public InventoryManagementType ModalType { get; set; }
-    [Parameter] public EventCallback OnDataChanged { get; set; }
+    [Parameter] public EventCallback<InventoryManagementType> OnDataChanged { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    List<SalesItemTransaction> salesItems = new List<SalesItemTransaction>();
+    List<StockTransaction> expiredStockTransactions = new List<StockTransaction>();
+    List<Product> expiredProducts = new List<Product>();
 
     private List<ProductRefillDTO>? AllRefillProducts { get; set; }
     private List<ProductRefillDTO>? FilteredRefillProducts { get; set; }
 
     private List<Product>? AllProducts { get; set; }
     private List<Product>? FilteredProducts { get; set; }
-    private List<Department>? Departments { get; set; }
+    private List<Department>? AllDepartments { get; set; }
+    private List<Department> FilteredDepartments { get; set; } = new List<Department>();
     private List<SalesItemTransaction>? SalesData { get; set; }
     private DayLog? CurrentDayLog { get; set; }
 
     private int SelectedDepartmentId { get; set; } = 0;
     private string SearchTerm { get; set; } = string.Empty;
     private bool IsLoading { get; set; } = false;
+    private bool IsDataChanged { get; set; } = false;
 
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
@@ -224,7 +234,8 @@
         FilteredRefillProducts = new List<ProductRefillDTO>();
         AllProducts = new List<Product>();
         FilteredProducts = new List<Product>();
-        Departments = new List<Department>();
+        AllDepartments = new List<Department>();
+        FilteredDepartments = new List<Department>();
         // Load initial data
         await ShowModalAsync();
     }
@@ -253,7 +264,7 @@
             var salesService = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
 
             // Load departments
-            Departments = (await departmentService.GetAllAsync()).ToList();
+            AllDepartments = (await departmentService.GetAllAsync()).ToList();
 
             // Load current day log
             CurrentDayLog = await dayLogService.GetLastDayLog();
@@ -280,16 +291,15 @@
 
     private async Task<List<ProductRefillDTO>> GetRefillProductsAsync()
     {
-        var salesItems = await SalesItemTransactionService.GetByConditionAsync(
-            s => s.Stock_Refilled == false, true
-
-        );
+        salesItems = (await SalesItemTransactionService.GetByConditionAsync(
+           s => s.Stock_Refilled == false, true)).ToList();
 
         // Group sales items by product and sum the quantities
         var refillData = salesItems
             .Where(s => s.Product != null && s.Product.Is_activated == true)
             .GroupBy(s => s.Product_ID)
-            .Select(g => new {
+            .Select(g => new
+            {
                 Product = g.First().Product,
                 TotalRefillQty = g.Sum(s => s.Product_QTY)
             })
@@ -311,6 +321,13 @@
             refillProducts.Add(refillProduct);
         }
 
+        // Get the list of department IDs from the refillData
+        var refillDepartmentIds = refillData.Select(r => r.Product.Department_ID).Distinct().ToList();
+        // Filter AllDepartments to only those present in the refillDepartmentIds
+        FilteredDepartments = AllDepartments
+            ?.Where(d => refillDepartmentIds.Contains(d.Department_ID))
+            .ToList() ?? new List<Department>();
+
         return refillProducts.OrderBy(p => p.Product.Product_Name).ToList();
     }
 
@@ -319,8 +336,8 @@
         var expiryDate = DateTime.Now.AddDays(7);
         var products = await ProductService.GetByConditionAsync(
             p => p.Is_activated == true &&
-                 p.Expiry_Date != default(DateTime) &&
-                 p.Expiry_Date <= expiryDate, false
+                 p.Expiry_Date <= expiryDate &&
+                 (p.ShelfQuantity > 0 || p.StockroomQuantity > 0), false
         );
 
         return products.OrderBy(p => p.Expiry_Date).ThenBy(p => p.Product_Name).ToList();
@@ -334,7 +351,7 @@
 
         var salesData = await SalesItemTransactionService.GetByConditionAsync(
             s => s.SalesTransaction.Sale_Date >= thirtyDaysAgo, true
-            
+
         );
 
         foreach (var product in products)
@@ -421,7 +438,7 @@
         var maxShelfCapacity = product.Product_Min_Stock_Level > 0 ? product.Product_Min_Stock_Level : 50; // Default shelf capacity
         var currentShelfQty = product.ShelfQuantity;
         var availableStockroom = product.StockroomQuantity;
-        
+
         var refillNeeded = Math.Max(0, maxShelfCapacity - currentShelfQty);
         return Math.Min(refillNeeded, availableStockroom);
     }
@@ -460,36 +477,198 @@
     // Action methods
     private async Task MarkAsRefilled(ProductRefillDTO refillProduct)
     {
-       var product = FilteredRefillProducts?.FirstOrDefault(p => p.Product.Product_ID == refillProduct.Product.Product_ID);
+        var product = AllRefillProducts?.FirstOrDefault(p => p.Product.Product_ID == refillProduct.Product.Product_ID);
         if (product != null)
         {
             product.Is_Refill = true;
-            await ProductService.UpdateAsync(product.Product);
-            await OnDataChanged.InvokeAsync();
+            IsDataChanged = true;
+            StateHasChanged();
         }
 
     }
 
-    private async Task AddToPromotion(int productId)
+    @* private async Task AddToPromotion(int productId)
     {
         // Implementation for adding product to promotion
-        await OnDataChanged.InvokeAsync();
+        IsDataChanged = true;
+    } *@
+
+    private async Task TransferToExpired(Product product)
+    {
+        try
+        {
+
+            if (product == null) return;
+
+            // Check if already marked as expired
+            if (expiredProducts.Any(p => p.Product_ID == product.Product_ID)) return;
+
+            // Calculate total quantity to transfer (shelf + stockroom)
+            var totalQuantity = product.ShelfQuantity + product.StockroomQuantity;
+            if (totalQuantity <= 0)
+            {
+                await AddProductToExpired(product);
+                await RemoveProductFromFillteredProducts(product);
+                return;
+            }
+
+            // Calculate total amount (quantity * cost)
+            var totalAmount = totalQuantity * product.Product_Cost;
+
+            // Create new StockTransaction record (to be saved later)
+            var stockTransaction = new StockTransaction
+            {
+                StockTransactionType = StockTransferType.Expired,
+                ProductId = product.Product_ID,
+                Quantity = totalQuantity,
+                TotalAmount = totalAmount,
+                DayLogId = CurrentDayLog?.DayLog_Id ?? 1,
+                TransactionDate = DateTime.Now,
+                DateCreated = DateTime.Now,
+                LastModified = DateTime.Now,
+                Shift_Id = 1, // You may need to get the current shift ID
+                Created_By_Id = 1, // You may need to get the current user ID
+                Last_Modified_By_Id = 1, // You may need to get the current user ID
+                From_Site_Id = null, // Set if transferring from a specific site
+                To_Site_Id = null, // Set if transferring to a specific site
+                Till_Id = null // Set if associated with a specific till
+            };
+
+            // Add to pending lists (will be saved when modal closes)
+            expiredStockTransactions.Add(stockTransaction);
+
+            await AddProductToExpired(product);
+            await RemoveProductFromFillteredProducts(product);
+
+
+
+        }
+        catch (Exception ex)
+        {
+            // Handle error appropriately - you might want to show a message to the user
+            Console.WriteLine($"Error preparing product for expiry transfer: {ex.Message}");
+        }
     }
 
-    private async Task TransferToExpired(int productId)
+    private async Task AddProductToExpired(Product product)
     {
-        // Implementation for transferring stock to expired
-        await OnDataChanged.InvokeAsync();
+        // Update product quantities to 0 (since it's expired)
+        product.ShelfQuantity = 0;
+        product.StockroomQuantity = 0;
+        expiredProducts.Add(product);
+    }
+
+    private async Task RemoveProductFromFillteredProducts(Product product)
+    {
+        // Remove from current filtered list to show immediate UI feedback
+        if (FilteredProducts != null)
+        {
+            var productToRemove = FilteredProducts.FirstOrDefault(p => p.Product_ID == product.Product_ID);
+            if (productToRemove != null)
+            {
+                FilteredProducts.Remove(productToRemove);
+            }
+        }
+        IsDataChanged = true;
+        StateHasChanged();
     }
 
     private async Task MarkAsOrdered(int productId)
     {
         // Implementation for marking product as ordered
-        await OnDataChanged.InvokeAsync();
+        IsDataChanged = true;
     }
 
     public void Dispose()
     {
         _semaphore?.Dispose();
+    }
+    private async Task Modalclose(MouseEventArgs args)
+    {
+        try
+        {
+            switch (ModalType)
+            {
+                case InventoryManagementType.Refill:
+                    if (IsDataChanged)
+                    {
+                        await UpdateRefilledSalesItems();
+                        await OnDataChanged.InvokeAsync(ModalType);
+                        await OnClose.InvokeAsync();
+                    }
+                    break;
+                case InventoryManagementType.Expiry:
+                    if (IsDataChanged && (expiredStockTransactions.Any() || expiredProducts.Any()))
+                    {
+                        await UpdateExpiredProducts();
+                        await OnDataChanged.InvokeAsync(ModalType);
+                    }
+                    break;
+                case InventoryManagementType.Shortage:
+                default:
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            int i = 0;
+        }
+
+        OnClose.InvokeAsync();
+    }
+
+    private async Task UpdateRefilledSalesItems()
+    {
+        // Update sales items that have been marked as refilled
+        var refilledItems = AllRefillProducts?.Where(s => s.Is_Refill == true && s.Product != null && s.Product.Is_activated == true).ToList();
+        if (refilledItems?.Count > 0)
+        {
+            foreach (var item in salesItems)
+            {
+                if (refilledItems.Any(r => r.Product.Product_ID == item.Product_ID && r.Is_Refill))
+                {
+                    item.Stock_Refilled = true;
+                }
+            }
+            await SalesItemTransactionService.UpdateRangeAsync(salesItems);
+            IsDataChanged = false;
+            salesItems.Clear();
+
+        }
+
+    }
+
+    private async Task UpdateExpiredProducts()
+    {
+        try
+        {
+            using var scope = ServiceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DatabaseInitialization>();
+
+            // Add all expired stock transactions to the database
+            if (expiredStockTransactions.Any())
+            {
+                dbContext.StockTransactions.AddRange(expiredStockTransactions);
+            }
+
+            // Update all expired products
+            if (expiredProducts.Any())
+            {
+                await ProductService.BulkUpdateAsync(expiredProducts);
+            }
+
+            // Save all changes in a single transaction
+            await dbContext.SaveChangesAsync();
+
+            // Clear the lists after successful save
+            expiredStockTransactions.Clear();
+            expiredProducts.Clear();
+            IsDataChanged = false;
+        }
+        catch (Exception ex)
+        {
+            // Handle error appropriately - you might want to show a message to the user
+            Console.WriteLine($"Error updating expired products: {ex.Message}");
+        }
     }
 }

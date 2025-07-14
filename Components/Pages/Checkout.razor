@@ -215,6 +215,9 @@
                 var selectedItem = currentBasket.SalesItemsList[_state.SelectedItemIndex];
                 selectedItem.Product_QTY = quantity;
                 selectedItem.Product_Total_Amount = selectedItem.Product_Amount * quantity;
+
+                await CheckoutService.ApplyPromotionsToBasketAsync(currentBasket);
+
                 currentBasket.Transaction.SaleTransaction_Total_Amount = currentBasket.SalesItemsList.Sum(s => s.Product_Total_Amount);
                 UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
                 // reset selected index
@@ -687,7 +690,7 @@
         if (amount < 1)
             return;
 
-        Product departmentProduct = await productServices.GetProductByBarcode(departmentClickName);
+        Product departmentProduct = await productServices.GetProductByBarcode(departmentClickName, false, false);
         if (departmentProduct == null)
         {
             _state.ModalSettings.ModalTitle = "Add Generic Product";
@@ -1061,7 +1064,7 @@
         try
         {
             // First try to get existing payout product by barcode/name
-            var existingProduct = await productServices.GetProductByBarcode($"PAYOUT-{payoutDescription.ToUpper()}");
+            var existingProduct = await productServices.GetProductByBarcode($"PAYOUT-{payoutDescription.ToUpper()}", false, false);
             if (existingProduct != null)
             {
                 return existingProduct;

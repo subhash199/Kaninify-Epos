@@ -133,7 +133,7 @@
     {
         if (!string.IsNullOrEmpty(_state.SearchText))
         {
-            _product = await _productServices.GetProductByBarcode(_state.SearchText);
+            _product = await _productServices.GetProductByBarcode(_state.SearchText,false, false);
             if (_product != null)
             {
                 SearchItemHistory(_product.Product_ID, StartDate, EndDate);

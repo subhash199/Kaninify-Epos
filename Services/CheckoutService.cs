@@ -2,6 +2,7 @@ using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Models;
 using EposRetail.Services;
+using Microsoft.AspNetCore.Components;
 using NetTopologySuite.Index.HPRtree;
 
 public class CheckoutService
@@ -11,23 +12,26 @@ public class CheckoutService
     private readonly SalesItemTransactionServices _salesItemTransactionServices;
     private readonly GeneralServices _generalServices;
     private readonly PromotionServices _promotionServices;
+    private readonly IServiceScopeFactory ServiceScopeFactory;
 
     public CheckoutService(ProductServices productServices,
                           SalesTransactionServices salesTransactionServices,
                           GeneralServices generalServices,
                           SalesItemTransactionServices salesItemTransactionServices,
-                          PromotionServices promotionServices)
+                          PromotionServices promotionServices,
+                          IServiceScopeFactory serviceScopeFactory)
     {
         _productServices = productServices;
         _salesTransactionServices = salesTransactionServices;
         _generalServices = generalServices;
         _salesItemTransactionServices = salesItemTransactionServices;
         _promotionServices = promotionServices;
+        ServiceScopeFactory = serviceScopeFactory;
     }
 
     public async Task<Product?> GetProductByBarcodeAsync(string barcode)
     {
-        return await _productServices.GetProductByBarcode(barcode);
+        return await _productServices.GetProductByBarcode(barcode, false, true);
     }
 
     public async Task SaveTransactionAsync(SalesTransaction transaction)
@@ -44,11 +48,62 @@ public class CheckoutService
             foreach (var salesItem in salesItems)
             {
                 salesItem.SaleTransaction_ID = transaction.SaleTransaction_ID;
-                salesItem.SalesTransaction = transaction;
+                salesItem.SalesTransaction = null;
+                salesItem.Product = null; // Detach product to avoid circular reference issues
+                salesItem.SalesPayout = null; // Detach payout to avoid circular reference issues
+                salesItem.Promotion = null; // Detach promotion to avoid circular reference issues
+                salesItem.OverrideAuthorizedBy = null; // Detach override authorized by to avoid circular reference issues
             }
 
             // Save all sales items in a single bulk operation
             await _salesItemTransactionServices.AddRangeAsync(salesItems);
+
+            // Update product quantities based on the transaction
+            await UpdateProductQuantitiesAsync(salesItems, transaction.Is_Refund);
+        }
+    }
+
+    /// <summary>
+    /// Updates product quantities based on sales item transactions
+    /// Reduces quantities for purchases, adds quantities back for refunds
+    /// </summary>
+    /// <param name="salesItems">List of sales item transactions</param>
+    /// <param name="isRefund">True if this is a refund transaction, false for regular sale</param>
+    public async Task UpdateProductQuantitiesAsync(List<SalesItemTransaction> salesItems, bool isRefund = false)
+    {
+        if (salesItems?.Any() != true) return;
+
+        List<Product> productsToUpdate = new List<Product>();
+
+        foreach (var salesItem in salesItems)
+        {
+            var product = await _productServices.GetByIdAsync(salesItem.Product_ID);
+            if (product == null) continue;
+
+            int quantityChange = salesItem.Product_QTY;
+
+            if (isRefund)
+            {
+                product.ShelfQuantity += quantityChange;
+            }
+            else
+            {
+                // For regular sales, reduce the quantity
+                // Prioritize taking from shelf first, then stockroom
+                int takeFromShelf = Math.Min(quantityChange, product.ShelfQuantity);
+                int takeFromStockroom = quantityChange - takeFromShelf;
+
+                product.ShelfQuantity -= takeFromShelf;
+                product.StockroomQuantity = Math.Max(0, product.StockroomQuantity - takeFromStockroom);
+                product.Promotion = null; // Detach promotion to avoid circular reference issues
+                product.Department = null; // Detach department to avoid circular reference issues
+            }
+            productsToUpdate.Add(product);
+            // Update the product in the database
+        }
+        if (productsToUpdate.Any())
+        {
+            await _productServices.BulkUpdateAsync(productsToUpdate);
         }
     }
 
@@ -117,13 +172,13 @@ public class CheckoutService
 
         // Apply promotions directly from products in the basket
         var processedPromotions = new HashSet<int>();
-        
+
         // Create a copy of the list to avoid collection modification during enumeration
         var itemsToProcess = basket.SalesItemsList.ToList();
-        
+
         foreach (var item in itemsToProcess)
         {
-            if (item.Product?.Promotion_Id.HasValue == true && 
+            if (item.Product?.Promotion_Id.HasValue == true &&
                 !processedPromotions.Contains(item.Product.Promotion_Id.Value))
             {
                 var promotion = await _promotionServices.GetByIdAsync(item.Product.Promotion_Id.Value);
@@ -201,7 +256,7 @@ public class CheckoutService
             else if (promotion.Discount_Amount > 0)
             {
                 // Fixed amount discount per item
-                discountAmount = (promotion.Discount_Amount ?? 0 )* item.Product_QTY;
+                discountAmount = (promotion.Discount_Amount ?? 0) * item.Product_QTY;
             }
 
             // Apply discount but ensure total doesn't go below 0
@@ -226,13 +281,13 @@ public class CheckoutService
                 // Calculate how many complete promotion sets we have
                 int promotionSets = item.Product_QTY / (promotion.Buy_Quantity + (promotion.Free_Quantity ?? 0));
                 int remainingItems = item.Product_QTY % (promotion.Buy_Quantity + (promotion.Free_Quantity ?? 0));
-                
+
                 // Calculate chargeable items from complete sets
                 int chargeableFromSets = promotionSets * promotion.Buy_Quantity;
-                
+
                 // For remaining items, charge for items up to Buy_Quantity, rest are free
                 int chargeableFromRemaining = Math.Min(remainingItems, promotion.Buy_Quantity);
-                
+
                 // Total chargeable quantity
                 int totalChargeableQuantity = chargeableFromSets + chargeableFromRemaining;
 
@@ -240,7 +295,7 @@ public class CheckoutService
                 item.Product_Total_Amount = totalChargeableQuantity * item.Product.Product_Selling_Price;
 
             }
-           
+
         }
     }
 
@@ -310,7 +365,7 @@ public class CheckoutService
         {
             // Handle same-product bundle (e.g., "Any 3 for £2")
             var item = bundleItemsInBasket.First();
-            
+
             if (item.Product_QTY < requiredBundleQuantity) return;
 
             int completeBundles = item.Product_QTY / requiredBundleQuantity;
@@ -506,8 +561,8 @@ public class CheckoutService
     private bool IsPromotionActive(Promotion promotion)
     {
         var now = DateTime.Now;
-        return promotion.Is_Active && 
-               promotion.Start_Date <= now && 
+        return promotion.Is_Active &&
+               promotion.Start_Date <= now &&
                promotion.End_Date >= now;
     }
 }
