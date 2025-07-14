@@ -67,7 +67,8 @@
                         <img src="images/icons/loyalty_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Discount</span>
                     </button>
-                    <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
+                    <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill"
+                            @onclick="NavigateToBackoffice">
                         <img src="images/icons/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
                         <span class="fw-bold">Office</span>
                     </button>
@@ -88,6 +89,7 @@
     [Parameter] public EventCallback<bool> OnMoreSalesClicked { get; set; }
     [Parameter] public EventCallback OnEnquiryClicked { get; set; }
     [Parameter] public EventCallback OnRefundClicked { get; set; }
+    [Parameter] public EventCallback OnDiscountClicked { get; set; }
 
     bool IsCollapsed = true;
 
@@ -109,7 +111,12 @@
 
     private async Task HandleOnDiscountClick()
     {
-        NavigationManager.NavigateTo("/promotiondashboard");
+        await OnDiscountClicked.InvokeAsync();
+    }
+
+    private void NavigateToBackoffice()
+    {
+        NavigationManager.NavigateTo("/backoffice");
     }
 
 }

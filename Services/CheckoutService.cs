@@ -148,7 +148,7 @@ public class CheckoutService
             foreach (var item in basket.SalesItemsList)
             {
                 item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
-                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount ?? 0);
+                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount);
             }
         }
 
@@ -165,8 +165,8 @@ public class CheckoutService
         // Reset all items to original prices before applying promotions
         foreach (var item in basket.SalesItemsList)
         {
-            item.Product_Total_Amount_Before_Discount = item.Product_QTY * item.Product?.Product_Selling_Price;
-            item.Product_Total_Amount = item.Product_Total_Amount_Before_Discount ?? 0;
+            item.Product_Total_Amount_Before_Discount = item.Product_QTY * item.Product?.Product_Selling_Price ?? 0;
+            item.Product_Total_Amount = item.Product_Total_Amount_Before_Discount;
             item.Product_Amount = item.Product?.Product_Selling_Price ?? 0;
         }
 
@@ -234,7 +234,7 @@ public class CheckoutService
         // Check minimum spend requirement if specified
         if (promotion.Minimum_Spend_Amount > 0)
         {
-            decimal currentTotal = basket.SalesItemsList.Sum(item => item.Product_Total_Amount_Before_Discount) ?? 0;
+            decimal currentTotal = basket.SalesItemsList.Sum(item => item.Product_Total_Amount_Before_Discount);
             if (currentTotal < promotion.Minimum_Spend_Amount)
             {
                 return; // Don't apply discount if minimum spend not met
@@ -451,7 +451,7 @@ public class CheckoutService
         if (basket?.SalesItemsList?.Any() != true) return 0;
 
         return basket.SalesItemsList.Sum(item =>
-            item.Product_Total_Amount_Before_Discount ?? 0 - item.Product_Total_Amount);
+            item.Product_Total_Amount_Before_Discount - item.Product_Total_Amount);
     }
 
     /// <summary>
@@ -487,7 +487,7 @@ public class CheckoutService
             foreach (var item in basket.SalesItemsList)
             {
                 item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
-                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount ?? 0);
+                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount);
             }
         }
 
@@ -509,7 +509,7 @@ public class CheckoutService
             foreach (var item in basket.SalesItemsList)
             {
                 item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
-                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount ?? 0);
+                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount);
             }
         }
 
@@ -537,7 +537,7 @@ public class CheckoutService
             {
                 var eligibleItems = group.ToList();
                 decimal totalDiscount = eligibleItems.Sum(item =>
-                    item.Product_Total_Amount_Before_Discount ?? 0 - item.Product_Total_Amount);
+                    item.Product_Total_Amount_Before_Discount - item.Product_Total_Amount);
 
                 if (totalDiscount > 0)
                 {
