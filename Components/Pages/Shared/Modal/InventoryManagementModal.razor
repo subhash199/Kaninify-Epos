@@ -74,7 +74,7 @@
                                     {
                                         @foreach (var product in AllRefillProducts)
                                         {
-                                            <tr>
+                                            <tr @ondblclick="() => OpenProductModal(product.Product)" style="cursor: pointer;">
                                                 <td>@product.Product.Product_Name</td>
                                                 <td>£@product.Product.Product_Selling_Price.ToString("F2")</td>
                                                 <td>@product.Refill_QTY</td>
@@ -82,7 +82,7 @@
                                                 <td>@product.Product.StockroomQuantity</td>
                                                 <td>@product.Product.Expiry_Date.ToString("dd/MM/yyyy")</td>
                                                 <td>
-                                                    <button class="btn btn-success btn-sm" @onclick="() => MarkAsRefilled(product)">
+                                                    <button class="btn btn-success btn-sm" @onclick="() => MarkAsRefilled(product)" @onclick:stopPropagation="true">
                                                         @((product.Is_Refill ? "Refilled" : "Mark Refilled"))
                                                     </button>
                                                 </td>
@@ -120,17 +120,17 @@
                                     {
                                         @foreach (var product in FilteredProducts)
                                         {
-                                            <tr class="@GetExpiryRowClass(product)">
+                                            <tr class="@GetExpiryRowClass(product)" @ondblclick="() => OpenProductModal(product)" style="cursor: pointer;">
                                                 <td>@product.Product_Name</td>
                                                 <td>£@product.Product_Selling_Price.ToString("F2")</td>
                                                 <td>@product.ProductTotalQuantity</td>
                                                 <td>@(product.Expiry_Date.ToString("dd/MM/yyyy") ?? "N/A")</td>
                                                 <td>@CalculateDaysUntilExpiry(product)</td>
                                                 <td>
-                                                    @*  <button class="btn btn-warning btn-sm me-2" @onclick="() => AddToPromotion(product.Product_ID)">
+                                                    @*  <button class="btn btn-warning btn-sm me-2" @onclick="() => AddToPromotion(product.Product_ID)" @onclick:stopPropagation="true">
                                                         Add to Promotion
                                                     </button> *@
-                                                    <button class="btn btn-danger btn-sm" @onclick="() => TransferToExpired(product)">
+                                                    <button class="btn btn-danger btn-sm" @onclick="() => TransferToExpired(product)" @onclick:stopPropagation="true">
                                                         Mark as Expired
                                                     </button>
                                                 </td>
@@ -168,14 +168,14 @@
                                     {
                                         @foreach (var product in FilteredProducts)
                                         {
-                                            <tr>
+                                            <tr @ondblclick="() => OpenProductModal(product)" style="cursor: pointer;">
                                                 <td>@product.Product_Name</td>
                                                 <td>£@product.Product_Selling_Price.ToString("F2")</td>
                                                 <td>@GetTotalQuantity(product)</td>
                                                 <td>@CalculateUnitsNeeded(product)</td>
                                                 <td>@CalculateCasesNeeded(product)</td>
                                                 <td>
-                                                    <button class="btn btn-primary btn-sm" @onclick="() => MarkAsOrdered(product.Product_ID)">
+                                                    <button class="btn btn-primary btn-sm" @onclick="() => MarkAsOrdered(product.Product_ID)" @onclick:stopPropagation="true">
                                                         Mark as Ordered
                                                     </button>
                                                 </td>
@@ -201,6 +201,18 @@
     </div>
 </div>
 
+<!-- Product Modal -->
+@if(IsProductModalVisible)
+{
+    <ProductModal IsVisible="@IsProductModalVisible"
+                  Title="Edit Product"
+                  Product="@SelectedProduct"
+                  OnSave="@OnProductSaved"
+                  OnClose="@CloseProductModal" />
+}
+
+
+
 @code {
     [Parameter] public InventoryManagementType ModalType { get; set; }
     [Parameter] public EventCallback<InventoryManagementType> OnDataChanged { get; set; }
@@ -224,6 +236,8 @@
     private string SearchTerm { get; set; } = string.Empty;
     private bool IsLoading { get; set; } = false;
     private bool IsDataChanged { get; set; } = false;
+    private bool IsProductModalVisible { get; set; } = false;
+    private Product? SelectedProduct { get; set; }
 
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
@@ -670,5 +684,147 @@
             // Handle error appropriately - you might want to show a message to the user
             Console.WriteLine($"Error updating expired products: {ex.Message}");
         }
+     }
+
+    private async Task OpenProductModal(Product product)
+    {
+        // Create a copy of the product to avoid modifying the original
+        SelectedProduct = new Product
+        {
+            Product_ID = product.Product_ID,
+            Product_Name = product.Product_Name,
+            Product_Barcode = product.Product_Barcode,
+            Product_Description = product.Product_Description,
+            Product_Case_Barcode = product.Product_Case_Barcode,
+            Product_Selling_Price = product.Product_Selling_Price,
+            Product_Cost = product.Product_Cost,
+            Product_Cost_Per_Case = product.Product_Cost_Per_Case,
+            Product_Unit_Per_Case = product.Product_Unit_Per_Case,
+            ShelfQuantity = product.ShelfQuantity,
+            StockroomQuantity = product.StockroomQuantity,
+            Department_ID = product.Department_ID,
+            VAT_ID = product.VAT_ID,
+            Expiry_Date = product.Expiry_Date,
+            Profit_On_Return_Percentage = product.Profit_On_Return_Percentage,
+            Product_Size = product.Product_Size,
+            Product_Measurement = product.Product_Measurement,
+            Brand_Name = product.Brand_Name,
+            Product_Min_Order = product.Product_Min_Order,
+            Product_Low_Stock_Alert_QTY = product.Product_Low_Stock_Alert_QTY,
+            Product_Min_Stock_Level = product.Product_Min_Stock_Level,
+            Print_To_Second_Printer = product.Print_To_Second_Printer,
+            Is_activated = product.Is_activated,
+            Is_deleted = product.Is_deleted,
+            Allow_Discount = product.Allow_Discount,
+            Date_Created = product.Date_Created,
+            Last_Modified = product.Last_Modified,
+            Created_By_Id = product.Created_By_Id,
+            Last_Modified_By_Id = product.Last_Modified_By_Id,
+            Site_Id = product.Site_Id,
+            Till_Id = product.Till_Id
+        };
+        
+        IsProductModalVisible = true;
+        StateHasChanged();
+    }
+
+    private async Task OnProductSaved(Product savedProduct)
+    {
+        try
+        {
+            // Update the product in existing collections instead of refetching all data
+            UpdateProductInCollections(savedProduct);
+            
+            // Re-filter products to reflect any changes that might affect filtering
+            await FilterProductsAsync();
+            
+            IsDataChanged = true;
+            CloseProductModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error after saving product: {ex.Message}");
+        }
+    }
+
+    private void UpdateProductInCollections(Product savedProduct)
+    {
+        // Update in AllProducts collection
+        var existingProduct = AllProducts?.FirstOrDefault(p => p.Product_ID == savedProduct.Product_ID);
+        if (existingProduct != null)
+        {
+            // Update all properties
+            existingProduct.Product_Name = savedProduct.Product_Name;
+            existingProduct.Product_Barcode = savedProduct.Product_Barcode;
+            existingProduct.Product_Description = savedProduct.Product_Description;
+            existingProduct.Product_Case_Barcode = savedProduct.Product_Case_Barcode;
+            existingProduct.Product_Selling_Price = savedProduct.Product_Selling_Price;
+            existingProduct.Product_Cost = savedProduct.Product_Cost;
+            existingProduct.Product_Cost_Per_Case = savedProduct.Product_Cost_Per_Case;
+            existingProduct.Product_Unit_Per_Case = savedProduct.Product_Unit_Per_Case;
+            existingProduct.ShelfQuantity = savedProduct.ShelfQuantity;
+            existingProduct.StockroomQuantity = savedProduct.StockroomQuantity;
+            existingProduct.Department_ID = savedProduct.Department_ID;
+            existingProduct.VAT_ID = savedProduct.VAT_ID;
+            existingProduct.Expiry_Date = savedProduct.Expiry_Date;
+            existingProduct.Profit_On_Return_Percentage = savedProduct.Profit_On_Return_Percentage;
+            existingProduct.Product_Size = savedProduct.Product_Size;
+            existingProduct.Product_Measurement = savedProduct.Product_Measurement;
+            existingProduct.Brand_Name = savedProduct.Brand_Name;
+            existingProduct.Product_Min_Order = savedProduct.Product_Min_Order;
+            existingProduct.Product_Low_Stock_Alert_QTY = savedProduct.Product_Low_Stock_Alert_QTY;
+            existingProduct.Product_Min_Stock_Level = savedProduct.Product_Min_Stock_Level;
+            existingProduct.Print_To_Second_Printer = savedProduct.Print_To_Second_Printer;
+            existingProduct.Is_activated = savedProduct.Is_activated;
+            existingProduct.Is_deleted = savedProduct.Is_deleted;
+            existingProduct.Allow_Discount = savedProduct.Allow_Discount;
+            existingProduct.Last_Modified = savedProduct.Last_Modified;
+            existingProduct.Last_Modified_By_Id = savedProduct.Last_Modified_By_Id;
+        }
+
+        // Update in AllRefillProducts collection if it exists
+        var existingRefillProduct = AllRefillProducts?.FirstOrDefault(rp => rp.Product.Product_ID == savedProduct.Product_ID);
+        if (existingRefillProduct != null)
+        {
+            // Update the product reference in the refill DTO
+            UpdateProductInCollections_Helper(existingRefillProduct.Product, savedProduct);
+        }
+    }
+
+    private void UpdateProductInCollections_Helper(Product target, Product source)
+    {
+        target.Product_Name = source.Product_Name;
+        target.Product_Barcode = source.Product_Barcode;
+        target.Product_Description = source.Product_Description;
+        target.Product_Case_Barcode = source.Product_Case_Barcode;
+        target.Product_Selling_Price = source.Product_Selling_Price;
+        target.Product_Cost = source.Product_Cost;
+        target.Product_Cost_Per_Case = source.Product_Cost_Per_Case;
+        target.Product_Unit_Per_Case = source.Product_Unit_Per_Case;
+        target.ShelfQuantity = source.ShelfQuantity;
+        target.StockroomQuantity = source.StockroomQuantity;
+        target.Department_ID = source.Department_ID;
+        target.VAT_ID = source.VAT_ID;
+        target.Expiry_Date = source.Expiry_Date;
+        target.Profit_On_Return_Percentage = source.Profit_On_Return_Percentage;
+        target.Product_Size = source.Product_Size;
+        target.Product_Measurement = source.Product_Measurement;
+        target.Brand_Name = source.Brand_Name;
+        target.Product_Min_Order = source.Product_Min_Order;
+        target.Product_Low_Stock_Alert_QTY = source.Product_Low_Stock_Alert_QTY;
+        target.Product_Min_Stock_Level = source.Product_Min_Stock_Level;
+        target.Print_To_Second_Printer = source.Print_To_Second_Printer;
+        target.Is_activated = source.Is_activated;
+        target.Is_deleted = source.Is_deleted;
+        target.Allow_Discount = source.Allow_Discount;
+        target.Last_Modified = source.Last_Modified;
+        target.Last_Modified_By_Id = source.Last_Modified_By_Id;
+    }
+
+    private void CloseProductModal()
+    {
+        IsProductModalVisible = false;
+        SelectedProduct = null;
+        StateHasChanged();
     }
 }
