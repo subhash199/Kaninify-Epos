@@ -1,5 +1,8 @@
 ﻿body {
 }
+.disable-scroll {
+    overflow-x: hidden;
+}
 
 .table tbody tr:hover {
     cursor: pointer;
