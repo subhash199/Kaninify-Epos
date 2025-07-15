@@ -1,11 +1,12 @@
 ﻿@page "/backoffice"
+@inject NavigationManager NavigationManager
 
 
 <div class="row m-4 justify-content-center">
     <div class="col-md-12">
         <div class="d-flex gap-2 mb-2">
         <div class="col-md-4">
-               <div class="Card-box">
+               <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToSalesDashboard()">
                     <div class="thumb">
                         <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report"/>
                      </div>
@@ -13,7 +14,21 @@
                         <h4 class="title">
                         <a href="#">Sales Reports</a>
                         </h4>
-                        <p>View sales reports</p>
+                        <p>View comprehensive sales reports</p>
+                    </div>
+                </div>
+        </div>
+
+        <div class="col-md-4">
+               <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToTodaysSales()">
+                    <div class="thumb">
+                        <img src="images/icons/today_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Today's Sales"/>
+                     </div>
+                    <div class="Content">
+                        <h4 class="title">
+                        <a href="#">Today's Sales</a>
+                        </h4>
+                        <p>View today's sales summary</p>
                     </div>
                 </div>
         </div>
@@ -28,20 +43,6 @@
                         <a href="#">Inventory Management</a>
                         </h4>
                         <p>View, manage and order stocks</p>
-                    </div>
-                </div>
-        </div>
-
-         <div class="col-md-4">
-               <div class="Card-box">
-                    <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report"/>
-                     </div>
-                    <div class="Content">
-                        <h4 class="title">
-                        <a href="#">Settings</a>
-                        </h4>
-                        <p>Business, system and users</p>
                     </div>
                 </div>
         </div>
@@ -98,5 +99,13 @@
 
 
 @code {
+    private void NavigateToSalesDashboard()
+    {
+        NavigationManager.NavigateTo("/salesdashboard");
+    }
 
+    private void NavigateToTodaysSales()
+    {
+        NavigationManager.NavigateTo("/salesdashboard?filter=today");
+    }
 }
