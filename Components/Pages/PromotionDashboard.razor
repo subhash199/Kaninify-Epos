@@ -419,8 +419,8 @@
         {
             Start_Date = DateTime.Today,
             End_Date = DateTime.Today.AddDays(30),
-            Created_Date = DateTime.Now,
-            Last_Modified = DateTime.Now,
+            Created_Date = DateTime.UtcNow,
+            Last_Modified = DateTime.UtcNow,
             Is_Deleted = false
         };
         isPromotionActive = true;

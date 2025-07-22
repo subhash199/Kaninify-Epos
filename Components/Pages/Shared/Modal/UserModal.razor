@@ -588,11 +588,11 @@
             // Set audit fields
             if (!IsEditMode)
             {
-                CurrentUser.Date_Created = DateTime.Now;
+                CurrentUser.Date_Created = DateTime.UtcNow;
                 CurrentUser.Is_Activated = true;
                 CurrentUser.Is_Deleted = false;
             }
-            CurrentUser.Last_Modified = DateTime.Now;
+            CurrentUser.Last_Modified = DateTime.UtcNow;
 
             // Trigger the save event
             if (!IsEditMode)
@@ -649,8 +649,8 @@
         {
             Is_Activated = true,
             Is_Deleted = false,
-            Date_Created = DateTime.Now,
-            Last_Modified = DateTime.Now
+            Date_Created = DateTime.UtcNow,
+            Last_Modified = DateTime.UtcNow
         };
     }
 

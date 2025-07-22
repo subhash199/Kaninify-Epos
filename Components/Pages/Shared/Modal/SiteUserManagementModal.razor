@@ -272,9 +272,9 @@
                 User_Id = user.User_ID,
                 Site_Id = SelectedSite.Site_Id,
                 Is_Active = true,
-                Date_Created = DateTime.Now,
-                Date_Granted = DateTime.Now,
-                Last_Modified = DateTime.Now,
+                Date_Created = DateTime.UtcNow,
+                Date_Granted = DateTime.UtcNow,
+                Last_Modified = DateTime.UtcNow,
                 Created_By_Id = CurrentUser.User_ID,
                 Last_Modified_By_Id = CurrentUser.User_ID
             };
@@ -310,7 +310,7 @@
             if (existingAccess != null)
             {
                 existingAccess.Is_Active = false;
-                existingAccess.Last_Modified = DateTime.Now;
+                existingAccess.Last_Modified = DateTime.UtcNow;
                 existingAccess.Last_Modified_By_Id = CurrentUser.User_ID;
 
                 await UserSiteAccessServices.UpdateAsync(existingAccess);

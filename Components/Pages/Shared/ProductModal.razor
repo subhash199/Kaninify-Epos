@@ -363,12 +363,12 @@
             {
                 // Remove any explicit ID assignment for new products
                 Product.Is_activated = true;
-                Product.Last_Modified = DateTime.Now;
+                Product.Last_Modified = DateTime.UtcNow;
                 await productServices.AddAsync(Product);
             }
             else // If it's an existing product
             {
-                Product.Last_Modified = DateTime.Now;
+                Product.Last_Modified = DateTime.UtcNow;
                 await productServices.UpdateAsync(Product);
             }
 

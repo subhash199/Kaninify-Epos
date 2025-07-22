@@ -1,4 +1,4 @@
-@page "/"
+@page "/checkout"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Constants
@@ -8,6 +8,7 @@
 @using EposRetail.Components.Pages.Shared
 @inject GeneralServices generalServices
 @inject CheckoutService CheckoutService
+@inject ShiftServices ShiftServices
 @inject ScreenInfoService ScreenInfoService
 @inject ProductServices productServices
 @inject SalesTransactionServices salesTransactionServices
@@ -17,11 +18,9 @@
 @inject VoidedProductServices VoidedProductServices
 @inject NavigationManager NavigationManager
 @inject PayoutServices PayoutServices
+@inject DayLogServices DayLogServices
 
-@inject PosUser loggedInUser
-@inject Site loggedInSite
-@inject Till loggedInTill
-@inject DayLog dayLog
+@inject UserSessionService UserSession
 
 @inject IJSRuntime JS
 
@@ -81,12 +80,12 @@
                         <div class="mb-3">
                             <h6>Payout Amount: £@payoutAmountText</h6>
                         </div>
-                        
+
                         @if (!string.IsNullOrEmpty(payoutErrorMessage))
                         {
                             <div class="alert alert-danger">@payoutErrorMessage</div>
                         }
-                        
+
                         @if (!isCreatingNewPayout)
                         {
                             <div class="mb-3">
@@ -96,7 +95,7 @@
                                     {
                                         @foreach (var payout in availablePayouts)
                                         {
-                                            <button type="button" 
+                                            <button type="button"
                                                     class="list-group-item list-group-item-action @(selectedPayout?.Payout_Id == payout.Payout_Id ? "active" : "")"
                                                     @onclick="() => OnPayoutSelected(payout)">
                                                 <div class="d-flex w-100 justify-content-between">
@@ -116,7 +115,7 @@
                                     }
                                 </div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <button type="button" class="btn btn-secondary" @onclick="ToggleCreateNewPayout">
                                     <i class="fas fa-plus"></i> Create New Payout Type
@@ -129,7 +128,7 @@
                                 <h6>Create new payout type:</h6>
                                 <div class="mb-3">
                                     <label class="form-label">Payout Description:</label>
-                                    <input type="text" class="form-control" @bind="newPayoutDescription" 
+                                    <input type="text" class="form-control" @bind="newPayoutDescription"
                                            placeholder="Enter payout description" maxlength="100" />
                                 </div>
                                 <button type="button" class="btn btn-secondary" @onclick="ToggleCreateNewPayout">
@@ -172,6 +171,11 @@
                    OnDiscountApplied="ApplyDiscountAsync"
                    OnClose="CloseDiscountModal" />
 
+    <!-- Float Amount Modal -->
+    <FloatAmountModal IsVisible="showFloatModal"
+                      CurrentDayLog="UserSession.CurrentDayLog"
+                      OnFloatSet="OnFloatAmountSet" />
+
 </div>
 
 
@@ -195,6 +199,40 @@
     private bool showDiscountModal = false;
     private bool isApplyingDiscountToAllProducts = false;
     private SalesItemTransaction selectedProductForDiscount = null;
+
+    // Float amount modal
+    private bool showFloatModal = false;
+
+    private async Task OnFloatAmountSet(decimal floatAmount)
+    {
+        showFloatModal = false;
+        StateHasChanged();
+
+        // Optional: Show a success message or perform additional actions
+        // The shift creation is handled within the FloatAmountModal
+    }
+
+    private async Task CheckShiftStatusAsync(bool newDayLogCreated)
+    {
+        // Get the last active shift for the current user
+        var userId = UserSession.GetCurrentUserId();
+        if (userId == null) return;
+
+        var activeShift = await ShiftServices.GetActiveShiftByUserAsync(userId.Value);
+
+        // If no active shift exists or if a new day log was created, show float modal
+        if (activeShift == null || newDayLogCreated)
+        {
+            showFloatModal = true;
+            StateHasChanged();
+        }
+        // If there's an active shift but it has ended, show float modal for new shift
+        else if (activeShift.Shift_End_DateTime.HasValue)
+        {
+            showFloatModal = true;
+            StateHasChanged();
+        }
+    }
 
     private async Task QuantityValueEntered(string value)
     {
@@ -330,15 +368,15 @@
 
         _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
         {
-            DayLog_Id = dayLog.DayLog_Id,
-            Created_By_Id = loggedInUser.User_ID,
-            Last_Modified_By_Id=loggedInUser.User_ID,
+            DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
+            Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+            Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
             SaleTransaction_Total_Amount = 0,
             SaleTransaction_Cash = 0,
             SaleTransaction_Card = 0,
             SaleTransaction_Change = 0,
-            Date_Created = DateTime.Now,
-            Sale_Start_Date = DateTime.Now            
+            Date_Created = DateTime.UtcNow,
+            Sale_Start_Date = DateTime.UtcNow
         };
 
         StateHasChanged();
@@ -356,7 +394,7 @@
         _state.ModalProduct = new Product
         {
             Product_Barcode = _state.SearchText,
-            Expiry_Date = DateTime.Now.AddDays(7),
+            Expiry_Date = DateTime.UtcNow.AddDays(7),
             Is_activated = true
         };
         StateHasChanged();
@@ -397,12 +435,48 @@
         // await MigrateDataServices.InsertDepartmentsFromCsvAsync(departmentsCsvPath, null, null, null);
         // await MigrateDataServices.InsertProductsFromCsvAsync(productsCsvPath, null, null, null);
         // var transactions = await salesTransactionServices.GetAllAsync();
-        loggedInUser.User_ID = 3;
-        loggedInSite.Site_Id = 1;
-        loggedInTill.Till_Id = 2;
-        dayLog.DayLog_Id = 1;
+
+        var dayLog = await DayLogServices.GetLastDayLog();
+        bool newDayLogCreated = false;
+
+        if (dayLog != null)
+        {
+            if (dayLog.DayLog_End_DateTime != null)
+            {
+                await CreateDayLog();
+                newDayLogCreated = true;
+            }
+            else
+            {
+                UserSession.SetDayLog(dayLog);
+            }
+        }
+        else
+        {
+            await CreateDayLog();
+            newDayLogCreated = true;
+        }
+
+        // Check for active shift or create new one
+        await CheckShiftStatusAsync(newDayLogCreated);
 
         await InitializeScreenSettingsAsync();
+    }
+
+    private async Task CreateDayLog()
+    {
+        var dayLog = new DayLog
+        {
+            DayLog_Start_DateTime = DateTime.UtcNow,
+            Date_Created = DateTime.UtcNow,
+            Last_Modified = DateTime.UtcNow,
+            Created_By_Id = UserSession.CurrentUser?.User_ID,
+            Last_Modified_By_Id = UserSession.CurrentUser?.User_ID,
+            Site_Id = UserSession.CurrentSite?.Site_Id,
+            Till_Id = UserSession.CurrentTill?.Till_Id
+        };
+        await DayLogServices.AddAsync(dayLog);
+        UserSession.SetDayLog(dayLog);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -618,7 +692,7 @@
     {
         try
         {
-            transaction.SaleTransaction_Total_QTY = transaction.SalesItemTransactions?.Count??0;
+            transaction.SaleTransaction_Total_QTY = transaction.SalesItemTransactions?.Count ?? 0;
             transaction.SaleTransaction_Total_Amount = transaction.SalesItemTransactions?.Sum(s => s.Product_Total_Amount) ?? 0;
             transaction.SaleTransaction_Total_Paid = transaction.SaleTransaction_Cash + transaction.SaleTransaction_Card;
             transaction.SaleTransaction_Change = transaction.SaleTransaction_Total_Amount - transaction.SaleTransaction_Total_Paid;
@@ -627,10 +701,10 @@
             transaction.SaleTransaction_Promotion = (transaction.SalesItemTransactions?
                 .Where(s => s.Promotion_ID != null)
                 .Sum(s => s.Product_Total_Amount) ?? 0) - (transaction.SalesItemTransactions?
-                    .Where(s => s.Promotion_ID != null).Sum(x => x.Product_Total_Amount_Before_Discount)??0);
-            transaction.Sale_Date = DateTime.Now;
-            transaction.Last_Modified = DateTime.Now;
-            transaction.Last_Modified_By_Id = loggedInUser.User_ID;
+                    .Where(s => s.Promotion_ID != null).Sum(x => x.Product_Total_Amount_Before_Discount) ?? 0);
+            transaction.Sale_Date = DateTime.UtcNow;
+            transaction.Last_Modified = DateTime.UtcNow;
+            transaction.Last_Modified_By_Id = UserSession.CurrentUser?.User_ID??1;
 
             await CheckoutService.SaveTransactionAsync(transaction);
         }
@@ -926,13 +1000,13 @@
                     Product_ID = voidedItem.Product_ID,
                     Voided_Quantity = voidedItem.Product_QTY,
                     Voided_Amount = voidedItem.Product_Total_Amount,
-                    Voided_By_User_ID = loggedInUser?.User_ID ?? 1, // Use logged in user or default
-                    Void_Date = DateTime.Now,
+                    Voided_By_User_ID = UserSession.CurrentUser?.User_ID ?? 1, // Use logged in user or default
+                    Void_Date = DateTime.UtcNow,
                     Additional_Notes = "Item voided from basket",
-                    Created_By_Id = loggedInUser?.User_ID ?? 1,
-                    Last_Modified_By_Id = loggedInUser?.User_ID ?? 1,
-                    Site_Id = loggedInSite?.Site_Id,
-                    Till_Id = loggedInTill?.Till_Id
+                    Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                    Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                    Site_Id = UserSession.CurrentSite?.Site_Id,
+                    Till_Id = UserSession.CurrentTill?.Till_Id
                 };
                 voidedProducts.Add(voidedProduct);
             }
@@ -969,7 +1043,7 @@
                     ModalEnum = ModalEnum.Refund
                 };
             }
-            else if(_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+            else if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
             {
                 _state.ModalSettings = new ModalSettings
                 {
@@ -981,7 +1055,7 @@
             }
             else
             {
-                InitiateRefundMode();                
+                InitiateRefundMode();
             }
 
         }
@@ -995,7 +1069,7 @@
     private async Task InitiateRefundMode()
     {
         await InitializeSalesTransactionAsync();
-        _state.SalesBaskets[_state.HoldBasketIndex].Transaction.Is_Refund = true;        
+        _state.SalesBaskets[_state.HoldBasketIndex].Transaction.Is_Refund = true;
     }
     private void HandleOnEnquiryClick()
     {
@@ -1011,7 +1085,7 @@
 
             // Get amount from search text
             payoutAmount = generalServices.ConvertStringToDecimal(_state.SearchText);
-            if (payoutAmount <=0)
+            if (payoutAmount <= 0)
             {
                 await ShowErrorModalAsync("Invalid Amount", "Please enter a valid amount in the search box before selecting a payout.");
                 return;
@@ -1067,10 +1141,10 @@
             {
                 // Create new payout type if it doesn't exist
                 payout = await PayoutServices.CreatePayoutAsync(
-                    payoutType, 
-                    loggedInUser?.User_ID ?? 1,
-                    loggedInSite?.Site_Id,
-                    loggedInTill?.Till_Id
+                    payoutType,
+                    UserSession.CurrentUser?.User_ID ?? 1,
+                    UserSession.CurrentSite?.Site_Id,
+                    UserSession.CurrentTill?.Till_Id
                 );
             }
 
@@ -1099,30 +1173,30 @@
             {
                 payoutDepartment = await DepartmentServices.AddGenericDepartment(
                     "Payout",
-                    loggedInUser?.User_ID ?? 1,
-                    loggedInSite?.Site_Id ?? 1,
-                    loggedInTill?.Till_Id ?? 1
+                    UserSession.CurrentUser?.User_ID ?? 1,
+                    UserSession.CurrentSite?.Site_Id ?? 1,
+                    UserSession.CurrentTill?.Till_Id ?? 1
                 );
                 await DepartmentServices.UpdateAsync(payoutDepartment);
             }
-            
+
             // Get or create 0% VAT
             var zeroVat = await VatServices.GetDefaultVatAsync();
-            
+
             // Create new payout product
             var newProduct = await productServices.AddGenericProduct(
                 $"Payout - {payoutDescription}",
                 payoutDepartment.Department_ID,
                 zeroVat.VAT_ID,
-                loggedInUser?.User_ID ?? 1,
-                loggedInSite?.Site_Id ?? 1,
-                loggedInTill?.Till_Id ?? 1
+                UserSession.CurrentUser?.User_ID ?? 1,
+                UserSession.CurrentSite?.Site_Id ?? 1,
+                UserSession.CurrentTill?.Till_Id ?? 1
             );
-            
+
             // Set specific barcode for payout products
             newProduct.Product_Barcode = $"PAYOUT-{payoutDescription.ToUpper()}";
             await productServices.AddAsync(newProduct);
-            
+
             return newProduct;
         }
         catch (Exception ex)
@@ -1130,7 +1204,7 @@
             throw new Exception($"Failed to get or create payout product: {ex.Message}");
         }
     }
-    
+
     private async Task OnPayoutSelected(Payout payout)
     {
         selectedPayout = payout;
@@ -1138,7 +1212,7 @@
         payoutErrorMessage = string.Empty;
         StateHasChanged();
     }
-    
+
     private void ToggleCreateNewPayout()
     {
         isCreatingNewPayout = !isCreatingNewPayout;
@@ -1147,15 +1221,15 @@
         payoutErrorMessage = string.Empty;
         StateHasChanged();
     }
-    
+
     private async Task ConfirmPayoutSelection()
     {
         try
         {
             payoutErrorMessage = string.Empty;
-            
+
             Payout payoutToUse = null;
-            
+
             if (isCreatingNewPayout)
             {
                 if (string.IsNullOrWhiteSpace(newPayoutDescription))
@@ -1164,13 +1238,13 @@
                     StateHasChanged();
                     return;
                 }
-                
+
                 // Create new payout
                 payoutToUse = await PayoutServices.CreatePayoutAsync(
                     newPayoutDescription.Trim(),
-                    loggedInUser.User_ID,
-                    loggedInSite?.Site_Id,
-                    loggedInTill?.Till_Id
+                    UserSession.CurrentUser?.User_ID ?? 1,
+                    UserSession.CurrentSite?.Site_Id,
+                    UserSession.CurrentTill?.Till_Id
                 );
             }
             else if (selectedPayout != null)
@@ -1183,7 +1257,7 @@
                 StateHasChanged();
                 return;
             }
-            
+
             await ExecutePayout(payoutToUse);
             ClosePayoutModal();
         }
@@ -1193,7 +1267,7 @@
             StateHasChanged();
         }
     }
-    
+
     private async Task ExecutePayout(Payout payout)
     {
         try
@@ -1202,33 +1276,33 @@
             {
                 await InitializeSalesTransactionAsync();
             }
-            
+
             // Fetch or create payout product using the dedicated method
             var payoutProduct = await GetOrCreatePayoutProduct(payout.Payout_Description);
-            
+
             // Update product selling price for this transaction
             payoutProduct.Product_Selling_Price = -payoutAmount;
-            
-           
-                var payoutItem = new SalesItemTransaction
-                {
-                    Product_ID = payoutProduct.Product_ID,
-                    Product = payoutProduct,
-                    Product_QTY = 1,
-                    Product_Amount = -payoutAmount, // Negative for payout
-                    Product_Total_Amount = -payoutAmount,
-                    Product_Total_Amount_Before_Discount = -payoutAmount,
-                    SalesPayout_ID = payout.Payout_Id
-                    
-                };
-                await AddProductToBasketAsync(payoutProduct, true);
+
+
+            var payoutItem = new SalesItemTransaction
+            {
+                Product_ID = payoutProduct.Product_ID,
+                Product = payoutProduct,
+                Product_QTY = 1,
+                Product_Amount = -payoutAmount, // Negative for payout
+                Product_Total_Amount = -payoutAmount,
+                Product_Total_Amount_Before_Discount = -payoutAmount,
+                SalesPayout_ID = payout.Payout_Id
+
+            };
+            await AddProductToBasketAsync(payoutProduct, true);
         }
         catch (Exception ex)
         {
             throw new Exception($"Failed to execute payout: {ex.Message}");
         }
     }
-    
+
     private void ClosePayoutModal()
     {
         showPayoutModal = false;
@@ -1238,7 +1312,7 @@
         payoutErrorMessage = string.Empty;
         StateHasChanged();
     }
-    
+
     private async Task ShowSuccessMessage(string message)
     {
         _state.ModalSettings = new ModalSettings
@@ -1255,13 +1329,13 @@
     private async Task HandleDiscountClick()
     {
         var currentBasket = _state.SalesBaskets?.Count > _state.HoldBasketIndex ? _state.SalesBaskets[_state.HoldBasketIndex] : null;
-        
+
         if (currentBasket?.SalesItemsList?.Count == 0)
         {
             await ShowErrorModalAsync("No Products", "There are no products in the basket to apply discount to.");
             return;
         }
-        
+
         // Check if a product is selected
         if (_state.SelectedItemIndex >= 0 && _state.SelectedItemIndex < currentBasket.SalesItemsList.Count)
         {
@@ -1275,10 +1349,10 @@
             // No product selected, show confirmation modal
             showDiscountConfirmationModal = true;
         }
-        
+
         StateHasChanged();
     }
-    
+
     private async Task ShowDiscountModalForAllProducts()
     {
         CloseDiscountConfirmationModal();
@@ -1287,13 +1361,13 @@
         showDiscountModal = true;
         StateHasChanged();
     }
-    
+
     private async Task CloseDiscountConfirmationModal()
     {
         showDiscountConfirmationModal = false;
         StateHasChanged();
     }
-    
+
     private async Task CloseDiscountModal()
     {
         showDiscountModal = false;
@@ -1301,14 +1375,14 @@
         isApplyingDiscountToAllProducts = false;
         StateHasChanged();
     }
-    
+
     private async Task ApplyDiscountAsync(decimal discountPercentage)
     {
         try
         {
             var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
             var itemsToDiscount = new List<SalesItemTransaction>();
-            
+
             if (isApplyingDiscountToAllProducts)
             {
                 // Apply to all eligible products
@@ -1322,29 +1396,29 @@
                     itemsToDiscount.Add(selectedProductForDiscount);
                 }
             }
-            
+
             if (itemsToDiscount.Count == 0)
             {
                 await ShowErrorModalAsync("No Eligible Products", "No products are eligible for discount.");
                 return;
             }
-            
+
             // Apply discount to eligible items
             foreach (var item in itemsToDiscount)
             {
                 var discountAmount = item.Product_Total_Amount_Before_Discount * (discountPercentage / 100);
                 item.Product_Total_Amount = item.Product_Total_Amount_Before_Discount - discountAmount;
             }
-            
+
             // Recalculate basket total
             currentBasket.Transaction.SaleTransaction_Total_Amount = currentBasket.SalesItemsList.Sum(s => s.Product_Total_Amount);
             UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
-            
+
             // Reset selected index
             _state.SelectedItemIndex = -1;
-            
+
             await ShowSuccessMessage($"Discount of {discountPercentage}% applied to {itemsToDiscount.Count} product(s).");
-            
+
             StateHasChanged();
             await SetFocusOnSearchBoxAsync();
         }
@@ -1353,20 +1427,20 @@
             await ShowErrorModalAsync("Discount Error", $"Error applying discount: {ex.Message}");
         }
     }
-    
+
     private bool IsProductEligibleForDiscount(SalesItemTransaction item)
     {
         // Check if product has positive amounts (exclude payouts and refunds)
         if (item.Product_Amount <= 0 || item.Product_Total_Amount <= 0)
             return false;
-        
+
         // Check if product already has a promotion applied
         // A product has a promotion if the total amount differs from the amount before discount
         bool hasPromotion = item.Product_Total_Amount != item.Product_Total_Amount_Before_Discount;
-        
+
         // Also check if the product has a promotion object assigned
         bool hasPromotionObject = item.Product?.Promotion != null;
-        
+
         // Only allow discount on non-promotional products
         return !hasPromotion && !hasPromotionObject;
     }

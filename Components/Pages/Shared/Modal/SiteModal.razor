@@ -233,14 +233,14 @@
             
             if (IsEditMode)
             {
-                CurrentSite.Last_Modified = DateTime.Now;
+                CurrentSite.Last_Modified = DateTime.UtcNow;
                 await SiteService.UpdateAsync(CurrentSite);
                 await OnSiteUpdated.InvokeAsync(CurrentSite);
             }
             else
             {
-                CurrentSite.Date_Created = DateTime.Now;
-                CurrentSite.Last_Modified = DateTime.Now;
+                CurrentSite.Date_Created = DateTime.UtcNow;
+                CurrentSite.Last_Modified = DateTime.UtcNow;
                 await SiteService.AddAsync(CurrentSite);
                 await OnSiteSaved.InvokeAsync(CurrentSite);
             }

@@ -145,11 +145,11 @@
     {
         if (startDate == default)
         {
-            StartDate = startDate = DateTime.Now.AddDays(-10); // Default to 30 days ago
+            StartDate = startDate = DateTime.UtcNow.AddDays(-10); // Default to 30 days ago
         }
         if (endDate == default)
         {
-            EndDate = endDate = DateTime.Now; // Default to today
+            EndDate = endDate = DateTime.UtcNow; // Default to today
         }
 
         var result = await _salesItemTransactionServices.GetByConditionAsync(

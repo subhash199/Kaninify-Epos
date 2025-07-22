@@ -560,7 +560,7 @@ public class CheckoutService
     /// </summary>
     private bool IsPromotionActive(Promotion promotion)
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         return promotion.Is_Active &&
                promotion.Start_Date <= now &&
                promotion.End_Date >= now;

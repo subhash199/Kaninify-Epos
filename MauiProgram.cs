@@ -3,17 +3,41 @@ using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Data;
 using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
+
 
 namespace EposRetail;
 
 public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
-	{
+	{		
 		var builder = MauiApp.CreateBuilder();
-        builder.Services.AddSingleton<ScreenInfoService>();
-		builder.Services.AddScoped<DatabaseInitialization>(); // Changed from AddSingleton
+		
+		// Load configuration from appsettings.json
+		var assembly = Assembly.GetExecutingAssembly();
+		using var stream = assembly.GetManifestResourceStream("EposRetail.Appsettings.json");
+		
+		var config = new ConfigurationBuilder()
+			.AddJsonStream(stream)
+			.Build();
+		
+		// Get the encrypted connection string and encryption key from configuration
+		string encryptedConnectionString = config.GetSection("ConnectionStrings:DefaultConnection").Value;
+		string encryptionKey = config.GetSection("Encryption:Key").Value;
+        builder.Services.AddSingleton<ScreenInfoService>();		
+	
+		builder.Services.AddSingleton<AESEncryptDecryptServices>();
+		
+		// Register DatabaseInitialization with decrypted connection string
+		builder.Services.AddScoped<DatabaseInitialization>(provider => {
+			var encryptionService = provider.GetRequiredService<AESEncryptDecryptServices>();
+			var decryptedConnectionString = encryptionService.Decrypt(encryptedConnectionString, encryptionKey);
+			return new DatabaseInitialization(decryptedConnectionString);
+		});
 		builder.Services.AddScoped<ProductServices>();        // Changed from AddSingleton
 		builder.Services.AddScoped<DepartmentServices>();     // Changed from AddSingleton
         builder.Services.AddScoped<VatServices>();            // Changed from AddSingleton
@@ -32,12 +56,11 @@ public static class MauiProgram
 		builder.Services.AddScoped<PayoutServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<PrinterServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<StockTransactionServices>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<TillServices>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<ShiftServices>(); // Ensure DbContext is scoped
 
-        builder.Services.AddSingleton<PosUser>();
-		builder.Services.AddSingleton<Site>();
-		builder.Services.AddSingleton<Till>();
-		builder.Services.AddSingleton<DayLog>();
-		builder.Services.AddSingleton<ReceiptPrinter>();
+        builder.Services.AddSingleton<UserSessionService>();
+        builder.Services.AddSingleton<ReceiptPrinter>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
@@ -46,6 +69,9 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+		
+		// Register configuration for dependency injection
+		builder.Services.AddSingleton<IConfiguration>(config);
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

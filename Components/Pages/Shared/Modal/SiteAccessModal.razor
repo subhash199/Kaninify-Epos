@@ -215,7 +215,7 @@
                             User_Id = SelectedUser.User_ID,
                             Site_Id = siteAccess.Site.Site_Id,
                             Is_Active = true,
-                            Date_Granted = DateTime.Now,
+                            Date_Granted = DateTime.UtcNow,
                             Created_By_Id = currentUserId,
                             Last_Modified_By_Id = currentUserId
                         };
@@ -228,7 +228,7 @@
                         if (siteAccess.ExistingAccess != null)
                         {
                             siteAccess.ExistingAccess.Is_Active = false;
-                            siteAccess.ExistingAccess.Date_Revoked = DateTime.Now;
+                            siteAccess.ExistingAccess.Date_Revoked = DateTime.UtcNow;
                             siteAccess.ExistingAccess.Last_Modified_By_Id = currentUserId;
                             
                             await UserSiteAccessServices.UpsertAsync(siteAccess.ExistingAccess);

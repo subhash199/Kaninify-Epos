@@ -424,7 +424,7 @@
     #region
     private void ShowCreateSiteModal()
     {
-        currentSite = new Site { Is_Active = true, Date_Created = DateTime.Now };
+        currentSite = new Site { Is_Active = true, Date_Created = DateTime.UtcNow };
         isEditingSite = false;
         isViewMode = false;
         showSiteModal = true;

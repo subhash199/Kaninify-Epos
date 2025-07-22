@@ -1,0 +1,565 @@
+@using DataHandlerLibrary.Services
+@using DataHandlerLibrary.Models
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject SiteServices SiteServices
+@inject TillServices TillServices
+@inject PosUserServices PosUserServices
+
+
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @if (currentStep == SetupStep.Welcome)
+                        {
+                            <span>🎉 Welcome to Kaninify POS!</span>
+                        }
+                        else if (currentStep == SetupStep.Site)
+                        {
+                            <span>🏢 Site Setup</span>
+                        }
+                        else if (currentStep == SetupStep.Till)
+                        {
+                            <span>💻 Till Setup</span>
+                        }
+                        else if (currentStep == SetupStep.User)
+                        {
+                            <span>👤 Admin User Setup</span>
+                        }
+                        else if (currentStep == SetupStep.Complete)
+                        {
+                            <span>✅ Setup Complete!</span>
+                        }
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    @if (currentStep == SetupStep.Welcome)
+                    {
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <img height="80" width="80" src="images/logos/TransparentKaninifyLogo160.png" />
+                            </div>
+                            <h4>Welcome to your new POS system!</h4>
+                            <p class="lead">Let's get you set up in just a few steps:</p>
+                            <div class="setup-steps">
+                                <div class="step-item">
+                                    <span class="step-number">1</span>
+                                    <span>Create your business site</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">2</span>
+                                    <span>Configure your till</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">3</span>
+                                    <span>Create admin user</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (currentStep == SetupStep.Site)
+                    {
+                        <EditForm Model="@siteModel" OnValidSubmit="@CreateSite">
+                            <DataAnnotationsValidator />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Business Name *</label>
+                                        <InputText @bind-Value="siteModel.Site_BusinessName" class="form-control" />
+                                        <ValidationMessage For="@(() => siteModel.Site_BusinessName)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Contact Number</label>
+                                        <InputText @bind-Value="siteModel.Site_ContactNumber" class="form-control" />
+                                        <ValidationMessage For="@(() => siteModel.Site_ContactNumber)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Address Line 1 *</label>
+                                        <InputText @bind-Value="siteModel.Site_AddressLine1" class="form-control" />
+                                        <ValidationMessage For="@(() => siteModel.Site_AddressLine1)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">City *</label>
+                                        <InputText @bind-Value="siteModel.Site_City" class="form-control" />
+                                        <ValidationMessage For="@(() => siteModel.Site_City)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Address Line 2</label>
+                                        <InputText @bind-Value="siteModel.Site_AddressLine2" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">County</label>
+                                        <InputText @bind-Value="siteModel.Site_County" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Postcode *</label>
+                                        <InputText @bind-Value="siteModel.Site_Postcode" class="form-control" />
+                                        <ValidationMessage For="@(() => siteModel.Site_Postcode)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Country *</label>
+                                        <InputText @bind-Value="siteModel.Site_Country" class="form-control" />
+                                        <ValidationMessage For="@(() => siteModel.Site_Country)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <InputText @bind-Value="siteModel.Site_Email" class="form-control" type="email" />
+                                        <ValidationMessage For="@(() => siteModel.Site_Email)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">VAT Number</label>
+                                <InputText @bind-Value="siteModel.Site_VatNumber" class="form-control" />
+                            </div>
+                        </EditForm>
+                    }
+                    else if (currentStep == SetupStep.Till)
+                    {
+                        <EditForm Model="@tillModel" OnValidSubmit="@CreateTill">
+                            <DataAnnotationsValidator />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Till Name *</label>
+                                        <InputText @bind-Value="tillModel.Till_Name" class="form-control" />
+                                        <ValidationMessage For="@(() => tillModel.Till_Name)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Till Password *</label>
+                                        <InputText @bind-Value="tillModel.Till_Password" class="form-control" type="password" />
+                                        <ValidationMessage For="@(() => tillModel.Till_Password)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">IP Address</label>
+                                        <InputText @bind-Value="tillModel.Till_IP_Address" class="form-control" placeholder="192.168.1.100" />
+                                        <ValidationMessage For="@(() => tillModel.Till_IP_Address)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Port Number</label>
+                                        <InputText @bind-Value="tillModel.Till_Port_Number" class="form-control" placeholder="8080" />
+                                        <ValidationMessage For="@(() => tillModel.Till_Port_Number)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </EditForm>
+                    }
+                    else if (currentStep == SetupStep.User)
+                    {
+                        <EditForm Model="@userSetupModel" OnValidSubmit="@CreateUser">
+                            <DataAnnotationsValidator />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">First Name *</label>
+                                        <InputText @bind-Value="userSetupModel.First_Name" class="form-control" />
+                                        <ValidationMessage For="@(() => userSetupModel.First_Name)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Last Name *</label>
+                                        <InputText @bind-Value="userSetupModel.Last_Name" class="form-control" />
+                                        <ValidationMessage For="@(() => userSetupModel.Last_Name)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Passcode *</label>
+                                        <InputNumber @bind-Value="userSetupModel.Passcode" class="form-control" />
+                                        <ValidationMessage For="@(() => userSetupModel.Passcode)" />
+                                        <small class="form-text text-muted">4-10 digit numeric passcode</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">User Type</label>
+                                        <InputSelect @bind-Value="userSetupModel.User_Type" class="form-control">
+                                            <option value="@PosUserType.Director">Director</option>
+                                            <option value="@PosUserType.Manager">Manager</option>
+                                            <option value="@PosUserType.Staff">Staff</option>
+                                            <option value="@PosUserType.Trainee">Trainee</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Note:</strong> This user will be created as a Director with full administrative permissions.
+                            </div>
+                        </EditForm>
+                    }
+                    else if (currentStep == SetupStep.Complete)
+                    {
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <div class="success-icon">
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="#28a745" stroke-width="2" fill="#d4edda"/>
+                                        <path d="M9 12l2 2 4-4" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h4>Setup Complete!</h4>
+                            <p class="lead">Your POS system is now ready to use.</p>
+                            <div class="setup-summary">
+                                <p><strong>Site:</strong> @createdSite?.Site_BusinessName</p>
+                                <p><strong>Till:</strong> @createdTill?.Till_Name</p>
+                                <p><strong>Admin User:</strong> @createdUser?.First_Name @createdUser?.Last_Name</p>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3">
+                            @errorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (currentStep == SetupStep.Welcome)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="NextStep">Get Started</button>
+                    }
+                    else if (currentStep == SetupStep.Site)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="CreateSite" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Create Site & Continue
+                        </button>
+                    }
+                    else if (currentStep == SetupStep.Till)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="CreateTill" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Create Till & Continue
+                        </button>
+                    }
+                    else if (currentStep == SetupStep.User)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="CreateUser" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Create User & Finish
+                        </button>
+                    }
+                    else if (currentStep == SetupStep.Complete)
+                    {
+                        <button type="button" class="btn btn-success" @onclick="CompleteSetup">Start Using POS</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .setup-steps {
+        text-align: left;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .step-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .step-number {
+        background-color: #007bff;
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-weight: bold;
+    }
+    
+    .success-icon {
+        margin-bottom: 20px;
+    }
+    
+    .setup-summary {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnSetupComplete { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private SetupStep currentStep = SetupStep.Welcome;
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+
+    private Site siteModel = new();
+    private Till tillModel = new();
+    private PosUser userModel = new();
+    private UserSetupModel userSetupModel = new();
+
+    private Site? createdSite;
+    private Till? createdTill;
+    private PosUser? createdUser;
+
+    private enum SetupStep
+    {
+        Welcome,
+        Site,
+        Till,
+        User,
+        Complete
+    }
+
+    public class UserSetupModel
+    {
+        [Required(ErrorMessage = "First name is required")]
+        [StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
+        public string First_Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
+        public string Last_Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Passcode is required")]
+        [Range(1000, 9999999999, ErrorMessage = "Passcode must be between 4 and 10 digits")]
+        public int Passcode { get; set; }
+
+        public PosUserType User_Type { get; set; } = PosUserType.Director;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Initialize default values
+        siteModel.Site_Country = "United Kingdom";
+        tillModel.Till_Name = "Main Till";
+        userModel.Is_Activated = true;
+        userModel.Is_Deleted = false;
+        
+        // Set all permissions to true for admin user
+        SetAdminPermissions();
+    }
+
+    private void SetAdminPermissions()
+    {
+        userModel.User_Type = PosUserType.Director;
+        userModel.Allowed_Void_Line = true;
+        userModel.Allowed_Void_Sale = true;
+        userModel.Allowed_No_Sale = true;
+        userModel.Allowed_Returns = true;
+        userModel.Allowed_Payout = true;
+        userModel.Allowed_Refund = true;
+        userModel.Allowed_Change_Price = true;
+        userModel.Allowed_Discount = true;
+        userModel.Allowed_Override_Price = true;
+        userModel.Allowed_Manage_Users = true;
+        userModel.Allowed_Manage_Sites = true;
+        userModel.Allowed_Manage_Tills = true;
+        userModel.Allowed_Manage_Products = true;
+        userModel.Allowed_Manage_Suppliers = true;
+        userModel.Allowed_Manage_StockTransfer = true;
+        userModel.Allowed_Manage_Vat = true;
+        userModel.Allowed_Manage_Departments = true;
+        userModel.Allowed_Manage_Orders = true;
+        userModel.Allowed_Manage_Reports = true;
+        userModel.Allowed_Manage_Settings = true;
+        userModel.Allowed_Manage_Tax_Rates = true;
+        userModel.Allowed_Manage_Promotions = true;
+        userModel.Allowed_Manage_VoidedProducts = true;
+        userModel.Allowed_Day_End = true;
+    }
+
+    private void NextStep()
+    {
+        currentStep++;
+        errorMessage = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task CreateSite()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var validation = await SiteServices.ValidateAsync(siteModel);
+            if (!string.IsNullOrEmpty(validation))
+            {
+                errorMessage = validation;
+                return;
+            }
+
+            await SiteServices.AddAsync(siteModel);
+            createdSite = siteModel;
+            
+            NextStep();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating site: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateTill()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            tillModel.Site_Id = createdSite?.Site_Id ?? 0;
+            
+            var validation = await TillServices.ValidateAsync(tillModel);
+            if (!string.IsNullOrEmpty(validation))
+            {
+                errorMessage = validation;
+                return;
+            }
+
+            await TillServices.AddAsync(tillModel);
+            createdTill = tillModel;
+            
+            NextStep();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating till: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateUser()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // Map from setup model to user model
+            userModel.First_Name = userSetupModel.First_Name;
+            userModel.Last_Name = userSetupModel.Last_Name;
+            userModel.Passcode = userSetupModel.Passcode;
+            userModel.User_Type = userSetupModel.User_Type;
+            
+            userModel.Primary_Site_Id = createdSite?.Site_Id;
+            userModel.Till_Id = createdTill?.Till_Id;
+            
+            var validation = await PosUserServices.ValidateAsync(userModel);
+            if (!string.IsNullOrEmpty(validation))
+            {
+                errorMessage = validation;
+                return;
+            }
+
+            // Check if passcode is unique
+            var isPasscodeUnique = await PosUserServices.IsPasscodeUniqueAsync(userModel.Passcode);
+            if (!isPasscodeUnique)
+            {
+                errorMessage = "This passcode is already in use. Please choose a different passcode.";
+                return;
+            }
+
+            await PosUserServices.AddAsync(userModel);
+            createdUser = userModel;
+            
+            NextStep();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating user: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CompleteSetup()
+    {
+        await OnSetupComplete.InvokeAsync();
+    }
+
+    private void ResetForm()
+    {
+        currentStep = SetupStep.Welcome;
+        isLoading = false;
+        errorMessage = string.Empty;
+        siteModel = new Site();
+        tillModel = new Till();
+        userModel = new PosUser();
+        userSetupModel = new UserSetupModel();
+        createdSite = null;
+        createdTill = null;
+        createdUser = null;
+    }
+
+}

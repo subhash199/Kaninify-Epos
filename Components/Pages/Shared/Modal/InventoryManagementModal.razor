@@ -347,7 +347,7 @@
 
     private async Task<List<Product>> GetExpiryProductsAsync()
     {
-        var expiryDate = DateTime.Now.AddDays(7);
+        var expiryDate = DateTime.UtcNow.AddDays(7);
         var products = await ProductService.GetByConditionAsync(
             p => p.Is_activated == true &&
                  p.Expiry_Date <= expiryDate &&
@@ -361,7 +361,7 @@
     {
         var products = await ProductService.GetByConditionAsync(p => p.Is_activated == true, false);
         var shortageProducts = new List<Product>();
-        var thirtyDaysAgo = DateTime.Now.AddDays(-30);
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
         var salesData = await SalesItemTransactionService.GetByConditionAsync(
             s => s.SalesTransaction.Sale_Date >= thirtyDaysAgo, true
@@ -437,7 +437,7 @@
 
     private int CalculateDaysUntilExpiry(Product product)
     {
-        return Math.Max(0, (product.Expiry_Date - DateTime.Now).Days);
+        return Math.Max(0, (product.Expiry_Date - DateTime.UtcNow).Days);
     }
 
     private string GetExpiryRowClass(Product product)
@@ -537,9 +537,9 @@
                 Quantity = totalQuantity,
                 TotalAmount = totalAmount,
                 DayLogId = CurrentDayLog?.DayLog_Id ?? 1,
-                TransactionDate = DateTime.Now,
-                DateCreated = DateTime.Now,
-                LastModified = DateTime.Now,
+                TransactionDate = DateTime.UtcNow,
+                DateCreated = DateTime.UtcNow,
+                LastModified = DateTime.UtcNow,
                 Shift_Id = 1, // You may need to get the current shift ID
                 Created_By_Id = 1, // You may need to get the current user ID
                 Last_Modified_By_Id = 1, // You may need to get the current user ID

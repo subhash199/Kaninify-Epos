@@ -25,49 +25,31 @@
                     <button class="filter-btn" @onclick="SetThisWeek">Weekly</button>
                     <button class="filter-btn" @onclick="SetThisMonth">Monthly</button>
                 </div>
-                <button class="share-btn">
-                    <i class="fas fa-share-alt"></i>
-                    Share
-                </button>
             </div>
         </div>
     </div>
 
     <!-- Date Range Filter -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Date Range Filter</h5>
+    <div class="date-filter-section">
+        <div class="date-filter-card">
+            <div class="date-inputs">
+                <div class="input-group">
+                    <label class="input-label">From</label>
+                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" />
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Start Date</label>
-                            <input type="date" class="form-control" @bind="StartDate" @bind:event="oninput" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">End Date</label>
-                            <input type="date" class="form-control" @bind="EndDate" @bind:event="oninput" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Quick Filters</label>
-                            <div class="btn-group d-block" role="group">
-                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="SetToday">Today</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="SetThisWeek">This Week</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="SetThisMonth">This Month</button>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">&nbsp;</label>
-                            <div class="d-block">
-                                <button type="button" class="btn btn-success" @onclick="LoadReportData">
-                                    <i class="fas fa-sync-alt me-1"></i>Generate Report
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="input-group">
+                    <label class="input-label">To</label>
+                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" />
                 </div>
+                <div class="quick-filters">
+                    <button class="filter-chip" @onclick="SetToday">Today</button>
+                    <button class="filter-chip" @onclick="SetThisWeek">Week</button>
+                    <button class="filter-chip" @onclick="SetThisMonth">Month</button>
+                </div>
+                <button class="load-btn" @onclick="LoadReportData">
+                    <i class="fas fa-sync-alt"></i>
+                    Update
+                </button>
             </div>
         </div>
     </div>
@@ -84,519 +66,562 @@
     else if (SalesData != null)
     {
         <!-- Summary Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Total Sales</h6>
-                                <h3 class="mb-0">@SalesData.TotalSales.ToString("C")</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
-                            </div>
-                        </div>
+        <div class="metrics-grid">
+            <div class="metric-card primary">
+                <div class="metric-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.TotalSales.ToString("C")</h3>
+                    <p class="metric-label">Total Sales</p>
+                    <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+12.5%</span>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Total Transactions</h6>
-                                <h3 class="mb-0">@SalesData.TotalTransactions</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-receipt fa-2x opacity-75"></i>
-                            </div>
-                        </div>
+            <div class="metric-card success">
+                <div class="metric-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.TotalTransactions</h3>
+                    <p class="metric-label">Total Transactions</p>
+                    <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+8.3%</span>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Average Transaction</h6>
-                                <h3 class="mb-0">@SalesData.AverageTransaction.ToString("C")</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-chart-bar fa-2x opacity-75"></i>
-                            </div>
-                        </div>
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.AverageTransaction.ToString("C")</h3>
+                    <p class="metric-label">Average Transaction</p>
+                    <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+3.7%</span>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Items Sold</h6>
-                                <h3 class="mb-0">@SalesData.ItemsSold</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
-                            </div>
+            <div class="metric-card warning">
+                <div class="metric-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.ItemsSold</h3>
+                    <p class="metric-label">Items Sold</p>
+                    <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+15.2%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card net-sales">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.NetSales.ToString("C")</h3>
+                    <p class="metric-label">Net Sales</p>
+                    <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+9.2%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="metric-card refunds">
+                <div class="metric-icon">
+                    <i class="fas fa-undo"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.TotalRefunds.ToString("C")</h3>
+                    <p class="metric-label">Refunds</p>
+                    <div class="metric-detail">@SalesData.RefundCount transactions</div>
+                </div>
+            </div>
+            <div class="metric-card payouts">
+                <div class="metric-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.TotalPayouts.ToString("C")</h3>
+                    <p class="metric-label">Payouts</p>
+                    <div class="metric-trend negative">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>-2.1%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="metric-card voided">
+                <div class="metric-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.VoidedSales.ToString("C")</h3>
+                    <p class="metric-label">Voided Sales</p>
+                    <div class="metric-detail">@SalesData.VoidCount transactions</div>
+                </div>
+            </div>
+
+            @* <div class="metric-card success">
+                <div class="metric-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.CashPayments.ToString("C")</h3>
+                    <p class="metric-label">Cash Payments</p>
+                    <div class="metric-detail">@SalesData.CashTransactionCount transactions</div>
+                </div>
+            </div>
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.CardPayments.ToString("C")</h3>
+                    <p class="metric-label">Card Payments</p>
+                    <div class="metric-detail">@SalesData.CardTransactionCount transactions</div>
+                </div>
+            </div> *@
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-container main-chart">
+                <div class="chart-header">
+                    <h3 class="chart-title">Sales Overview</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active">Today</button>
+                        <button class="chart-btn">Weekly</button>
+                        <button class="chart-btn">Monthly</button>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <canvas id="salesChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            <div class="chart-container side-chart">
+                <div class="chart-header">
+                    <h3 class="chart-title">Profit by Sale</h3>
+                    <div class="chart-subtitle">Sort by</div>
+                </div>
+                <div class="chart-content">
+                    <div class="profit-items">
+                        <div class="profit-item">
+                            <div class="profit-color" style="background: #6366f1;"></div>
+                            <span class="profit-label">Total Sales</span>
+                            <span class="profit-value">$3,345</span>
+                        </div>
+                        <div class="profit-item">
+                            <div class="profit-color" style="background: #8b5cf6;"></div>
+                            <span class="profit-label">Total Profit</span>
+                            <span class="profit-value">$3,345</span>
+                        </div>
+                        <div class="profit-item">
+                            <div class="profit-color" style="background: #06b6d4;"></div>
+                            <span class="profit-label">Total Revenue</span>
+                            <span class="profit-value">$3,345</span>
+                        </div>
+                        <div class="profit-item">
+                            <div class="profit-color" style="background: #10b981;"></div>
+                            <span class="profit-label">Total Loss</span>
+                            <span class="profit-value">$1,345</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Financial Metrics -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-success text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Net Sales</h6>
-                                <h3 class="mb-0">@SalesData.NetSales.ToString("C")</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-chart-line fa-2x opacity-75"></i>
-                            </div>
+
+
+        <!-- Transaction Tables -->
+        <div class="tables-section">
+            @if (SalesData.RefundTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Refund Transactions</h3>
+                        <div class="table-controls">
+                            <span class="status-badge refund">@SalesData.RefundTransactions.Count() Refunds</span>
+                            <span class="status-badge amount">@SalesData.TotalRefunds.ToString("C")</span>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-danger text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Refunds</h6>
-                                <h3 class="mb-0">@SalesData.TotalRefunds.ToString("C")</h3>
-                                <small class="opacity-75">@SalesData.RefundCount transactions</small>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-undo fa-2x opacity-75"></i>
-                            </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell">Transaction</div>
+                            <div class="table-cell">Product</div>
+                            <div class="table-cell">Status</div>
+                            <div class="table-cell">Employee</div>
+                            <div class="table-cell">Date</div>
+                            <div class="table-cell">Amount</div>
+                            <div class="table-cell">Action</div>
                         </div>
+                        @foreach (var refund in SalesData.RefundTransactions.Take(5))
+                        {
+                            <div class="table-row">
+                                <div class="table-cell">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon">@refund.TransactionId.Substring(0, 2)</div>
+                                        <span>@refund.TransactionId</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell">@refund.ProductName</div>
+                                <div class="table-cell">
+                                    <span class="status-badge refunded">Refunded</span>
+                                </div>
+                                <div class="table-cell">@refund.EmployeeName</div>
+                                <div class="table-cell">@refund.TransactionDate.ToString("dd-MM-yyyy")</div>
+                                <div class="table-cell amount">-@refund.Amount.ToString("C")</div>
+                                <div class="table-cell">
+                                    <div class="action-buttons">
+                                        <button class="action-btn edit"><i class="fas fa-edit"></i></button>
+                                        <button class="action-btn delete"><i class="fas fa-trash"></i></button>
+                                        <button class="action-btn more"><i class="fas fa-ellipsis-h"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Payouts</h6>
-                                <h3 class="mb-0">@SalesData.TotalPayouts.ToString("C")</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
-                            </div>
+            }
+
+            @if (SalesData.VoidedTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Voided Sales</h3>
+                        <div class="table-controls">
+                            <span class="status-badge voided">@SalesData.VoidedTransactions.Count() Voids</span>
+                            <span class="status-badge amount">@SalesData.VoidedSales.ToString("C")</span>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-secondary text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h6 class="card-title">Voided Sales</h6>
-                                <h3 class="mb-0">@SalesData.VoidedSales.ToString("C")</h3>
-                                <small class="opacity-75">@SalesData.VoidCount transactions</small>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-times-circle fa-2x opacity-75"></i>
-                            </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell">Transaction</div>
+                            <div class="table-cell">Product</div>
+                            <div class="table-cell">Status</div>
+                            <div class="table-cell">Employee</div>
+                            <div class="table-cell">Date</div>
+                            <div class="table-cell">Amount</div>
+                            <div class="table-cell">Action</div>
                         </div>
+                        @foreach (var voided in SalesData.VoidedTransactions.Take(5))
+                        {
+                            <div class="table-row">
+                                <div class="table-cell">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon voided">@voided.TransactionId.Substring(0, 2)</div>
+                                        <span>@voided.TransactionId</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell">@voided.ProductName</div>
+                                <div class="table-cell">
+                                    <span class="status-badge voided">Voided</span>
+                                </div>
+                                <div class="table-cell">@voided.EmployeeName</div>
+                                <div class="table-cell">@voided.TransactionDate.ToString("dd-MM-yyyy")</div>
+                                <div class="table-cell amount">@voided.Amount.ToString("C")</div>
+                                <div class="table-cell">
+                                    <div class="action-buttons">
+                                        <button class="action-btn edit"><i class="fas fa-edit"></i></button>
+                                        <button class="action-btn delete"><i class="fas fa-trash"></i></button>
+                                        <button class="action-btn more"><i class="fas fa-ellipsis-h"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
-            </div>
+            }
+
+            @if (SalesData.PayoutTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Payouts</h3>
+                        <div class="table-controls">
+                            <span class="status-badge payout">@SalesData.PayoutTransactions.Count() Payouts</span>
+                            <span class="status-badge amount">@SalesData.TotalPayouts.ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell">Transaction</div>
+                            <div class="table-cell">Reason</div>
+                            <div class="table-cell">Status</div>
+                            <div class="table-cell">Recipient</div>
+                            <div class="table-cell">Date</div>
+                            <div class="table-cell">Amount</div>
+                            <div class="table-cell">Action</div>
+                        </div>
+                        @foreach (var payout in SalesData.PayoutTransactions.Take(5))
+                        {
+                            <div class="table-row">
+                                <div class="table-cell">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon payout">@payout.PayoutId.Substring(0, 2)</div>
+                                        <span>@payout.PayoutId</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell">@payout.Reason</div>
+                                <div class="table-cell">
+                                    <span class="status-badge @(payout.Status.ToLower())">@payout.Status</span>
+                                </div>
+                                <div class="table-cell">@payout.Recipient</div>
+                                <div class="table-cell">@payout.TransactionDate.ToString("dd-MM-yyyy")</div>
+                                <div class="table-cell amount">@payout.Amount.ToString("C")</div>
+                                <div class="table-cell">
+                                    <div class="action-buttons">
+                                        <button class="action-btn edit"><i class="fas fa-edit"></i></button>
+                                        <button class="action-btn delete"><i class="fas fa-trash"></i></button>
+                                        <button class="action-btn more"><i class="fas fa-ellipsis-h"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
-
-        <!-- Time-based Sales Analysis -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Time-based Sales Analysis</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="text-center p-3 border rounded">
-                                    <i class="fas fa-sun fa-2x text-warning mb-2"></i>
-                                    <h6>Morning Sales (6AM - 12PM)</h6>
-                                    <h4 class="text-primary">@SalesData.MorningSales.ToString("C")</h4>
-                                    <small class="text-muted">@SalesData.MorningTransactions transactions</small>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center p-3 border rounded">
-                                    <i class="fas fa-sun fa-2x text-orange mb-2"></i>
-                                    <h6>Afternoon Sales (12PM - 6PM)</h6>
-                                    <h4 class="text-primary">@SalesData.AfternoonSales.ToString("C")</h4>
-                                    <small class="text-muted">@SalesData.AfternoonTransactions transactions</small>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center p-3 border rounded">
-                                    <i class="fas fa-moon fa-2x text-dark mb-2"></i>
-                                    <h6>Night Sales (6PM - 6AM)</h6>
-                                    <h4 class="text-primary">@SalesData.NightSales.ToString("C")</h4>
-                                    <small class="text-muted">@SalesData.NightTransactions transactions</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Transaction Details -->
-        @if (SalesData.RefundTransactions?.Any() == true)
-        {
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-danger text-white">
-                            <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Refund Transactions</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Date/Time</th>
-                                            <th>Transaction ID</th>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                            <th>Amount</th>
-                                            <th>Reason</th>
-                                            <th>Employee</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var refund in SalesData.RefundTransactions)
-                                        {
-                                            <tr>
-                                                <td>@refund.TransactionDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                                <td><span class="badge bg-secondary">@refund.TransactionId</span></td>
-                                                <td>@refund.ProductName</td>
-                                                <td>@refund.Quantity</td>
-                                                <td class="text-danger">-@refund.Amount.ToString("C")</td>
-                                                <td>@refund.Reason</td>
-                                                <td>@refund.EmployeeName</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        @if (SalesData.VoidedTransactions?.Any() == true)
-        {
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="mb-0"><i class="fas fa-times-circle me-2"></i>Voided Sales</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Date/Time</th>
-                                            <th>Transaction ID</th>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                            <th>Amount</th>
-                                            <th>Reason</th>
-                                            <th>Employee</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var voided in SalesData.VoidedTransactions)
-                                        {
-                                            <tr>
-                                                <td>@voided.TransactionDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                                <td><span class="badge bg-secondary">@voided.TransactionId</span></td>
-                                                <td>@voided.ProductName</td>
-                                                <td>@voided.Quantity</td>
-                                                <td class="text-muted">@voided.Amount.ToString("C")</td>
-                                                <td>@voided.Reason</td>
-                                                <td>@voided.EmployeeName</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        @if (SalesData.PayoutTransactions?.Any() == true)
-        {
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-warning text-white">
-                            <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payouts</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Date/Time</th>
-                                            <th>Payout ID</th>
-                                            <th>Amount</th>
-                                            <th>Reason</th>
-                                            <th>Recipient</th>
-                                            <th>Employee</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var payout in SalesData.PayoutTransactions)
-                                        {
-                                            <tr>
-                                                <td>@payout.TransactionDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                                <td><span class="badge bg-warning text-dark">@payout.PayoutId</span></td>
-                                                <td class="text-warning fw-bold">@payout.Amount.ToString("C")</td>
-                                                <td>@payout.Reason</td>
-                                                <td>@payout.Recipient</td>
-                                                <td>@payout.EmployeeName</td>
-                                                <td>
-                                                    <span class="badge @(payout.Status == "Approved" ? "bg-success" : payout.Status == "Pending" ? "bg-warning" : "bg-danger")">@payout.Status</span>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
 
         <!-- Employee Performance -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Employee Performance</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Employee</th>
-                                        <th>Total Sales</th>
-                                        <th>Transactions</th>
-                                        <th>Items Sold</th>
-                                        <th>Avg. Service Time</th>
-                                        <th>Avg. Items per Transaction</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (SalesData.EmployeePerformance != null)
-                                    {
-                                        @foreach (var emp in SalesData.EmployeePerformance)
-                                        {
-                                            <tr>
-                                                <td>@emp.EmployeeName</td>
-                                                <td>@emp.TotalSales.ToString("C")</td>
-                                                <td>@emp.TransactionCount</td>
-                                                <td>@emp.ItemsSold</td>
-                                                <td>@emp.AverageServiceTime.ToString(@"mm\:ss")</td>
-                                                <td>@emp.AverageItemsPerTransaction.ToString("F1")</td>
-                                            </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <div class="table-container employee-performance">
+            <div class="table-header">
+                <h3 class="table-title">
+                    <i class="fas fa-users"></i>
+                    Employee Performance
+                </h3>
+                <div class="table-controls">
+                    <button class="action-btn primary">Export</button>
+                    <button class="action-btn secondary">View All</button>
                 </div>
+            </div>
+            <div class="modern-table">
+                <div class="table-row table-header-row">
+                    <div class="table-cell">Employee</div>
+                    <div class="table-cell">Total Sales</div>
+                    <div class="table-cell">Transactions</div>
+                    <div class="table-cell">Items Sold</div>
+                    <div class="table-cell">Avg. Service Time</div>
+                    <div class="table-cell">Avg. Items per Transaction</div>
+                </div>
+                @if (SalesData.EmployeePerformance != null)
+                {
+                    @foreach (var emp in SalesData.EmployeePerformance)
+                    {
+                        <div class="table-row">
+                            <div class="table-cell">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <span>@emp.EmployeeName</span>
+                                </div>
+                            </div>
+                            <div class="table-cell">@emp.TotalSales.ToString("C")</div>
+                            <div class="table-cell">@emp.TransactionCount</div>
+                            <div class="table-cell">@emp.ItemsSold</div>
+                            <div class="table-cell">@emp.AverageServiceTime.ToString(@"mm\:ss")</div>
+                            <div class="table-cell">@emp.AverageItemsPerTransaction.ToString("F1")</div>
+                        </div>
+                    }
+                }
             </div>
         </div>
 
         <!-- Product Analysis -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Top 10 Popular Products</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Product</th>
-                                        <th>Qty Sold</th>
-                                        <th>Revenue</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (SalesData.TopProducts != null)
-                                    {
-                                        @for (int i = 0; i < SalesData.TopProducts.Count && i < 10; i++)
-                                        {
-                                            var product = SalesData.TopProducts[i];
-                                            <tr>
-                                                <td><span class="badge bg-success">@(i + 1)</span></td>
-                                                <td>@product.ProductName</td>
-                                                <td>@product.QuantitySold</td>
-                                                <td>@product.Revenue.ToString("C")</td>
-                                            </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
+        <div class="product-analysis-section">
+            <div class="analysis-grid">
+                <!-- Top Products -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-trophy"></i>
+                            Top 10 Popular Products
+                        </h3>
+                        <div class="table-controls">
+                            <button class="action-btn primary">View All</button>
                         </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell">#</div>
+                            <div class="table-cell">Product</div>
+                            <div class="table-cell">Qty Sold</div>
+                            <div class="table-cell">Revenue</div>
+                        </div>
+                        @if (SalesData.TopProducts != null)
+                        {
+                            @for (int i = 0; i < SalesData.TopProducts.Count && i < 10; i++)
+                            {
+                                var product = SalesData.TopProducts[i];
+                                <div class="table-row">
+                                    <div class="table-cell">
+                                        <span class="status-badge success">@(i + 1)</span>
+                                    </div>
+                                    <div class="table-cell">
+                                        <div class="campaign-info">
+                                            <div class="campaign-icon">
+                                                <i class="fas fa-box"></i>
+                                            </div>
+                                            <span>@product.ProductName</span>
+                                        </div>
+                                    </div>
+                                    <div class="table-cell">@product.QuantitySold</div>
+                                    <div class="table-cell">@product.Revenue.ToString("C")</div>
+                                </div>
+                            }
+                        }
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-warning text-white">
-                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Least Popular Products</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th>Qty Sold</th>
-                                        <th>Revenue</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (SalesData.LeastPopularProducts != null)
-                                    {
-                                        @foreach (var product in SalesData.LeastPopularProducts.Take(10))
-                                        {
-                                            <tr>
-                                                <td>@product.ProductName</td>
-                                                <td>@product.QuantitySold</td>
-                                                <td>@product.Revenue.ToString("C")</td>
-                                                <td>
-                                                    @if (product.QuantitySold == 0)
-                                                    {
-                                                        <span class="badge bg-danger">No Sales</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-warning">Low Sales</span>
-                                                    }
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
+
+                <!-- Least Popular Products -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Least Popular Products
+                        </h3>
+                        <div class="table-controls">
+                            <button class="action-btn secondary">Analyze</button>
                         </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell">Product</div>
+                            <div class="table-cell">Qty Sold</div>
+                            <div class="table-cell">Revenue</div>
+                            <div class="table-cell">Status</div>
+                        </div>
+                        @if (SalesData.LeastPopularProducts != null)
+                        {
+                            @foreach (var product in SalesData.LeastPopularProducts.Take(10))
+                            {
+                                <div class="table-row">
+                                    <div class="table-cell">
+                                        <div class="campaign-info">
+                                            <div class="campaign-icon">
+                                                <i class="fas fa-box-open"></i>
+                                            </div>
+                                            <span>@product.ProductName</span>
+                                        </div>
+                                    </div>
+                                    <div class="table-cell">@product.QuantitySold</div>
+                                    <div class="table-cell">@product.Revenue.ToString("C")</div>
+                                    <div class="table-cell">
+                                        @if (product.QuantitySold == 0)
+                                        {
+                                            <span class="status-badge danger">No Sales</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge warning">Low Sales</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Stock Transaction Reports -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-danger text-white">
-                        <h5 class="mb-0"><i class="fas fa-warehouse me-2"></i>Stock Transaction Reports</h5>
+        <div class="stock-reports-section">
+            <!-- Stock Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card danger">
+                    <div class="metric-icon">
+                        <i class="fas fa-exclamation-circle"></i>
                     </div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <div class="card border-danger">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-exclamation-circle fa-2x text-danger mb-2"></i>
-                                        <h6>Expired Products</h6>
-                                        <h4 class="text-danger">@SalesData.ExpiredProductsCount</h4>
-                                        <small class="text-muted">Items expired in date range</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-warning">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-user-secret fa-2x text-warning mb-2"></i>
-                                        <h6>Theft Reports</h6>
-                                        <h4 class="text-warning">@SalesData.TheftCount</h4>
-                                        <small class="text-muted">Reported theft incidents</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-info">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-exchange-alt fa-2x text-info mb-2"></i>
-                                        <h6>Stock Adjustments</h6>
-                                        <h4 class="text-info">@SalesData.StockAdjustmentsCount</h4>
-                                        <small class="text-muted">Total adjustments made</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="metric-content">
+                        <div class="metric-value">@SalesData.ExpiredProductsCount</div>
+                        <div class="metric-label">Expired Products</div>
+                        <div class="metric-detail">Items expired in date range</div>
+                    </div>
+                </div>
+                <div class="metric-card warning">
+                    <div class="metric-icon">
+                        <i class="fas fa-user-secret"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">@SalesData.TheftCount</div>
+                        <div class="metric-label">Theft Reports</div>
+                        <div class="metric-detail">Reported theft incidents</div>
+                    </div>
+                </div>
+                <div class="metric-card info">
+                    <div class="metric-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">@SalesData.StockAdjustmentsCount</div>
+                        <div class="metric-label">Stock Adjustments</div>
+                        <div class="metric-detail">Total adjustments made</div>
+                    </div>
+                </div>
+            </div>
 
-                        @if (SalesData.StockTransactions != null && SalesData.StockTransactions.Any())
+            <!-- Stock Transactions Table -->
+            @if (SalesData.StockTransactions != null && SalesData.StockTransactions.Any())
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-warehouse"></i>
+                            Stock Transaction Reports
+                        </h3>
+                        <div class="table-controls">
+                            <button class="action-btn primary">Export</button>
+                            <button class="action-btn secondary">Filter</button>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell">Date</div>
+                            <div class="table-cell">Product</div>
+                            <div class="table-cell">Transaction Type</div>
+                            <div class="table-cell">Quantity</div>
+                            <div class="table-cell">Reason</div>
+                            <div class="table-cell">Value Impact</div>
+                        </div>
+                        @foreach (var stock in SalesData.StockTransactions.Take(20))
                         {
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Product</th>
-                                            <th>Transaction Type</th>
-                                            <th>Quantity</th>
-                                            <th>Reason</th>
-                                            <th>Value Impact</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var stock in SalesData.StockTransactions.Take(20))
-                                        {
-                                            <tr>
-                                                <td>@stock.TransactionDate.ToString("dd/MM/yyyy")</td>
-                                                <td>@stock.ProductName</td>
-                                                <td>
-                                                    <span class="badge @GetStockTransactionBadgeClass(stock.TransactionType)">
-                                                        @stock.TransactionType
-                                                    </span>
-                                                </td>
-                                                <td>@stock.Quantity</td>
-                                                <td>@stock.Reason</td>
-                                                <td>@stock.ValueImpact.ToString("C")</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
+                            <div class="table-row">
+                                <div class="table-cell">@stock.TransactionDate.ToString("dd/MM/yyyy")</div>
+                                <div class="table-cell">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon">
+                                            <i class="fas fa-box"></i>
+                                        </div>
+                                        <span>@stock.ProductName</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell">
+                                    <span class="status-badge @GetStockTransactionBadgeClass(stock.TransactionType)">
+                                        @stock.TransactionType
+                                    </span>
+                                </div>
+                                <div class="table-cell">@stock.Quantity</div>
+                                <div class="table-cell">@stock.Reason</div>
+                                <div class="table-cell">@stock.ValueImpact.ToString("C")</div>
                             </div>
                         }
                     </div>
                 </div>
-            </div>
+            }
         </div>
     }
 </div>
 
+
 @code {
+    [Parameter] public DayLog dayLog { get; set; }
+
     private SalesDashboardData SalesData = new();
     private DateTime StartDate = DateTime.Today;
     private DateTime EndDate = DateTime.Today;
@@ -628,7 +653,7 @@
                 TotalTransactions = 47,
                 AverageTransaction = 54.21m,
                 ItemsSold = 156,
-                
+
                 // Financial Metrics
                 NetSales = 2347.89m, // Total Sales minus refunds and voids
                 TotalRefunds = 125.50m,
@@ -682,7 +707,7 @@
                     new() { TransactionDate = DateTime.Today, ProductName = "Cigarettes", TransactionType = "Theft", Quantity = 2, Reason = "Shoplifting incident", ValueImpact = -25.00m },
                     new() { TransactionDate = DateTime.Today, ProductName = "Bread", TransactionType = "Adjustment", Quantity = -1, Reason = "Damaged packaging", ValueImpact = -2.50m }
                 },
-                
+
                 // Transaction Details
                 RefundTransactions = new List<RefundTransactionData>
                 {
@@ -690,13 +715,13 @@
                     new() { TransactionDate = DateTime.Today.AddHours(-4), TransactionId = "TXN045", ProductName = "Sandwich - Ham & Cheese", Quantity = 2, Amount = 12.00m, Reason = "Wrong order", EmployeeName = "John Smith" },
                     new() { TransactionDate = DateTime.Today.AddDays(-1), TransactionId = "TXN089", ProductName = "Energy Drink", Quantity = 1, Amount = 3.00m, Reason = "Defective product", EmployeeName = "Mike Wilson" }
                 },
-                
+
                 VoidedTransactions = new List<VoidedTransactionData>
                 {
                     new() { TransactionDate = DateTime.Today.AddHours(-1), TransactionId = "TXN123", ProductName = "Chocolate Bar", Quantity = 3, Amount = 7.50m, Reason = "Payment declined", EmployeeName = "Sarah Johnson" },
                     new() { TransactionDate = DateTime.Today.AddHours(-3), TransactionId = "TXN156", ProductName = "Bottled Water", Quantity = 5, Amount = 7.50m, Reason = "Customer changed mind", EmployeeName = "John Smith" }
                 },
-                
+
                 PayoutTransactions = new List<PayoutTransactionData>
                 {
                     new() { TransactionDate = DateTime.Today.AddHours(-1), PayoutId = "PAY001", Amount = 50.00m, Reason = "Till float adjustment", Recipient = "Manager", EmployeeName = "John Smith", Status = "Approved" },
@@ -740,7 +765,7 @@
     {
         return transactionType.ToLower() switch
         {
-            "expiry" => "bg-danger",
+            "expiry" => "background-colour-light-pink",
             "theft" => "bg-warning",
             "adjustment" => "bg-info",
             _ => "bg-secondary"
@@ -754,7 +779,7 @@
         public int TotalTransactions { get; set; }
         public decimal AverageTransaction { get; set; }
         public int ItemsSold { get; set; }
-        
+
         // Financial Metrics
         public decimal NetSales { get; set; }
         public decimal TotalRefunds { get; set; }
@@ -778,7 +803,7 @@
         public int TheftCount { get; set; }
         public int StockAdjustmentsCount { get; set; }
         public List<StockTransactionData> StockTransactions { get; set; } = new();
-        
+
         // Transaction Details
         public List<RefundTransactionData> RefundTransactions { get; set; } = new();
         public List<VoidedTransactionData> VoidedTransactions { get; set; } = new();
@@ -811,7 +836,7 @@
         public string Reason { get; set; } = string.Empty;
         public decimal ValueImpact { get; set; }
     }
-    
+
     public class RefundTransactionData
     {
         public DateTime TransactionDate { get; set; }
@@ -822,7 +847,7 @@
         public string Reason { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
     }
-    
+
     public class VoidedTransactionData
     {
         public DateTime TransactionDate { get; set; }
@@ -833,7 +858,7 @@
         public string Reason { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
     }
-    
+
     public class PayoutTransactionData
     {
         public DateTime TransactionDate { get; set; }

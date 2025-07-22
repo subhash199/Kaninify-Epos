@@ -240,7 +240,7 @@
             using var scope = ServiceScopeFactory.CreateScope();
             var productServices = scope.ServiceProvider.GetRequiredService<ProductServices>();
 
-            var currentDate = DateTime.Now.Date;
+            var currentDate = DateTime.UtcNow.Date;
             var expiryThreshold = currentDate.AddDays(7); // Products expiring within 7 days
 
             var expiringProducts = await productServices.GetByConditionAsync(
@@ -269,7 +269,7 @@
             // if (currentDayLog == null) return 0;
 
             // Get sales data from the last 30 days for analysis
-            var thirtyDaysAgo = DateTime.Now.AddDays(-30);
+            var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
             var salesItems = await salesItemTransactionServices.GetByConditionAsync(
                 s => s.Date_Created >= thirtyDaysAgo,
                 false);
