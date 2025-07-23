@@ -33,6 +33,12 @@
                 }
                 
                     <div class="daylog-controls">
+                        <button class="modern-nav-btn" @onclick="NavigateToCheckout">
+                            <div class="btn-content">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Back to Checkout</span>
+                            </div>
+                        </button>
                         <button class="modern-print-btn" @onclick="PrintReport">
                             <div class="btn-content">
                                 <i class="fas fa-print"></i>
@@ -759,8 +765,7 @@
 
             var cashPaymentCount = salesTransactions.Where(t => t.SaleTransaction_Cash > 0).Count();
 
-            var cardPayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Card) - salesTransactions.Where
-            (t => t.Is_Refund).Sum(t => t.SaleTransaction_Card);
+            var cardPayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Card);
 
             var cardPaymentCount = salesTransactions.Where(t => t.SaleTransaction_Card > 0).Count();
 
@@ -1082,6 +1087,11 @@
         {
             Console.WriteLine($"Error printing report: {ex.Message}");
         }
+    }
+
+    private void NavigateToCheckout()
+    {
+        NavigationManager.NavigateTo("/checkout");
     }
 
     // Data models

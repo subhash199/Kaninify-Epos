@@ -116,7 +116,7 @@ public class CheckoutService
         return grandTotal - totalPaid;
     }
 
-    public async Task AddProductToBasketAsync(SalesBasket basket, Product product, bool isGeneric)
+    public async Task AddProductToBasketAsync(SalesBasket basket, Product product, bool isGeneric, int? payoutId)
     {
         basket.SalesItemsList ??= new List<SalesItemTransaction>();
 
@@ -135,7 +135,8 @@ public class CheckoutService
                 Product_QTY = 1,
                 Product_Amount = product.Product_Selling_Price,
                 Product_Total_Amount = product.Product_Selling_Price,
-                Product_Total_Amount_Before_Discount = product.Product_Selling_Price
+                Product_Total_Amount_Before_Discount = product.Product_Selling_Price,
+                SalesPayout_ID= payoutId                
             });
         }
 

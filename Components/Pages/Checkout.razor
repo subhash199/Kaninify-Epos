@@ -335,19 +335,19 @@
             return;
         }
 
-        await AddProductToBasketAsync(product, false);
+        await AddProductToBasketAsync(product, false, null);
         await JS.InvokeVoidAsync("scrollTableToBottom");
         StateHasChanged();
     }
 
-    private async Task AddProductToBasketAsync(Product product, bool isGeneric)
+    private async Task AddProductToBasketAsync(Product product, bool isGeneric, int? payoutId)
     {
         if (_state.SalesBaskets.Count < 1)
         {
             await InitializeSalesTransactionAsync();
         }
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-        await CheckoutService.AddProductToBasketAsync(currentBasket, product, isGeneric);
+        await CheckoutService.AddProductToBasketAsync(currentBasket, product, isGeneric, payoutId);
 
         UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
         await SetFocusOnSearchBoxAsync();
@@ -361,6 +361,23 @@
 
     private async Task InitializeSalesTransactionAsync()
     {
+        // Ensure we have a valid DayLog before initializing a transaction
+        if (UserSession.CurrentDayLog == null)
+        {
+            var dayLog = await DayLogServices.GetLastDayLog();
+
+            if (dayLog != null && dayLog.DayLog_End_DateTime == null)
+            {
+                // Last daylog is still active, use it
+                UserSession.SetDayLog(dayLog);
+            }
+            else
+            {
+                // No active daylog exists, create a new one
+                await CreateDayLog();
+            }
+        }
+
         if (!(_state.SalesBaskets != null && _state.SalesBaskets.Count > _state.HoldBasketIndex && _state.HoldBasketIndex >= 0))
         {
             _state.SalesBaskets.Add(new SalesBasket());
@@ -436,23 +453,37 @@
         // await MigrateDataServices.InsertProductsFromCsvAsync(productsCsvPath, null, null, null);
         // var transactions = await salesTransactionServices.GetAllAsync();
 
-        var dayLog = await DayLogServices.GetLastDayLog();
         bool newDayLogCreated = false;
 
-        if (dayLog != null)
+        // Check if CurrentDayLog is null, if so fetch the last daylog
+        if (UserSession.CurrentDayLog == null)
         {
-            if (dayLog.DayLog_End_DateTime != null)
+            var dayLog = await DayLogServices.GetLastDayLog();
+
+            if (dayLog != null)
             {
-                await CreateDayLog();
-                newDayLogCreated = true;
+                if (dayLog.DayLog_End_DateTime != null)
+                {
+                    // Last daylog has ended, create a new one
+                    await CreateDayLog();
+                    newDayLogCreated = true;
+                }
+                else
+                {
+                    // Last daylog is still active, use it
+                    UserSession.SetDayLog(dayLog);
+                }
             }
             else
             {
-                UserSession.SetDayLog(dayLog);
+                // No daylog exists, create a new one
+                await CreateDayLog();
+                newDayLogCreated = true;
             }
         }
-        else
+        else if (UserSession.CurrentDayLog.DayLog_End_DateTime != null)
         {
+            // Current daylog has ended, create a new one
             await CreateDayLog();
             newDayLogCreated = true;
         }
@@ -576,7 +607,18 @@
             {
                 if (paymentAmount < 0)
                 {
-                    currentBasket.Transaction.SaleTransaction_Cash += 0;
+                    // check if the total basket total is less than zero
+
+                    if(currentBasket.Transaction.SaleTransaction_Total_Amount < 0)
+                    {
+                        currentBasket.Transaction.SaleTransaction_Cash += currentBasket.Transaction.SalesItemTransactions
+                        ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount)??0;
+                    }
+                    else
+                    {
+                        currentBasket.Transaction.SaleTransaction_Cash += 0;
+                    }
+
                 }
                 else
                 {
@@ -587,7 +629,15 @@
             {
                 if (paymentAmount < 0)
                 {
-                    currentBasket.Transaction.SaleTransaction_Card += 0;
+                    if (currentBasket.Transaction.SaleTransaction_Total_Amount < 0)
+                    {
+                        currentBasket.Transaction.SaleTransaction_Card += currentBasket.Transaction.SalesItemTransactions
+                        ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount) ?? 0;
+                    }
+                    else
+                    {
+                        currentBasket.Transaction.SaleTransaction_Card += 0;
+                    }
 
                 }
                 else
@@ -651,8 +701,32 @@
 
     private async Task ClearCurrentTransactionAsync()
     {
+        // Ensure we have a valid DayLog before initializing a transaction
+        if (UserSession.CurrentDayLog == null)
+        {
+            var dayLog = await DayLogServices.GetLastDayLog();
+
+            if (dayLog != null && dayLog.DayLog_End_DateTime == null)
+            {
+                // Last daylog is still active, use it
+                UserSession.SetDayLog(dayLog);
+            }
+            else
+            {
+                // No active daylog exists, create a new one
+                await CreateDayLog();
+            }
+        }
+
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-        currentBasket.Transaction = new SalesTransaction();
+        currentBasket.Transaction = new SalesTransaction
+        {
+            DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
+            Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+            Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+            Date_Created = DateTime.UtcNow,
+            Sale_Start_Date = DateTime.UtcNow
+        };
         currentBasket.SalesItemsList.Clear();
         _state.SearchText = "";
 
@@ -791,7 +865,7 @@
     {
         // Handle product save/update from modal
         _state.ModalSettings.ShowModal = false;
-        await AddProductToBasketAsync(product, false);
+        await AddProductToBasketAsync(product, false, null);
         StateHasChanged();
     }
 
@@ -820,7 +894,7 @@
         else
         {
             departmentProduct.Product_Selling_Price = amount;
-            await AddProductToBasketAsync(departmentProduct, true);
+            await AddProductToBasketAsync(departmentProduct, true, null);
             await JS.InvokeVoidAsync("scrollTableToBottom");
         }
         StateHasChanged();
@@ -927,13 +1001,35 @@
                 await TrackVoidedItemAsync(currentBasket.SalesItemsList);
             }
 
+            // Ensure we have a valid DayLog before initializing a transaction
+            if (UserSession.CurrentDayLog == null)
+            {
+                var dayLog = await DayLogServices.GetLastDayLog();
+                
+                if (dayLog != null && dayLog.DayLog_End_DateTime == null)
+                {
+                    // Last daylog is still active, use it
+                    UserSession.SetDayLog(dayLog);
+                }
+                else
+                {
+                    // No active daylog exists, create a new one
+                    await CreateDayLog();
+                }
+            }
+            
             _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
             _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
             {
+                DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
+                Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
                 SaleTransaction_Total_Amount = 0,
                 SaleTransaction_Cash = 0,
                 SaleTransaction_Card = 0,
-                SaleTransaction_Change = 0
+                SaleTransaction_Change = 0,
+                Date_Created = DateTime.UtcNow,
+                Sale_Start_Date = DateTime.UtcNow
             };
             _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList = new List<SalesItemTransaction>();
             _state.SelectedItemIndex = -1;
@@ -976,15 +1072,37 @@
             // Only hold if current basket has items
             if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
             {
+                // Ensure we have a valid DayLog before initializing a transaction
+                if (UserSession.CurrentDayLog == null)
+                {
+                    var dayLog = await DayLogServices.GetLastDayLog();
+                    
+                    if (dayLog != null && dayLog.DayLog_End_DateTime == null)
+                    {
+                        // Last daylog is still active, use it
+                        UserSession.SetDayLog(dayLog);
+                    }
+                    else
+                    {
+                        // No active daylog exists, create a new one
+                        await CreateDayLog();
+                    }
+                }
+                
                 // Add a new empty basket and switch to it
                 _state.SalesBaskets.Add(new SalesBasket
                 {
                     Transaction = new SalesTransaction
                     {
+                        DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
+                        Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                        Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
                         SaleTransaction_Total_Amount = 0,
                         SaleTransaction_Cash = 0,
                         SaleTransaction_Card = 0,
-                        SaleTransaction_Change = 0
+                        SaleTransaction_Change = 0,
+                        Date_Created = DateTime.UtcNow,
+                        Sale_Start_Date = DateTime.UtcNow
                     },
                     SalesItemsList = new List<SalesItemTransaction>()
                 });
@@ -1296,20 +1414,8 @@
 
             // Update product selling price for this transaction
             payoutProduct.Product_Selling_Price = -payoutAmount;
-
-
-            var payoutItem = new SalesItemTransaction
-            {
-                Product_ID = payoutProduct.Product_ID,
-                Product = payoutProduct,
-                Product_QTY = 1,
-                Product_Amount = -payoutAmount, // Negative for payout
-                Product_Total_Amount = -payoutAmount,
-                Product_Total_Amount_Before_Discount = -payoutAmount,
-                SalesPayout_ID = payout.Payout_Id
-
-            };
-            await AddProductToBasketAsync(payoutItem, true);
+     
+            await AddProductToBasketAsync(payoutProduct, true, payout.Payout_Id);
         }
         catch (Exception ex)
         {
