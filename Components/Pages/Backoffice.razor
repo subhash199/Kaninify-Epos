@@ -26,7 +26,7 @@
                      </div>
                     <div class="Content">
                         <h4 class="title">
-                        <a href="#">Today's Sales</a>
+                        <a href="#">Sales Report</a>
                         </h4>
                         <p>View today's sales summary</p>
                     </div>
@@ -51,10 +51,24 @@
 
     <div class="col-md-12">
         <div class="d-flex gap-2 mb-2">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToDayLogSales()">
+                    <div class="thumb">
+                        <img src="images/icons/calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Current DayLog Sales" />
+                    </div>
+                    <div class="Content">
+                        <h4 class="title">
+                            <a href="#">Current DayLog</a>
+                        </h4>
+                        <p>View current daylog sales</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
                 <div class="Card-box">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report" />
+                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Open Drawer" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -65,10 +79,10 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="Card-box">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report" />
+                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="History" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -79,10 +93,10 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="Card-box">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report" />
+                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Promotion" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -107,5 +121,10 @@
     private void NavigateToTodaysSales()
     {
         NavigationManager.NavigateTo("/salesdashboard?filter=today");
+    }
+    
+    private void NavigateToDayLogSales()
+    {
+        NavigationManager.NavigateTo("/salesdashboard?isDayLog=true");
     }
 }

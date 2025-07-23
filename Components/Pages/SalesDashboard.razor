@@ -1,12 +1,15 @@
 @page "/salesdashboard"
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
+@using System.Web
 @inject SalesTransactionServices SalesService
 @inject SalesItemTransactionServices SalesItemService
 @inject ProductServices ProductService
 @inject StockTransactionServices StockService
 @inject PosUserServices UserService
 @inject NavigationManager NavigationManager
+@inject DayLogServices DayLogService
+@inject DepartmentServices DepartmentService
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Sales Dashboard</PageTitle>
@@ -20,11 +23,24 @@
                 <p class="dashboard-subtitle">Real-time insights and analytics</p>
             </div>
             <div class="header-right">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" @onclick="SetToday">Today</button>
-                    <button class="filter-btn" @onclick="SetThisWeek">Weekly</button>
-                    <button class="filter-btn" @onclick="SetThisMonth">Monthly</button>
-                </div>
+                @if (!isDayLog)
+                {
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" @onclick="SetToday">Today</button>
+                        <button class="filter-btn" @onclick="SetThisWeek">Weekly</button>
+                        <button class="filter-btn" @onclick="SetThisMonth">Monthly</button>
+                    </div>
+                }
+                
+                    <div class="daylog-controls">
+                        <button class="modern-print-btn" @onclick="PrintReport">
+                            <div class="btn-content">
+                                <i class="fas fa-print"></i>
+                                <span>Print Report</span>
+                            </div>
+                        </button>
+                    </div>
+               
             </div>
         </div>
     </div>
@@ -35,21 +51,31 @@
             <div class="date-inputs">
                 <div class="input-group">
                     <label class="input-label">From</label>
-                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" />
+                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" readonly="@isDayLog" />
                 </div>
                 <div class="input-group">
                     <label class="input-label">To</label>
-                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" />
+                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" readonly="@isDayLog" />
                 </div>
-                <div class="quick-filters">
-                    <button class="filter-chip" @onclick="SetToday">Today</button>
-                    <button class="filter-chip" @onclick="SetThisWeek">Week</button>
-                    <button class="filter-chip" @onclick="SetThisMonth">Month</button>
-                </div>
-                <button class="load-btn" @onclick="LoadReportData">
-                    <i class="fas fa-sync-alt"></i>
-                    Update
-                </button>
+                @if (!isDayLog)
+                {
+                    <div class="quick-filters">
+                        <button class="filter-chip" @onclick="SetToday">Today</button>
+                        <button class="filter-chip" @onclick="SetThisWeek">Week</button>
+                        <button class="filter-chip" @onclick="SetThisMonth">Month</button>
+                    </div>
+                    <button class="load-btn" @onclick="LoadReportData">
+                        <i class="fas fa-sync-alt"></i>
+                        Update
+                    </button>
+                }
+                else
+                {
+                    <div class="daylog-info">
+                        <span class="daylog-label">Day Log Report</span>
+                        <span class="daylog-period">@(DayLog?.DayLog_Start_DateTime.ToString("dd/MM/yyyy HH:mm")) - @(DayLog?.DayLog_End_DateTime?.ToString("dd/MM/yyyy HH:mm"))</span>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -167,7 +193,7 @@
                 </div>
             </div>
 
-            @* <div class="metric-card success">
+            <div class="metric-card success">
                 <div class="metric-icon">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
@@ -186,7 +212,28 @@
                     <p class="metric-label">Card Payments</p>
                     <div class="metric-detail">@SalesData.CardTransactionCount transactions</div>
                 </div>
-            </div> *@
+            </div>
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.ChangePayments.ToString("C")</h3>
+                    <p class="metric-label">Change Payments</p>
+                    <div class="metric-detail">@SalesData.ChangeTransactionCount transactions</div>         
+                </div>
+            </div>
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.OtherServices.ToString("C")</h3>
+                    <p class="metric-label">Other Services</p>
+                    <div class="metric-detail">Separate sales departments</div>
+                </div>
+            </div>
+            
         </div>
 
         <!-- Charts Section -->
@@ -206,32 +253,30 @@
             </div>
             <div class="chart-container side-chart">
                 <div class="chart-header">
-                    <h3 class="chart-title">Profit by Sale</h3>
-                    <div class="chart-subtitle">Sort by</div>
+                    <h3 class="chart-title">Department Sales</h3>
+                    <div class="chart-subtitle">Highest to Lowest</div>
                 </div>
                 <div class="chart-content">
-                    <div class="profit-items">
-                        <div class="profit-item">
-                            <div class="profit-color" style="background: #6366f1;"></div>
-                            <span class="profit-label">Total Sales</span>
-                            <span class="profit-value">$3,345</span>
+                    @if (SalesData?.DepartmentSales?.Any() == true)
+                    {
+                        <div class="profit-items">
+                            @foreach (var dept in SalesData.DepartmentSales.Take(8))
+                            {
+                                <div class="profit-item">
+                                    <div class="profit-color" style="background: @GetDepartmentColor(SalesData.DepartmentSales.IndexOf(dept));"></div>
+                                    <span class="profit-label">@dept.DepartmentName</span>
+                                    <span class="profit-value">@dept.TotalSales.ToString("C")</span>
+                                    <span class="profit-percentage" style="font-size: 0.8em; color: #666; margin-left: auto;">@dept.Percentage.ToString("F1")%</span>
+                                </div>
+                            }
                         </div>
-                        <div class="profit-item">
-                            <div class="profit-color" style="background: #8b5cf6;"></div>
-                            <span class="profit-label">Total Profit</span>
-                            <span class="profit-value">$3,345</span>
+                    }
+                    else
+                    {
+                        <div class="no-data">
+                            <p>No department sales data available</p>
                         </div>
-                        <div class="profit-item">
-                            <div class="profit-color" style="background: #06b6d4;"></div>
-                            <span class="profit-label">Total Revenue</span>
-                            <span class="profit-value">$3,345</span>
-                        </div>
-                        <div class="profit-item">
-                            <div class="profit-color" style="background: #10b981;"></div>
-                            <span class="profit-label">Total Loss</span>
-                            <span class="profit-value">$1,345</span>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
         </div>
@@ -619,9 +664,12 @@
 </div>
 
 
-@code {
-    [Parameter] public DayLog dayLog { get; set; }
+@inject DayLogServices DayLogService
 
+@code {
+    [Parameter] public bool isDayLog { get; set; }
+
+    private DayLog DayLog { get; set; } = new();
     private SalesDashboardData SalesData = new();
     private DateTime StartDate = DateTime.Today;
     private DateTime EndDate = DateTime.Today;
@@ -629,10 +677,46 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Parse query parameters
+        var uri = NavigationManager.Uri;
+        var queryParameters = System.Web.HttpUtility.ParseQueryString(new Uri(uri).Query);
 
-        StartDate = DateTime.Today;
-        EndDate = DateTime.Today;
+        // Check for isDayLog parameter
+        if (queryParameters["isDayLog"] != null && bool.TryParse(queryParameters["isDayLog"], out bool dayLogParam))
+        {
+            isDayLog = dayLogParam;
+        }
 
+        // Check for filter parameter
+        var filter = queryParameters["filter"];
+        if (filter == "today")
+        {
+            await SetToday();
+            return;
+        }
+
+        if (isDayLog)
+        {
+            // Get the last daylog and set dates based on it
+            DayLog = await DayLogService.GetLastDayLog();
+            if (DayLog != null)
+            {
+                StartDate = DayLog.DayLog_Start_DateTime.Date;
+                EndDate = DayLog.DayLog_End_DateTime?.Date ?? DateTime.Today;
+            }
+            else
+            {
+                // Fallback if no daylog found
+                StartDate = DateTime.Today;
+                EndDate = DateTime.Today.AddDays(1);
+            }
+        }
+        else
+        {
+            // Set start and end date as today
+            StartDate = DateTime.Today;
+            EndDate = DateTime.Today.AddDays(1);
+        }
 
         await LoadReportData();
     }
@@ -641,94 +725,294 @@
     {
         IsLoading = true;
         StateHasChanged();
+        IEnumerable<SalesTransaction> salesTransactions = Enumerable.Empty<SalesTransaction>();
+        IEnumerable<StockTransaction> stockTransactions = Enumerable.Empty<StockTransaction>();
 
         try
         {
-            // TODO: Replace with actual data loading from your services
-            await Task.Delay(500); // Simulate loading
+            // Get DayLog ID for filtering if isDayLog is true
+            int? dayLogId = null;
+            if (isDayLog && DayLog != null)
+            {
+                dayLogId = DayLog.DayLog_Id;
+                salesTransactions = await SalesService.GetByConditionAsync(t => t.DayLog_Id == dayLogId, false);
+
+                stockTransactions = await StockService.GetByConditionAsync(
+                    st => st.DayLogId == dayLogId
+                          , true);
+            }
+            else
+            {
+                salesTransactions = await SalesService.GetByConditionAsync(
+                    t => t.Sale_Date >= StartDate && t.Sale_Date <= EndDate, false);
+                // Load stock transactions for the date range
+                stockTransactions = await StockService.GetByConditionAsync(
+                   st => st.TransactionDate >= StartDate && st.TransactionDate <= EndDate
+                         , true);
+            }
+
+            // Calculate Other Services (departments with Separate_Sales_In_Reports = true)
+            var allDepartments = await DepartmentService.GetAllAsync();
+
+            //Calculate Financial Metrics
+            var cashpayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Cash);
+
+            var cashPaymentCount = salesTransactions.Where(t => t.SaleTransaction_Cash > 0).Count();
+
+            var cardPayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Card) - salesTransactions.Where
+            (t => t.Is_Refund).Sum(t => t.SaleTransaction_Card);
+
+            var cardPaymentCount = salesTransactions.Where(t => t.SaleTransaction_Card > 0).Count();
+
+            var changePayment = salesTransactions.Sum(t => t.SaleTransaction_Change);
+
+            var changePaymentCount = salesTransactions.Where(t => t.SaleTransaction_Change > 0).Count();
+
+            // Load sales item transactions for detailed analysis
+            var salesTransactionIds = salesTransactions.Select(t => t.SaleTransaction_ID).ToList();
+            var salesItemTransactions = await SalesItemService.GetByConditionAsync(
+                item => salesTransactionIds.Contains(item.SaleTransaction_ID), true);
+
+            // Calculate basic metrics
+            var totalSales = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Total_Amount);
+            var totalTransactions = salesTransactions.Count(t => !t.Is_Refund);
+            var averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+            var itemsSold = salesItemTransactions.Where(item => !item.SalesTransaction.Is_Refund).Sum(item => item.Product_QTY);
+
+            // Calculate refunds
+            var refundTransactions = salesTransactions.Where(t => t.Is_Refund).ToList();
+            var totalRefunds = refundTransactions.Sum(t => t.SaleTransaction_Total_Amount);
+            var refundCount = refundTransactions.Count;
+
+            // Calculate payouts
+            var payoutItems = salesItemTransactions.Where(item => item.SalesPayout != null).ToList();
+            var totalPayouts = payoutItems.Sum(item => item.Product_Total_Amount);
+
+            // Calculate voided sales (assuming voided items have negative quantities or specific logic)
+            var voidedItems = salesItemTransactions.Where(item => item.Product_QTY < 0).ToList();
+            var voidedSales = Math.Abs(voidedItems.Sum(item => item.Product_Total_Amount));
+            var voidCount = voidedItems.Count;
+
+            // Calculate net sales
+            var netSales = totalSales + totalRefunds;
+
+            // Calculate time-based sales
+            var morningSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour < 12).Sum(t => t.SaleTransaction_Total_Amount);
+            var morningTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour < 12);
+            var afternoonSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour >= 12 && t.Sale_Date.Hour < 18).Sum(t => t.SaleTransaction_Total_Amount);
+            var afternoonTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour >= 12 && t.Sale_Date.Hour < 18);
+            var nightSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour >= 18).Sum(t => t.SaleTransaction_Total_Amount);
+            var nightTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour >= 18);
+
+            // Calculate employee performance
+            var employeePerformance = salesTransactions
+                .Where(t => !t.Is_Refund && t.Created_By != null)
+                .GroupBy(t => t.Created_By)
+                .Select(g => new EmployeePerformanceData
+                {
+                    EmployeeName = g.Key.First_Name ?? "Unknown",
+                    TotalSales = g.Sum(t => t.SaleTransaction_Total_Amount),
+                    TransactionCount = g.Count(),
+                    ItemsSold = g.SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>()).Sum(item => item.Product_QTY),
+                    AverageServiceTime = TimeSpan.FromMinutes(3.5), // This would need more complex calculation based on transaction timestamps
+                    AverageItemsPerTransaction = g.Count() > 0 ? (double)g.SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>()).Sum(item => item.Product_QTY) / g.Count() : 0
+                })
+                .OrderByDescending(e => e.TotalSales)
+                .Take(10)
+                .ToList();
+
+            // Calculate top products
+            var topProducts = salesItemTransactions
+                .Where(item => !item.SalesTransaction.Is_Refund && item.Product != null)
+                .GroupBy(item => item.Product)
+                .Select(g => new ProductSalesData
+                {
+                    ProductName = g.Key.Product_Name,
+                    QuantitySold = g.Sum(item => item.Product_QTY),
+                    Revenue = g.Sum(item => item.Product_Total_Amount)
+                })
+                .OrderByDescending(p => p.Revenue)
+                .Take(5)
+                .ToList();
+
+            // Calculate least popular products (products with low sales)
+            var leastPopularProducts = salesItemTransactions
+                .Where(item => !item.SalesTransaction.Is_Refund && item.Product != null)
+                .GroupBy(item => item.Product)
+                .Select(g => new ProductSalesData
+                {
+                    ProductName = g.Key.Product_Name,
+                    QuantitySold = g.Sum(item => item.Product_QTY),
+                    Revenue = g.Sum(item => item.Product_Total_Amount)
+                })
+                .OrderBy(p => p.QuantitySold)
+                .Take(4)
+                .ToList();
+
+            // Calculate stock transaction counts
+            var expiredProductsCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Expired);
+            var theftCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Theft);
+            var stockAdjustmentsCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Adjustment);
+
+            // Get recent stock transactions
+            var recentStockTransactions = stockTransactions
+                .OrderByDescending(st => st.TransactionDate)
+                .Take(10)
+                .Select(st => new StockTransactionData
+                {
+                    TransactionDate = st.TransactionDate,
+                    ProductName = st.Product?.Product_Name ?? "Unknown Product",
+                    TransactionType = st.StockTransactionType.ToString(),
+                    Quantity = st.Quantity,
+                    Reason = "",
+                    ValueImpact = st.TotalAmount
+                })
+                .ToList();
+
+            // Get refund transaction details
+            var refundTransactionDetails = refundTransactions
+                .SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>())
+                .Select(item => new RefundTransactionData
+                {
+                    TransactionDate = item.SalesTransaction.Sale_Date,
+                    TransactionId = $"TXN{item.SalesTransaction.SaleTransaction_ID:D6}",
+                    ProductName = item.Product?.Product_Name ?? "Unknown Product",
+                    Quantity = item.Product_QTY,
+                    Amount = item.Product_Total_Amount,
+                    Reason = "Refund", // You might want to add a reason field to your model
+                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown"
+                })
+                .OrderByDescending(r => r.TransactionDate)
+                .Take(10)
+                .ToList();
+
+            // Get voided transaction details
+            var voidedTransactionDetails = voidedItems
+                .Select(item => new VoidedTransactionData
+                {
+                    TransactionDate = item.SalesTransaction.Sale_Date,
+                    TransactionId = $"TXN{item.SalesTransaction.SaleTransaction_ID:D6}",
+                    ProductName = item.Product?.Product_Name ?? "Unknown Product",
+                    Quantity = Math.Abs(item.Product_QTY),
+                    Amount = Math.Abs(item.Product_Total_Amount),
+                    Reason = "Voided", // You might want to add a reason field to your model
+                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown"
+                })
+                .OrderByDescending(v => v.TransactionDate)
+                .Take(10)
+                .ToList();
+
+            // Get payout transaction details
+            var payoutTransactionDetails = payoutItems
+                .Select(item => new PayoutTransactionData
+                {
+                    TransactionDate = item.SalesTransaction.Sale_Date,
+                    PayoutId = $"PAY{item.SalesPayout?.Payout_Id:D3}",
+                    Amount = item.Product_Total_Amount,
+                    Reason = item.SalesPayout?.Payout_Description ?? "Payout",
+                    Recipient = "Till", // You might want to add recipient information to your model
+                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown",
+                    Status = "Completed"
+                })
+                .OrderByDescending(p => p.TransactionDate)
+                .Take(10)
+                .ToList();
+
+            // Calculate department sales
+            var departmentSales = salesItemTransactions
+                .Where(item => item.Product?.Department_ID != null)
+                .GroupBy(item => item.Product.Department_ID)
+                .Select(group => new DepartmentSalesData
+                {
+                    DepartmentName = allDepartments.FirstOrDefault(d => d.Department_ID == group.Key)?.Department_Name ?? "Unknown Department",
+                    TotalSales = group.Sum(item => item.Product_Total_Amount),
+                    TransactionCount = group.Select(item => item.SaleTransaction_ID).Distinct().Count(),
+                    ItemsSold = group.Sum(item => item.Product_QTY)
+                })
+                .OrderByDescending(d => d.TotalSales)
+                .ToList();
+
+            // Calculate percentages for department sales
+            var totalDepartmentSales = departmentSales.Sum(d => d.TotalSales);
+            foreach (var dept in departmentSales)
+            {
+                dept.Percentage = totalDepartmentSales > 0 ? (dept.TotalSales / totalDepartmentSales) * 100 : 0;
+            }
+
+           
+            var separateSalesDepartmentIds = allDepartments
+                .Where(d => d.Separate_Sales_In_Reports)
+                .Select(d => d.Department_ID)
+                .ToList();
+            
+            var otherServices = salesItemTransactions
+                .Where(item => item.Product?.Department_ID != null && 
+                              separateSalesDepartmentIds.Contains(item.Product.Department_ID))
+                .Sum(item => item.Product_Total_Amount);
 
             SalesData = new SalesDashboardData
             {
-                TotalSales = 2547.89m,
-                TotalTransactions = 47,
-                AverageTransaction = 54.21m,
-                ItemsSold = 156,
+                TotalSales = totalSales,
+                TotalTransactions = totalTransactions,
+                AverageTransaction = averageTransaction,
+                ItemsSold = itemsSold,
 
                 // Financial Metrics
-                NetSales = 2347.89m, // Total Sales minus refunds and voids
-                TotalRefunds = 125.50m,
-                RefundCount = 3,
-                TotalPayouts = 200.00m,
-                VoidedSales = 74.50m,
-                VoidCount = 2,
+                NetSales = netSales,
+                TotalRefunds = totalRefunds,
+                RefundCount = refundCount,
+                TotalPayouts = totalPayouts,
+                VoidedSales = voidedSales,
+                VoidCount = voidCount,
+
+                //Payment Metrics
+                CashPayments = cashpayment,
+                CardPayments = cardPayment,
+                ChangePayments = changePayment,              
+
+                //Payment count Metrics
+                CashTransactionCount = cashPaymentCount,
+                CardTransactionCount = cardPaymentCount,
+                ChangeTransactionCount = changePaymentCount,
+                OtherServices = otherServices,
 
                 // Time-based sales
-                MorningSales = 856.23m,
-                MorningTransactions = 15,
-                AfternoonSales = 1245.67m,
-                AfternoonTransactions = 22,
-                NightSales = 445.99m,
-                NightTransactions = 10,
+                MorningSales = morningSales,
+                MorningTransactions = morningTransactions,
+                AfternoonSales = afternoonSales,
+                AfternoonTransactions = afternoonTransactions,
+                NightSales = nightSales,
+                NightTransactions = nightTransactions,
 
                 // Employee performance
-                EmployeePerformance = new List<EmployeePerformanceData>
-                {
-                    new() { EmployeeName = "John Smith", TotalSales = 1250.45m, TransactionCount = 23, ItemsSold = 78, AverageServiceTime = TimeSpan.FromMinutes(3.5), AverageItemsPerTransaction = 3.4 },
-                    new() { EmployeeName = "Sarah Johnson", TotalSales = 987.32m, TransactionCount = 18, ItemsSold = 56, AverageServiceTime = TimeSpan.FromMinutes(2.8), AverageItemsPerTransaction = 3.1 },
-                    new() { EmployeeName = "Mike Wilson", TotalSales = 310.12m, TransactionCount = 6, ItemsSold = 22, AverageServiceTime = TimeSpan.FromMinutes(4.2), AverageItemsPerTransaction = 3.7 }
-                },
+                EmployeePerformance = employeePerformance,
 
                 // Top products
-                TopProducts = new List<ProductSalesData>
-                {
-                    new() { ProductName = "Coffee - Large", QuantitySold = 45, Revenue = 225.00m },
-                    new() { ProductName = "Sandwich - Ham & Cheese", QuantitySold = 32, Revenue = 192.00m },
-                    new() { ProductName = "Energy Drink", QuantitySold = 28, Revenue = 84.00m },
-                    new() { ProductName = "Chocolate Bar", QuantitySold = 25, Revenue = 62.50m },
-                    new() { ProductName = "Bottled Water", QuantitySold = 23, Revenue = 34.50m }
-                },
+                TopProducts = topProducts,
 
                 // Least popular products
-                LeastPopularProducts = new List<ProductSalesData>
-                {
-                    new() { ProductName = "Premium Tea", QuantitySold = 0, Revenue = 0m },
-                    new() { ProductName = "Organic Juice", QuantitySold = 1, Revenue = 4.50m },
-                    new() { ProductName = "Protein Bar", QuantitySold = 2, Revenue = 8.00m },
-                    new() { ProductName = "Gourmet Cookie", QuantitySold = 3, Revenue = 9.00m }
-                },
+                LeastPopularProducts = leastPopularProducts,
 
                 // Stock transactions
-                ExpiredProductsCount = 5,
-                TheftCount = 2,
-                StockAdjustmentsCount = 8,
-                StockTransactions = new List<StockTransactionData>
-                {
-                    new() { TransactionDate = DateTime.Today.AddDays(-1), ProductName = "Milk 1L", TransactionType = "Expiry", Quantity = 3, Reason = "Past expiration date", ValueImpact = -12.50m },
-                    new() { TransactionDate = DateTime.Today, ProductName = "Cigarettes", TransactionType = "Theft", Quantity = 2, Reason = "Shoplifting incident", ValueImpact = -25.00m },
-                    new() { TransactionDate = DateTime.Today, ProductName = "Bread", TransactionType = "Adjustment", Quantity = -1, Reason = "Damaged packaging", ValueImpact = -2.50m }
-                },
+                ExpiredProductsCount = expiredProductsCount,
+                TheftCount = theftCount,
+                StockAdjustmentsCount = stockAdjustmentsCount,
+                StockTransactions = recentStockTransactions,
 
                 // Transaction Details
-                RefundTransactions = new List<RefundTransactionData>
-                {
-                    new() { TransactionDate = DateTime.Today.AddHours(-2), TransactionId = "TXN001", ProductName = "Coffee - Large", Quantity = 1, Amount = 5.50m, Reason = "Customer complaint - cold coffee", EmployeeName = "Sarah Johnson" },
-                    new() { TransactionDate = DateTime.Today.AddHours(-4), TransactionId = "TXN045", ProductName = "Sandwich - Ham & Cheese", Quantity = 2, Amount = 12.00m, Reason = "Wrong order", EmployeeName = "John Smith" },
-                    new() { TransactionDate = DateTime.Today.AddDays(-1), TransactionId = "TXN089", ProductName = "Energy Drink", Quantity = 1, Amount = 3.00m, Reason = "Defective product", EmployeeName = "Mike Wilson" }
-                },
-
-                VoidedTransactions = new List<VoidedTransactionData>
-                {
-                    new() { TransactionDate = DateTime.Today.AddHours(-1), TransactionId = "TXN123", ProductName = "Chocolate Bar", Quantity = 3, Amount = 7.50m, Reason = "Payment declined", EmployeeName = "Sarah Johnson" },
-                    new() { TransactionDate = DateTime.Today.AddHours(-3), TransactionId = "TXN156", ProductName = "Bottled Water", Quantity = 5, Amount = 7.50m, Reason = "Customer changed mind", EmployeeName = "John Smith" }
-                },
-
-                PayoutTransactions = new List<PayoutTransactionData>
-                {
-                    new() { TransactionDate = DateTime.Today.AddHours(-1), PayoutId = "PAY001", Amount = 50.00m, Reason = "Till float adjustment", Recipient = "Manager", EmployeeName = "John Smith", Status = "Approved" },
-                    new() { TransactionDate = DateTime.Today.AddHours(-3), PayoutId = "PAY002", Amount = 25.00m, Reason = "Petty cash withdrawal", Recipient = "Maintenance", EmployeeName = "Sarah Johnson", Status = "Pending" },
-                    new() { TransactionDate = DateTime.Today.AddDays(-1), PayoutId = "PAY003", Amount = 100.00m, Reason = "Supplier payment", Recipient = "ABC Supplies", EmployeeName = "Mike Wilson", Status = "Approved" }
-                }
+                RefundTransactions = refundTransactionDetails,
+                VoidedTransactions = voidedTransactionDetails,
+                PayoutTransactions = payoutTransactionDetails,
+                
+                // Department Sales
+                DepartmentSales = departmentSales
             };
+        }
+        catch (Exception ex)
+        {
+            // Log the error and show a user-friendly message
+            Console.WriteLine($"Error loading sales data: {ex.Message}");
+            // You might want to show a toast notification or error message to the user
         }
         finally
         {
@@ -740,7 +1024,7 @@
     private async Task SetToday()
     {
         StartDate = DateTime.Today;
-        EndDate = DateTime.Today;
+        EndDate = DateTime.Today.AddDays(1);
         await LoadReportData();
     }
 
@@ -772,6 +1056,34 @@
         };
     }
 
+    private string GetDepartmentColor(int index)
+    {
+        var colors = new string[]
+        {
+            "#6366f1", // Blue
+            "#8b5cf6", // Purple
+            "#06b6d4", // Cyan
+            "#10b981", // Green
+            "#f59e0b", // Orange
+            "#ef4444", // Red
+            "#84cc16", // Lime
+            "#ec4899"  // Pink
+        };
+        return colors[index % colors.Length];
+    }
+
+    private async Task PrintReport()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing report: {ex.Message}");
+        }
+    }
+
     // Data models
     public class SalesDashboardData
     {
@@ -787,6 +1099,17 @@
         public decimal TotalPayouts { get; set; }
         public decimal VoidedSales { get; set; }
         public int VoidCount { get; set; }
+
+        //Payment Metrics
+        public decimal CashPayments { get; set; }
+        public decimal CardPayments { get; set; }
+        public decimal ChangePayments { get; set; }
+
+        //Payment Count
+        public int CashTransactionCount { get; set; }
+        public int CardTransactionCount { get; set; }
+        public int ChangeTransactionCount { get; set; }
+        public decimal OtherServices { get; set; }
 
         public decimal MorningSales { get; set; }
         public int MorningTransactions { get; set; }
@@ -808,6 +1131,9 @@
         public List<RefundTransactionData> RefundTransactions { get; set; } = new();
         public List<VoidedTransactionData> VoidedTransactions { get; set; } = new();
         public List<PayoutTransactionData> PayoutTransactions { get; set; } = new();
+        
+        // Department Sales
+        public List<DepartmentSalesData> DepartmentSales { get; set; } = new();
     }
 
     public class EmployeePerformanceData
@@ -868,5 +1194,14 @@
         public string Recipient { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+    }
+
+    public class DepartmentSalesData
+    {
+        public string DepartmentName { get; set; } = string.Empty;
+        public decimal TotalSales { get; set; }
+        public int TransactionCount { get; set; }
+        public int ItemsSold { get; set; }
+        public decimal Percentage { get; set; }
     }
 }

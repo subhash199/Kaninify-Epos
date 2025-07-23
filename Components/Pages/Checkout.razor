@@ -574,11 +574,26 @@
 
             if (paymentType == PaymentType.Cash)
             {
-                currentBasket.Transaction.SaleTransaction_Cash += paymentAmount;
+                if (paymentAmount < 0)
+                {
+                    currentBasket.Transaction.SaleTransaction_Cash += 0;
+                }
+                else
+                {
+                    currentBasket.Transaction.SaleTransaction_Cash += paymentAmount;
+                }
             }
             else
             {
-                currentBasket.Transaction.SaleTransaction_Card += paymentAmount;
+                if (paymentAmount < 0)
+                {
+                    currentBasket.Transaction.SaleTransaction_Card += 0;
+
+                }
+                else
+                {
+                    currentBasket.Transaction.SaleTransaction_Card += paymentAmount;
+                }
             }
 
             currentBasket.Transaction.SaleTransaction_Total_Paid += paymentAmount;
@@ -693,10 +708,9 @@
         try
         {
             transaction.SaleTransaction_Total_QTY = transaction.SalesItemTransactions?.Count ?? 0;
-            transaction.SaleTransaction_Total_Amount = transaction.SalesItemTransactions?.Sum(s => s.Product_Total_Amount) ?? 0;
+            transaction.SaleTransaction_Total_Amount = transaction.SalesItemTransactions?.Where(s => s.SalesPayout_ID == null).Sum(s => s.Product_Total_Amount) ?? 0;
             transaction.SaleTransaction_Total_Paid = transaction.SaleTransaction_Cash + transaction.SaleTransaction_Card;
-            transaction.SaleTransaction_Change = transaction.SaleTransaction_Total_Amount - transaction.SaleTransaction_Total_Paid;
-            transaction.SaleTransaction_Payout = transaction.SaleTransaction_Payout;
+            transaction.SaleTransaction_Payout = transaction.SalesItemTransactions?.Where(i => i.SalesPayout_ID != null).Sum(i => i.Product_Total_Amount) ?? 0;
             // Sum the total promotion amount from all items with a Promotion_ID
             transaction.SaleTransaction_Promotion = (transaction.SalesItemTransactions?
                 .Where(s => s.Promotion_ID != null)
@@ -704,7 +718,7 @@
                     .Where(s => s.Promotion_ID != null).Sum(x => x.Product_Total_Amount_Before_Discount) ?? 0);
             transaction.Sale_Date = DateTime.UtcNow;
             transaction.Last_Modified = DateTime.UtcNow;
-            transaction.Last_Modified_By_Id = UserSession.CurrentUser?.User_ID??1;
+            transaction.Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1;
 
             await CheckoutService.SaveTransactionAsync(transaction);
         }
@@ -1295,7 +1309,7 @@
                 SalesPayout_ID = payout.Payout_Id
 
             };
-            await AddProductToBasketAsync(payoutProduct, true);
+            await AddProductToBasketAsync(payoutItem, true);
         }
         catch (Exception ex)
         {
