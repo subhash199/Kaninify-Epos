@@ -10,6 +10,8 @@
 @inject NavigationManager NavigationManager
 @inject DayLogServices DayLogService
 @inject DepartmentServices DepartmentService
+@inject VoidedProductServices VoidedProductService
+@inject PosUserServices PosUserService
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Sales Dashboard</PageTitle>
@@ -31,22 +33,22 @@
                         <button class="filter-btn" @onclick="SetThisMonth">Monthly</button>
                     </div>
                 }
-                
-                    <div class="daylog-controls">
-                        <button class="modern-nav-btn" @onclick="NavigateToCheckout">
-                            <div class="btn-content">
-                                <i class="fas fa-arrow-left"></i>
-                                <span>Back to Checkout</span>
-                            </div>
-                        </button>
-                        <button class="modern-print-btn" @onclick="PrintReport">
-                            <div class="btn-content">
-                                <i class="fas fa-print"></i>
-                                <span>Print Report</span>
-                            </div>
-                        </button>
-                    </div>
-               
+
+                <div class="daylog-controls">
+                    <button class="modern-nav-btn" @onclick="NavigateToCheckout">
+                        <div class="btn-content">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Back to Checkout</span>
+                        </div>
+                    </button>
+                    <button class="modern-print-btn" @onclick="PrintReport">
+                        <div class="btn-content">
+                            <i class="fas fa-print"></i>
+                            <span>Print Report</span>
+                        </div>
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -226,7 +228,7 @@
                 <div class="metric-content">
                     <h3 class="metric-value">@SalesData.ChangePayments.ToString("C")</h3>
                     <p class="metric-label">Change Payments</p>
-                    <div class="metric-detail">@SalesData.ChangeTransactionCount transactions</div>         
+                    <div class="metric-detail">@SalesData.ChangeTransactionCount transactions</div>
                 </div>
             </div>
             <div class="metric-card info">
@@ -239,348 +241,8 @@
                     <div class="metric-detail">Separate sales departments</div>
                 </div>
             </div>
-            
+
         </div>
-
-        <!-- Charts Section -->
-        <div class="charts-section">
-            <div class="chart-container main-chart">
-                <div class="chart-header">
-                    <h3 class="chart-title">Sales Overview</h3>
-                    <div class="chart-controls">
-                        <button class="chart-btn active">Today</button>
-                        <button class="chart-btn">Weekly</button>
-                        <button class="chart-btn">Monthly</button>
-                    </div>
-                </div>
-                <div class="chart-content">
-                    <canvas id="salesChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-            <div class="chart-container side-chart">
-                <div class="chart-header">
-                    <h3 class="chart-title">Department Sales</h3>
-                    <div class="chart-subtitle">Highest to Lowest</div>
-                </div>
-                <div class="chart-content">
-                    @if (SalesData?.DepartmentSales?.Any() == true)
-                    {
-                        <div class="profit-items">
-                            @foreach (var dept in SalesData.DepartmentSales.Take(8))
-                            {
-                                <div class="profit-item">
-                                    <div class="profit-color" style="background: @GetDepartmentColor(SalesData.DepartmentSales.IndexOf(dept));"></div>
-                                    <span class="profit-label">@dept.DepartmentName</span>
-                                    <span class="profit-value">@dept.TotalSales.ToString("C")</span>
-                                    <span class="profit-percentage" style="font-size: 0.8em; color: #666; margin-left: auto;">@dept.Percentage.ToString("F1")%</span>
-                                </div>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="no-data">
-                            <p>No department sales data available</p>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-
-
-        <!-- Transaction Tables -->
-        <div class="tables-section">
-            @if (SalesData.RefundTransactions?.Any() == true)
-            {
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3 class="table-title">Refund Transactions</h3>
-                        <div class="table-controls">
-                            <span class="status-badge refund">@SalesData.RefundTransactions.Count() Refunds</span>
-                            <span class="status-badge amount">@SalesData.TotalRefunds.ToString("C")</span>
-                        </div>
-                    </div>
-                    <div class="modern-table">
-                        <div class="table-row table-header-row">
-                            <div class="table-cell">Transaction</div>
-                            <div class="table-cell">Product</div>
-                            <div class="table-cell">Status</div>
-                            <div class="table-cell">Employee</div>
-                            <div class="table-cell">Date</div>
-                            <div class="table-cell">Amount</div>
-                            <div class="table-cell">Action</div>
-                        </div>
-                        @foreach (var refund in SalesData.RefundTransactions.Take(5))
-                        {
-                            <div class="table-row">
-                                <div class="table-cell">
-                                    <div class="campaign-info">
-                                        <div class="campaign-icon">@refund.TransactionId.Substring(0, 2)</div>
-                                        <span>@refund.TransactionId</span>
-                                    </div>
-                                </div>
-                                <div class="table-cell">@refund.ProductName</div>
-                                <div class="table-cell">
-                                    <span class="status-badge refunded">Refunded</span>
-                                </div>
-                                <div class="table-cell">@refund.EmployeeName</div>
-                                <div class="table-cell">@refund.TransactionDate.ToString("dd-MM-yyyy")</div>
-                                <div class="table-cell amount">-@refund.Amount.ToString("C")</div>
-                                <div class="table-cell">
-                                    <div class="action-buttons">
-                                        <button class="action-btn edit"><i class="fas fa-edit"></i></button>
-                                        <button class="action-btn delete"><i class="fas fa-trash"></i></button>
-                                        <button class="action-btn more"><i class="fas fa-ellipsis-h"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            @if (SalesData.VoidedTransactions?.Any() == true)
-            {
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3 class="table-title">Voided Sales</h3>
-                        <div class="table-controls">
-                            <span class="status-badge voided">@SalesData.VoidedTransactions.Count() Voids</span>
-                            <span class="status-badge amount">@SalesData.VoidedSales.ToString("C")</span>
-                        </div>
-                    </div>
-                    <div class="modern-table">
-                        <div class="table-row table-header-row">
-                            <div class="table-cell">Transaction</div>
-                            <div class="table-cell">Product</div>
-                            <div class="table-cell">Status</div>
-                            <div class="table-cell">Employee</div>
-                            <div class="table-cell">Date</div>
-                            <div class="table-cell">Amount</div>
-                            <div class="table-cell">Action</div>
-                        </div>
-                        @foreach (var voided in SalesData.VoidedTransactions.Take(5))
-                        {
-                            <div class="table-row">
-                                <div class="table-cell">
-                                    <div class="campaign-info">
-                                        <div class="campaign-icon voided">@voided.TransactionId.Substring(0, 2)</div>
-                                        <span>@voided.TransactionId</span>
-                                    </div>
-                                </div>
-                                <div class="table-cell">@voided.ProductName</div>
-                                <div class="table-cell">
-                                    <span class="status-badge voided">Voided</span>
-                                </div>
-                                <div class="table-cell">@voided.EmployeeName</div>
-                                <div class="table-cell">@voided.TransactionDate.ToString("dd-MM-yyyy")</div>
-                                <div class="table-cell amount">@voided.Amount.ToString("C")</div>
-                                <div class="table-cell">
-                                    <div class="action-buttons">
-                                        <button class="action-btn edit"><i class="fas fa-edit"></i></button>
-                                        <button class="action-btn delete"><i class="fas fa-trash"></i></button>
-                                        <button class="action-btn more"><i class="fas fa-ellipsis-h"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            @if (SalesData.PayoutTransactions?.Any() == true)
-            {
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3 class="table-title">Payouts</h3>
-                        <div class="table-controls">
-                            <span class="status-badge payout">@SalesData.PayoutTransactions.Count() Payouts</span>
-                            <span class="status-badge amount">@SalesData.TotalPayouts.ToString("C")</span>
-                        </div>
-                    </div>
-                    <div class="modern-table">
-                        <div class="table-row table-header-row">
-                            <div class="table-cell">Transaction</div>
-                            <div class="table-cell">Reason</div>
-                            <div class="table-cell">Status</div>
-                            <div class="table-cell">Recipient</div>
-                            <div class="table-cell">Date</div>
-                            <div class="table-cell">Amount</div>
-                            <div class="table-cell">Action</div>
-                        </div>
-                        @foreach (var payout in SalesData.PayoutTransactions.Take(5))
-                        {
-                            <div class="table-row">
-                                <div class="table-cell">
-                                    <div class="campaign-info">
-                                        <div class="campaign-icon payout">@payout.PayoutId.Substring(0, 2)</div>
-                                        <span>@payout.PayoutId</span>
-                                    </div>
-                                </div>
-                                <div class="table-cell">@payout.Reason</div>
-                                <div class="table-cell">
-                                    <span class="status-badge @(payout.Status.ToLower())">@payout.Status</span>
-                                </div>
-                                <div class="table-cell">@payout.Recipient</div>
-                                <div class="table-cell">@payout.TransactionDate.ToString("dd-MM-yyyy")</div>
-                                <div class="table-cell amount">@payout.Amount.ToString("C")</div>
-                                <div class="table-cell">
-                                    <div class="action-buttons">
-                                        <button class="action-btn edit"><i class="fas fa-edit"></i></button>
-                                        <button class="action-btn delete"><i class="fas fa-trash"></i></button>
-                                        <button class="action-btn more"><i class="fas fa-ellipsis-h"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
-
-        <!-- Employee Performance -->
-        <div class="table-container employee-performance">
-            <div class="table-header">
-                <h3 class="table-title">
-                    <i class="fas fa-users"></i>
-                    Employee Performance
-                </h3>
-                <div class="table-controls">
-                    <button class="action-btn primary">Export</button>
-                    <button class="action-btn secondary">View All</button>
-                </div>
-            </div>
-            <div class="modern-table">
-                <div class="table-row table-header-row">
-                    <div class="table-cell">Employee</div>
-                    <div class="table-cell">Total Sales</div>
-                    <div class="table-cell">Transactions</div>
-                    <div class="table-cell">Items Sold</div>
-                    <div class="table-cell">Avg. Service Time</div>
-                    <div class="table-cell">Avg. Items per Transaction</div>
-                </div>
-                @if (SalesData.EmployeePerformance != null)
-                {
-                    @foreach (var emp in SalesData.EmployeePerformance)
-                    {
-                        <div class="table-row">
-                            <div class="table-cell">
-                                <div class="campaign-info">
-                                    <div class="campaign-icon">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <span>@emp.EmployeeName</span>
-                                </div>
-                            </div>
-                            <div class="table-cell">@emp.TotalSales.ToString("C")</div>
-                            <div class="table-cell">@emp.TransactionCount</div>
-                            <div class="table-cell">@emp.ItemsSold</div>
-                            <div class="table-cell">@emp.AverageServiceTime.ToString(@"mm\:ss")</div>
-                            <div class="table-cell">@emp.AverageItemsPerTransaction.ToString("F1")</div>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-
-        <!-- Product Analysis -->
-        <div class="product-analysis-section">
-            <div class="analysis-grid">
-                <!-- Top Products -->
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3 class="table-title">
-                            <i class="fas fa-trophy"></i>
-                            Top 10 Popular Products
-                        </h3>
-                        <div class="table-controls">
-                            <button class="action-btn primary">View All</button>
-                        </div>
-                    </div>
-                    <div class="modern-table">
-                        <div class="table-row table-header-row">
-                            <div class="table-cell">#</div>
-                            <div class="table-cell">Product</div>
-                            <div class="table-cell">Qty Sold</div>
-                            <div class="table-cell">Revenue</div>
-                        </div>
-                        @if (SalesData.TopProducts != null)
-                        {
-                            @for (int i = 0; i < SalesData.TopProducts.Count && i < 10; i++)
-                            {
-                                var product = SalesData.TopProducts[i];
-                                <div class="table-row">
-                                    <div class="table-cell">
-                                        <span class="status-badge success">@(i + 1)</span>
-                                    </div>
-                                    <div class="table-cell">
-                                        <div class="campaign-info">
-                                            <div class="campaign-icon">
-                                                <i class="fas fa-box"></i>
-                                            </div>
-                                            <span>@product.ProductName</span>
-                                        </div>
-                                    </div>
-                                    <div class="table-cell">@product.QuantitySold</div>
-                                    <div class="table-cell">@product.Revenue.ToString("C")</div>
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
-
-                <!-- Least Popular Products -->
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3 class="table-title">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Least Popular Products
-                        </h3>
-                        <div class="table-controls">
-                            <button class="action-btn secondary">Analyze</button>
-                        </div>
-                    </div>
-                    <div class="modern-table">
-                        <div class="table-row table-header-row">
-                            <div class="table-cell">Product</div>
-                            <div class="table-cell">Qty Sold</div>
-                            <div class="table-cell">Revenue</div>
-                            <div class="table-cell">Status</div>
-                        </div>
-                        @if (SalesData.LeastPopularProducts != null)
-                        {
-                            @foreach (var product in SalesData.LeastPopularProducts.Take(10))
-                            {
-                                <div class="table-row">
-                                    <div class="table-cell">
-                                        <div class="campaign-info">
-                                            <div class="campaign-icon">
-                                                <i class="fas fa-box-open"></i>
-                                            </div>
-                                            <span>@product.ProductName</span>
-                                        </div>
-                                    </div>
-                                    <div class="table-cell">@product.QuantitySold</div>
-                                    <div class="table-cell">@product.Revenue.ToString("C")</div>
-                                    <div class="table-cell">
-                                        @if (product.QuantitySold == 0)
-                                        {
-                                            <span class="status-badge danger">No Sales</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="status-badge warning">Low Sales</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Stock Transaction Reports -->
         <div class="stock-reports-section">
             <!-- Stock Metrics -->
@@ -633,18 +295,18 @@
                     </div>
                     <div class="modern-table">
                         <div class="table-row table-header-row">
-                            <div class="table-cell">Date</div>
-                            <div class="table-cell">Product</div>
-                            <div class="table-cell">Transaction Type</div>
-                            <div class="table-cell">Quantity</div>
-                            <div class="table-cell">Reason</div>
-                            <div class="table-cell">Value Impact</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Transaction Type</div>
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Quantity</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Reason</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Value Impact</div>
                         </div>
                         @foreach (var stock in SalesData.StockTransactions.Take(20))
                         {
                             <div class="table-row">
-                                <div class="table-cell">@stock.TransactionDate.ToString("dd/MM/yyyy")</div>
-                                <div class="table-cell">
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@stock.TransactionDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">
                                     <div class="campaign-info">
                                         <div class="campaign-icon">
                                             <i class="fas fa-box"></i>
@@ -652,21 +314,370 @@
                                         <span>@stock.ProductName</span>
                                     </div>
                                 </div>
-                                <div class="table-cell">
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
                                     <span class="status-badge @GetStockTransactionBadgeClass(stock.TransactionType)">
                                         @stock.TransactionType
                                     </span>
                                 </div>
-                                <div class="table-cell">@stock.Quantity</div>
-                                <div class="table-cell">@stock.Reason</div>
-                                <div class="table-cell">@stock.ValueImpact.ToString("C")</div>
+                                <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">@stock.Quantity</div>
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@stock.Reason</div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@stock.ValueImpact.ToString("C")</div>
                             </div>
                         }
                     </div>
                 </div>
             }
         </div>
+        <!-- Department Sales Table -->
+        @if (SalesData?.DepartmentSales?.Any() == true)
+        {
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">
+                        <i class="fas fa-building"></i>
+                        Department Sales
+                    </h3>
+                    <div class="table-controls">
+                        <button class="action-btn primary">Export</button>
+                        <button class="action-btn secondary">View All</button>
+                    </div>
+                </div>
+                <div class="modern-table">
+                    <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Department</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Total Sales</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Transactions</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Items Sold</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Percentage</div>
+                        </div>
+                    @foreach (var dept in SalesData.DepartmentSales)
+                    {
+                        <div class="table-row">
+                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon" style="background: @GetDepartmentColor(SalesData.DepartmentSales.IndexOf(dept));">
+                                        <i class="fas fa-building"></i>
+                                    </div>
+                                    <span>@dept.DepartmentName</span>
+                                </div>
+                            </div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@dept.TotalSales.ToString("C")</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@dept.TransactionCount</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@dept.ItemsSold</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@dept.Percentage.ToString("F1")%</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+
+
+        <!-- Transaction Tables -->
+        <div class="tables-section">
+            @if (SalesData.RefundTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Refund Transactions</h3>
+                        <div class="table-controls">
+                            <span class="status-badge refund">@SalesData.RefundTransactions.Count() Refunds</span>
+                            <span class="status-badge amount">@SalesData.TotalRefunds.ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Amount</div>
+                        </div>
+                        @foreach (var refund in SalesData.RefundTransactions)
+                        {
+                            <div class="table-row">
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon">@refund.TransactionId.Substring(0, 2)</div>
+                                        <span>@refund.TransactionId</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">@refund.ProductName</div>
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@refund.EmployeeName</div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@refund.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                <div class="table-cell amount" style="width: 10%; word-wrap: break-word; word-break: break-word;">-@refund.Amount.ToString("C")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (SalesData.VoidedTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Voided Sales</h3>
+                        <div class="table-controls">
+                            <span class="status-badge voided">@SalesData.VoidedTransactions.Count() Voids</span>
+                            <span class="status-badge amount">@SalesData.VoidedSales.ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Amount</div>
+                        </div>
+                        @foreach (var voided in SalesData.VoidedTransactions)
+                        {
+                            <div class="table-row">
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon voided">@voided.TransactionId.Substring(0, 2)</div>
+                                        <span>@voided.TransactionId</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">@voided.ProductName</div>
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@voided.EmployeeName</div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@voided.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                <div class="table-cell amount" style="width: 10%; word-wrap: break-word; word-break: break-word;">@voided.Amount.ToString("C")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (SalesData.PayoutTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Payouts</h3>
+                        <div class="table-controls">
+                            <span class="status-badge payout">@SalesData.PayoutTransactions.Count() Payouts</span>
+                            <span class="status-badge amount">@SalesData.TotalPayouts.ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                            <div class="table-cell" style="width: 35%; word-wrap: break-word; word-break: break-word;">Description</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">Date</div>
+                            <div class="table-cell" style="width: 13%; word-wrap: break-word; word-break: break-word;">Amount</div>
+                        </div>
+                        @foreach (var payout in SalesData.PayoutTransactions)
+                        {
+                            <div class="table-row">
+                                <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon payout">@payout.PayoutId.Substring(0, 2)</div>
+                                        <span>@payout.PayoutId</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell" style="width: 35%; word-wrap: break-word; word-break: break-word;">@payout.Description</div>
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@payout.EmployeeName</div>
+                                <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">@payout.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                <div class="table-cell amount" style="width: 13%; word-wrap: break-word; word-break: break-word;">@payout.Amount.ToString("C")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Other Services -->
+        <div class="table-container other-services">
+            <div class="table-header">
+                <h3 class="table-title">
+                    <i class="fas fa-cogs"></i>
+                    Other Services
+                </h3>
+                <div class="table-controls">
+                    <button class="action-btn primary">Export</button>
+                    <button class="action-btn secondary">View All</button>
+                </div>
+            </div>
+            <div class="modern-table">
+                <div class="table-row table-header-row">
+                    <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                    <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Service</div>
+                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Quantity</div>
+                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Amount</div>
+                    <div class="table-cell" style="width: 17%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                    <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Date</div>
+                </div>
+                @if (SalesData.OtherServicesTransactions != null)
+                {
+                    @foreach (var service in SalesData.OtherServicesTransactions)
+                    {
+                        <div class="table-row">
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon service">@service.TransactionId.ToString().Substring(0, 2)</div>
+                                    <span>@service.TransactionId</span>
+                                </div>
+                            </div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@service.ServiceName</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@service.Quantity</div>
+                            <div class="table-cell amount" style="width: 15%; word-wrap: break-word; word-break: break-word;">@service.Amount.ToString("C")</div>
+                            <div class="table-cell" style="width: 17%; word-wrap: break-word; word-break: break-word;">@service.EmployeeName</div>
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">@service.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Employee Performance -->
+        <div class="table-container employee-performance">
+            <div class="table-header">
+                <h3 class="table-title">
+                    <i class="fas fa-users"></i>
+                    Employee Performance
+                </h3>
+                <div class="table-controls">
+                    <button class="action-btn primary">Export</button>
+                    <button class="action-btn secondary">View All</button>
+                </div>
+            </div>
+            <div class="modern-table">
+                <div class="table-row table-header-row">
+                    <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Total Sales</div>
+                    <div class="table-cell" style="width: 17%; word-wrap: break-word; word-break: break-word;">Transactions</div>
+                    <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Items Sold</div>
+                    <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Avg. Service Time</div>
+                    <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Avg. Items per Transaction</div>
+                </div>
+                @if (SalesData.EmployeePerformance != null)
+                {
+                    @foreach (var emp in SalesData.EmployeePerformance)
+                    {
+                        <div class="table-row">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <span>@emp.EmployeeName</span>
+                                </div>
+                            </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@emp.TotalSales.ToString("C")</div>
+                            <div class="table-cell" style="width: 17%; word-wrap: break-word; word-break: break-word;">@emp.TransactionCount</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@emp.ItemsSold</div>
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">@emp.AverageServiceTime.ToString(@"mm\:ss")</div>
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">@emp.AverageItemsPerTransaction.ToString("F1")</div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Product Analysis -->
+        <div class="product-analysis-section">
+            <div class="analysis-grid">
+                <!-- Top Products -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-trophy"></i>
+                            Top 10 Popular Products
+                        </h3>
+                        <div class="table-controls">
+                            <button class="action-btn primary">View All</button>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">#</div>
+                            <div class="table-cell" style="width: 50%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Qty Sold</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Revenue</div>
+                        </div>
+                        @if (SalesData.TopProducts != null)
+                        {
+                            @for (int i = 0; i < SalesData.TopProducts.Count && i < 10; i++)
+                            {
+                                var product = SalesData.TopProducts[i];
+                                <div class="table-row">
+                                    <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">
+                                        <span class="status-badge success">@(i + 1)</span>
+                                    </div>
+                                    <div class="table-cell" style="width: 50%; word-wrap: break-word; word-break: break-word;">
+                                        <div class="campaign-info">
+                                            <div class="campaign-icon">
+                                                <i class="fas fa-box"></i>
+                                            </div>
+                                            <span>@product.ProductName</span>
+                                        </div>
+                                    </div>
+                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@product.QuantitySold</div>
+                                    <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@product.Revenue.ToString("C")</div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <!-- Least Popular Products -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Least Popular Products
+                        </h3>
+                        <div class="table-controls">
+                            <button class="action-btn secondary">Analyze</button>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">#</div>
+                            <div class="table-cell" style="width: 50%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Qty Sold</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Revenue</div>
+                        </div>
+                        @if (SalesData.LeastPopularProducts != null)
+                        {
+                            @for (int i = 0; i < SalesData.LeastPopularProducts.Count && i < 10; i++)
+                            {
+                                var product = SalesData.LeastPopularProducts[i];
+                                <div class="table-row">
+                                    <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">
+                                        <span class="status-badge warning">@(i + 1)</span>
+                                    </div>
+                                    <div class="table-cell" style="width: 50%; word-wrap: break-word; word-break: break-word;">
+                                        <div class="campaign-info">
+                                            <div class="campaign-icon">
+                                                <i class="fas fa-box-open"></i>
+                                            </div>
+                                            <span>@product.ProductName</span>
+                                        </div>
+                                    </div>
+                                    <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@product.QuantitySold</div>
+                                    <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@product.Revenue.ToString("C")</div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
     }
+
+    <!-- Day End Button -->
+    <div class="mt-4 text-center">
+        <button class="modern-dayend-btn" @onclick="HandleDayEnd">
+            <div class="btn-content">
+                <i class="fas fa-calendar-check"></i>
+                <span>Day End</span>
+            </div>
+        </button>
+    </div>
 </div>
 
 
@@ -707,21 +718,21 @@
             DayLog = await DayLogService.GetLastDayLog();
             if (DayLog != null)
             {
-                StartDate = DayLog.DayLog_Start_DateTime.Date;
-                EndDate = DayLog.DayLog_End_DateTime?.Date ?? DateTime.Today;
+                StartDate = DayLog.DayLog_Start_DateTime.Date.ToUniversalTime();
+                EndDate = DayLog.DayLog_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
             }
             else
             {
                 // Fallback if no daylog found
-                StartDate = DateTime.Today;
-                EndDate = DateTime.Today.AddDays(1);
+                StartDate = DateTime.Today.ToUniversalTime();
+                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
             }
         }
         else
         {
             // Set start and end date as today
-            StartDate = DateTime.Today;
-            EndDate = DateTime.Today.AddDays(1);
+            StartDate = DateTime.Today.ToUniversalTime();
+            EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
         }
 
         await LoadReportData();
@@ -741,7 +752,7 @@
             if (isDayLog && DayLog != null)
             {
                 dayLogId = DayLog.DayLog_Id;
-                salesTransactions = await SalesService.GetByConditionAsync(t => t.DayLog_Id == dayLogId, false);
+                salesTransactions = await SalesService.GetByConditionAsync(t => t.DayLog_Id == dayLogId, true);
 
                 stockTransactions = await StockService.GetByConditionAsync(
                     st => st.DayLogId == dayLogId
@@ -758,7 +769,7 @@
             }
 
             // Calculate Other Services (departments with Separate_Sales_In_Reports = true)
-            var allDepartments = await DepartmentService.GetAllAsync();
+            var allDepartments = await DepartmentService.GetAllAsync(false);
 
             //Calculate Financial Metrics
             var cashpayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Cash);
@@ -790,36 +801,55 @@
             var refundCount = refundTransactions.Count;
 
             // Calculate payouts
-            var payoutItems = salesItemTransactions.Where(item => item.SalesPayout != null).ToList();
+            var payoutItems = salesItemTransactions.Where(item => item.SalesPayout_ID != null).ToList();
             var totalPayouts = payoutItems.Sum(item => item.Product_Total_Amount);
 
-            // Calculate voided sales (assuming voided items have negative quantities or specific logic)
-            var voidedItems = salesItemTransactions.Where(item => item.Product_QTY < 0).ToList();
-            var voidedSales = Math.Abs(voidedItems.Sum(item => item.Product_Total_Amount));
-            var voidCount = voidedItems.Count;
+            // Get voided products using VoidedProductServices
+            IEnumerable<VoidedProduct> voidedProducts = Enumerable.Empty<VoidedProduct>();
+            if (isDayLog && DayLog != null)
+            {
+                // Use daylog filtering for voided products
+                voidedProducts = await VoidedProductService.GetByConditionAsync(
+                    vp => vp.Void_Date >= DayLog.DayLog_Start_DateTime &&
+                          vp.Void_Date <= (DayLog.DayLog_End_DateTime ?? DateTime.Now.ToUniversalTime()), true);
+            }
+            else
+            {
+                // Use date range filtering for voided products
+                voidedProducts = await VoidedProductService.GetByConditionAsync(
+                    vp => vp.Void_Date >= StartDate && vp.Void_Date <= EndDate, true);
+            }
+
+            var voidedSales = voidedProducts.Sum(vp => vp.Voided_Amount);
+            var voidCount = voidedProducts.Count();
 
             // Calculate net sales
             var netSales = totalSales + totalRefunds;
 
-            // Calculate time-based sales
-            var morningSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour < 12).Sum(t => t.SaleTransaction_Total_Amount);
-            var morningTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour < 12);
-            var afternoonSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour >= 12 && t.Sale_Date.Hour < 18).Sum(t => t.SaleTransaction_Total_Amount);
-            var afternoonTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour >= 12 && t.Sale_Date.Hour < 18);
-            var nightSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour >= 18).Sum(t => t.SaleTransaction_Total_Amount);
-            var nightTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour >= 18);
+            // // Calculate time-based sales
+            // var morningSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour < 12).Sum(t => t.SaleTransaction_Total_Amount);
+            // var morningTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour < 12);
+            // var afternoonSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour >= 12 && t.Sale_Date.Hour < 18).Sum(t => t.SaleTransaction_Total_Amount);
+            // var afternoonTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour >= 12 && t.Sale_Date.Hour < 18);
+            // var nightSales = salesTransactions.Where(t => !t.Is_Refund && t.Sale_Date.Hour >= 18).Sum(t => t.SaleTransaction_Total_Amount);
+            // var nightTransactions = salesTransactions.Count(t => !t.Is_Refund && t.Sale_Date.Hour >= 18);
+
+            var posusers = await PosUserService.GetAllAsync(false);
 
             // Calculate employee performance
             var employeePerformance = salesTransactions
-                .Where(t => !t.Is_Refund && t.Created_By != null)
-                .GroupBy(t => t.Created_By)
+                .Where(t => !t.Is_Refund && t?.Created_By_Id != null)
+                .GroupBy(t => t.Created_By_Id)
                 .Select(g => new EmployeePerformanceData
                 {
-                    EmployeeName = g.Key.First_Name ?? "Unknown",
+                    EmployeeName = posusers?.FirstOrDefault(p => p.User_ID == g.Key)?.First_Name ?? "Unknown",
                     TotalSales = g.Sum(t => t.SaleTransaction_Total_Amount),
                     TransactionCount = g.Count(),
                     ItemsSold = g.SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>()).Sum(item => item.Product_QTY),
-                    AverageServiceTime = TimeSpan.FromMinutes(3.5), // This would need more complex calculation based on transaction timestamps
+                    AverageServiceTime = g.Any(t => t.Sale_Date > t.Sale_Start_Date)
+                        ? TimeSpan.FromTicks((long)g.Where(t => t.Sale_Date > t.Sale_Start_Date)
+                            .Average(t => (t.Sale_Date - t.Sale_Start_Date).Ticks))
+                        : TimeSpan.Zero,
                     AverageItemsPerTransaction = g.Count() > 0 ? (double)g.SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>()).Sum(item => item.Product_QTY) / g.Count() : 0
                 })
                 .OrderByDescending(e => e.TotalSales)
@@ -875,8 +905,11 @@
                 .ToList();
 
             // Get refund transaction details
-            var refundTransactionDetails = refundTransactions
-                .SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>())
+            var refundTransactionIds = refundTransactions.Select(t => t.SaleTransaction_ID).ToList();
+
+            // Replace the problematic block with the following correct LINQ query
+            var refundTransactionDetails = salesItemTransactions
+                .Where(item => refundTransactionIds.Contains(item.SaleTransaction_ID))
                 .Select(item => new RefundTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,
@@ -892,16 +925,16 @@
                 .ToList();
 
             // Get voided transaction details
-            var voidedTransactionDetails = voidedItems
-                .Select(item => new VoidedTransactionData
+            var voidedTransactionDetails = voidedProducts
+                .Select(vp => new VoidedTransactionData
                 {
-                    TransactionDate = item.SalesTransaction.Sale_Date,
-                    TransactionId = $"TXN{item.SalesTransaction.SaleTransaction_ID:D6}",
-                    ProductName = item.Product?.Product_Name ?? "Unknown Product",
-                    Quantity = Math.Abs(item.Product_QTY),
-                    Amount = Math.Abs(item.Product_Total_Amount),
-                    Reason = "Voided", // You might want to add a reason field to your model
-                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown"
+                    TransactionDate = vp.Void_Date,
+                    TransactionId = $"VOID{vp.VoidedProduct_ID:D6}",
+                    ProductName = vp.Product?.Product_Name ?? "Unknown Product",
+                    Quantity = vp.Voided_Quantity,
+                    Amount = vp.Voided_Amount,
+                    Reason = vp.Additional_Notes ?? "Voided",
+                    EmployeeName = vp.VoidedByUser?.First_Name ?? "Unknown"
                 })
                 .OrderByDescending(v => v.TransactionDate)
                 .Take(10)
@@ -914,7 +947,7 @@
                     TransactionDate = item.SalesTransaction.Sale_Date,
                     PayoutId = $"PAY{item.SalesPayout?.Payout_Id:D3}",
                     Amount = item.Product_Total_Amount,
-                    Reason = item.SalesPayout?.Payout_Description ?? "Payout",
+                    Description = item.SalesPayout?.Payout_Description ?? "Payout",
                     Recipient = "Till", // You might want to add recipient information to your model
                     EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown",
                     Status = "Completed"
@@ -925,8 +958,8 @@
 
             // Calculate department sales
             var departmentSales = salesItemTransactions
-                .Where(item => item.Product?.Department_ID != null)
-                .GroupBy(item => item.Product.Department_ID)
+                .Where(item => !refundTransactionIds.Contains(item.SaleTransaction_ID) && item.Product?.Department_ID != null)
+                .GroupBy(item => item.Product?.Department_ID)
                 .Select(group => new DepartmentSalesData
                 {
                     DepartmentName = allDepartments.FirstOrDefault(d => d.Department_ID == group.Key)?.Department_Name ?? "Unknown Department",
@@ -944,16 +977,38 @@
                 dept.Percentage = totalDepartmentSales > 0 ? (dept.TotalSales / totalDepartmentSales) * 100 : 0;
             }
 
-           
+
             var separateSalesDepartmentIds = allDepartments
                 .Where(d => d.Separate_Sales_In_Reports)
                 .Select(d => d.Department_ID)
                 .ToList();
-            
+
+            // Calculate Other Services excluding payouts
             var otherServices = salesItemTransactions
-                .Where(item => item.Product?.Department_ID != null && 
-                              separateSalesDepartmentIds.Contains(item.Product.Department_ID))
+                .Where(item => item.Product?.Department_ID != null &&
+                              separateSalesDepartmentIds.Contains(item.Product.Department_ID) &&
+                              item.SalesPayout_ID == null) // Exclude payout transactions
                 .Sum(item => item.Product_Total_Amount);
+
+            // Get Other Services transaction details
+            var otherServicesTransactionDetails = salesItemTransactions
+                .Where(item => item.Product?.Department_ID != null &&
+                              separateSalesDepartmentIds.Contains(item.Product.Department_ID) &&
+                              item.SalesPayout_ID == null) // Exclude payout transactions
+                .Select(item => new OtherServicesTransactionData
+                {
+                    TransactionDate = item.SalesTransaction.Sale_Date,
+                    TransactionId = $"SRV{item.SaleTransaction_Item_ID:D6}",
+                    ServiceName = item.Product?.Product_Name ?? "Unknown Service",
+                    DepartmentName = allDepartments.FirstOrDefault(d => d.Department_ID == item.Product.Department_ID)?.Department_Name ?? "Unknown Department",
+                    Quantity = item.Product_QTY,
+                    Amount = item.Product_Total_Amount,
+                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown",
+                    Status = "Completed"
+                })
+                .OrderByDescending(s => s.TransactionDate)
+                .Take(10)
+                .ToList();
 
             SalesData = new SalesDashboardData
             {
@@ -973,7 +1028,7 @@
                 //Payment Metrics
                 CashPayments = cashpayment,
                 CardPayments = cardPayment,
-                ChangePayments = changePayment,              
+                ChangePayments = changePayment,
 
                 //Payment count Metrics
                 CashTransactionCount = cashPaymentCount,
@@ -981,13 +1036,13 @@
                 ChangeTransactionCount = changePaymentCount,
                 OtherServices = otherServices,
 
-                // Time-based sales
-                MorningSales = morningSales,
-                MorningTransactions = morningTransactions,
-                AfternoonSales = afternoonSales,
-                AfternoonTransactions = afternoonTransactions,
-                NightSales = nightSales,
-                NightTransactions = nightTransactions,
+                // // Time-based sales
+                // MorningSales = morningSales,
+                // MorningTransactions = morningTransactions,
+                // AfternoonSales = afternoonSales,
+                // AfternoonTransactions = afternoonTransactions,
+                // NightSales = nightSales,
+                // NightTransactions = nightTransactions,
 
                 // Employee performance
                 EmployeePerformance = employeePerformance,
@@ -1008,7 +1063,8 @@
                 RefundTransactions = refundTransactionDetails,
                 VoidedTransactions = voidedTransactionDetails,
                 PayoutTransactions = payoutTransactionDetails,
-                
+                OtherServicesTransactions = otherServicesTransactionDetails,
+
                 // Department Sales
                 DepartmentSales = departmentSales
             };
@@ -1028,25 +1084,25 @@
 
     private async Task SetToday()
     {
-        StartDate = DateTime.Today;
-        EndDate = DateTime.Today.AddDays(1);
+        StartDate = DateTime.Today.ToUniversalTime();
+        EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
         await LoadReportData();
     }
 
     private async Task SetThisWeek()
     {
-        var today = DateTime.Today;
-        var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
-        StartDate = startOfWeek;
-        EndDate = today;
+        var today = DateTime.Today.ToUniversalTime();
+        var startOfWeek = today.AddDays(-(int)today.DayOfWeek).ToUniversalTime();
+        StartDate = startOfWeek.ToUniversalTime();
+        EndDate = today.ToUniversalTime();
         await LoadReportData();
     }
 
     private async Task SetThisMonth()
     {
-        var today = DateTime.Today;
-        StartDate = new DateTime(today.Year, today.Month, 1);
-        EndDate = today;
+        var today = DateTime.Today.ToUniversalTime();
+        StartDate = new DateTime(today.Year, today.Month, 1).ToUniversalTime();
+        EndDate = today.ToUniversalTime();
         await LoadReportData();
     }
 
@@ -1092,6 +1148,24 @@
     private void NavigateToCheckout()
     {
         NavigationManager.NavigateTo("/checkout");
+    }
+
+    private async Task HandleDayEnd()
+    {
+        try
+        {
+            // Add day end logic here
+            await JSRuntime.InvokeVoidAsync("alert", "Day End process initiated. This will close the current day and start a new one.");
+            // You can add actual day end logic here, such as:
+            // - Creating a new day log
+            // - Finalizing current day transactions
+            // - Generating end-of-day reports
+            // NavigationManager.NavigateTo("/dayend");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error during day end: {ex.Message}");
+        }
     }
 
     // Data models
@@ -1141,7 +1215,8 @@
         public List<RefundTransactionData> RefundTransactions { get; set; } = new();
         public List<VoidedTransactionData> VoidedTransactions { get; set; } = new();
         public List<PayoutTransactionData> PayoutTransactions { get; set; } = new();
-        
+        public List<OtherServicesTransactionData> OtherServicesTransactions { get; set; } = new();
+
         // Department Sales
         public List<DepartmentSalesData> DepartmentSales { get; set; } = new();
     }
@@ -1200,8 +1275,20 @@
         public DateTime TransactionDate { get; set; }
         public string PayoutId { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public string Reason { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public string Recipient { get; set; } = string.Empty;
+        public string EmployeeName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class OtherServicesTransactionData
+    {
+        public DateTime TransactionDate { get; set; }
+        public string TransactionId { get; set; } = string.Empty;
+        public string ServiceName { get; set; } = string.Empty;
+        public string DepartmentName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal Amount { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
     }

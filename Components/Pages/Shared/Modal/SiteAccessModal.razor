@@ -144,7 +144,7 @@
             ErrorMessage = string.Empty;
             
             // Get all active sites first
-            var allSites = (await SiteServices.GetAllAsync())
+            var allSites = (await SiteServices.GetAllAsync(false))
                 .Where(s => s.Is_Active)
                 .ToList();
             

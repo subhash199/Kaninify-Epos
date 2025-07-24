@@ -160,7 +160,7 @@
     {
         try
         {
-            var users = await PosuserService.GetAllAsync();
+            var users = await PosuserService.GetAllAsync(false);
             if (users == null || !users.Any())
             {
                 showSetupModal = true;

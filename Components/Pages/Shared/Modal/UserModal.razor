@@ -704,7 +704,7 @@
     @inject SiteServices SiteService; // Inject the site service to handle site operations
     private async Task OnSiteDeleted()
     {
-        AvailableSites = (await SiteService.GetAllAsync()).ToList(); // Refresh roles after site deletion
+        AvailableSites = (await SiteService.GetAllAsync(false)).ToList(); // Refresh roles after site deletion
         CurrentUser.Primary_Site_Id = 0; // Reset primary site if it was deleted
         showSiteModal = false; // Close the site modal after deletion
     }

@@ -278,7 +278,7 @@
             var salesService = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
 
             // Load departments
-            AllDepartments = (await departmentService.GetAllAsync()).ToList();
+            AllDepartments = (await departmentService.GetAllAsync(false)).ToList();
 
             // Load current day log
             CurrentDayLog = await dayLogService.GetLastDayLog();
