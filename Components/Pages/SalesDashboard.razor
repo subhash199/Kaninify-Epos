@@ -108,49 +108,10 @@
                 <div class="metric-content">
                     <h3 class="metric-value">@SalesData.TotalSales.ToString("C")</h3>
                     <p class="metric-label">Total Sales</p>
-                    <div class="metric-trend positive">
+                   @*  <div class="metric-trend positive">
                         <i class="fas fa-arrow-up"></i>
                         <span>+12.5%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="metric-card success">
-                <div class="metric-icon">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@SalesData.TotalTransactions</h3>
-                    <p class="metric-label">Total Transactions</p>
-                    <div class="metric-trend positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+8.3%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="metric-card info">
-                <div class="metric-icon">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@SalesData.AverageTransaction.ToString("C")</h3>
-                    <p class="metric-label">Average Transaction</p>
-                    <div class="metric-trend positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+3.7%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="metric-card warning">
-                <div class="metric-icon">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@SalesData.ItemsSold</h3>
-                    <p class="metric-label">Items Sold</p>
-                    <div class="metric-trend positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+15.2%</span>
-                    </div>
+                    </div> *@
                 </div>
             </div>
 
@@ -161,12 +122,24 @@
                 <div class="metric-content">
                     <h3 class="metric-value">@SalesData.NetSales.ToString("C")</h3>
                     <p class="metric-label">Net Sales</p>
-                    <div class="metric-trend positive">
+                    @* <div class="metric-trend positive">
                         <i class="fas fa-arrow-up"></i>
                         <span>+9.2%</span>
-                    </div>
+                    </div> *@
                 </div>
             </div>
+
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.OtherServices.ToString("C")</h3>
+                    <p class="metric-label">Other Services</p>
+                    <div class="metric-detail">Separate sales departments</div>
+                </div>
+            </div>
+            
             <div class="metric-card refunds">
                 <div class="metric-icon">
                     <i class="fas fa-undo"></i>
@@ -184,10 +157,10 @@
                 <div class="metric-content">
                     <h3 class="metric-value">@SalesData.TotalPayouts.ToString("C")</h3>
                     <p class="metric-label">Payouts</p>
-                    <div class="metric-trend negative">
+                   @*  <div class="metric-trend negative">
                         <i class="fas fa-arrow-down"></i>
                         <span>-2.1%</span>
-                    </div>
+                    </div> *@
                 </div>
             </div>
             <div class="metric-card voided">
@@ -231,16 +204,46 @@
                     <div class="metric-detail">@SalesData.ChangeTransactionCount transactions</div>
                 </div>
             </div>
-            <div class="metric-card info">
+            <div class="metric-card success">
                 <div class="metric-icon">
-                    <i class="fas fa-cogs"></i>
+                    <i class="fas fa-receipt"></i>
                 </div>
                 <div class="metric-content">
-                    <h3 class="metric-value">@SalesData.OtherServices.ToString("C")</h3>
-                    <p class="metric-label">Other Services</p>
-                    <div class="metric-detail">Separate sales departments</div>
+                    <h3 class="metric-value">@SalesData.TotalTransactions</h3>
+                    <p class="metric-label">Total Transactions</p>
+                    @*  <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+8.3%</span>
+                    </div> *@
                 </div>
             </div>
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.AverageTransaction.ToString("C")</h3>
+                    <p class="metric-label">Average Transaction</p>
+                    @* <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+3.7%</span>
+                    </div> *@
+                </div>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@SalesData.ItemsSold</h3>
+                    <p class="metric-label">Items Sold</p>
+                    @*   <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+15.2%</span>
+                    </div> *@
+                </div>
+            </div>
+           
 
         </div>
         <!-- Stock Transaction Reports -->
@@ -494,10 +497,10 @@
                     <i class="fas fa-cogs"></i>
                     Other Services
                 </h3>
-                <div class="table-controls">
+               @*  <div class="table-controls">
                     <button class="action-btn primary">Export</button>
                     <button class="action-btn secondary">View All</button>
-                </div>
+                </div> *@
             </div>
             <div class="modern-table">
                 <div class="table-row table-header-row">
@@ -537,10 +540,10 @@
                     <i class="fas fa-users"></i>
                     Employee Performance
                 </h3>
-                <div class="table-controls">
+              @*   <div class="table-controls">
                     <button class="action-btn primary">Export</button>
                     <button class="action-btn secondary">View All</button>
-                </div>
+                </div> *@
             </div>
             <div class="modern-table">
                 <div class="table-row table-header-row">
@@ -585,9 +588,9 @@
                             <i class="fas fa-trophy"></i>
                             Top 10 Popular Products
                         </h3>
-                        <div class="table-controls">
+                       @*  <div class="table-controls">
                             <button class="action-btn primary">View All</button>
-                        </div>
+                        </div> *@
                     </div>
                     <div class="modern-table">
                         <div class="table-row table-header-row">
@@ -628,9 +631,9 @@
                             <i class="fas fa-exclamation-triangle"></i>
                             Least Popular Products
                         </h3>
-                        <div class="table-controls">
+                      @*   <div class="table-controls">
                             <button class="action-btn secondary">Analyze</button>
-                        </div>
+                        </div> *@
                     </div>
                     <div class="modern-table">
                         <div class="table-row table-header-row">
@@ -949,7 +952,7 @@
                     Amount = item.Product_Total_Amount,
                     Description = item.SalesPayout?.Payout_Description ?? "Payout",
                     Recipient = "Till", // You might want to add recipient information to your model
-                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown",
+                    EmployeeName = salesTransactions.FirstOrDefault(t=>t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
                     Status = "Completed"
                 })
                 .OrderByDescending(p => p.TransactionDate)
@@ -1003,7 +1006,7 @@
                     DepartmentName = allDepartments.FirstOrDefault(d => d.Department_ID == item.Product.Department_ID)?.Department_Name ?? "Unknown Department",
                     Quantity = item.Product_QTY,
                     Amount = item.Product_Total_Amount,
-                    EmployeeName = item.SalesTransaction.Created_By?.First_Name ?? "Unknown",
+                    EmployeeName = salesTransactions.FirstOrDefault(t => t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
                     Status = "Completed"
                 })
                 .OrderByDescending(s => s.TransactionDate)

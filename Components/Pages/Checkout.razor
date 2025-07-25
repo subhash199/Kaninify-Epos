@@ -52,7 +52,7 @@
 
             </div>
 
-            <div class="row col-md-12 mb-2">
+            <div class="row mb-2">
                 <DepartmentButtons State="_state" OnPayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
                 <NumberPadComponent OnNumberClick="HandleNumPadClick" />
             </div>
@@ -609,10 +609,10 @@
                 {
                     // check if the total basket total is less than zero
 
-                    if(currentBasket.Transaction.SaleTransaction_Total_Amount < 0)
+                    if (currentBasket.Transaction.SaleTransaction_Total_Amount < 0)
                     {
                         currentBasket.Transaction.SaleTransaction_Cash += currentBasket.Transaction.SalesItemTransactions
-                        ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount)??0;
+                        ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount) ?? 0;
                     }
                     else
                     {
@@ -1005,7 +1005,7 @@
             if (UserSession.CurrentDayLog == null)
             {
                 var dayLog = await DayLogServices.GetLastDayLog();
-                
+
                 if (dayLog != null && dayLog.DayLog_End_DateTime == null)
                 {
                     // Last daylog is still active, use it
@@ -1017,7 +1017,7 @@
                     await CreateDayLog();
                 }
             }
-            
+
             _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
             _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
             {
@@ -1076,7 +1076,7 @@
                 if (UserSession.CurrentDayLog == null)
                 {
                     var dayLog = await DayLogServices.GetLastDayLog();
-                    
+
                     if (dayLog != null && dayLog.DayLog_End_DateTime == null)
                     {
                         // Last daylog is still active, use it
@@ -1088,7 +1088,7 @@
                         await CreateDayLog();
                     }
                 }
-                
+
                 // Add a new empty basket and switch to it
                 _state.SalesBaskets.Add(new SalesBasket
                 {
@@ -1414,7 +1414,7 @@
 
             // Update product selling price for this transaction
             payoutProduct.Product_Selling_Price = -payoutAmount;
-     
+
             await AddProductToBasketAsync(payoutProduct, true, payout.Payout_Id);
         }
         catch (Exception ex)

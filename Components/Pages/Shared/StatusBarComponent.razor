@@ -8,63 +8,55 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="col-md-12">
-    <div class="row me-4">
-        <div class="col-md-4 mb-3">
-            <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-green" @onclick="() => ShowModal(InventoryManagementType.Refill)">
-                <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                <span class="text-center">
-                    Refill Products Count:
-                    @if (_isRefillLoading)
-                    {
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    }
-                    else
-                    {
-                        @RefillCount
-                    }
-                </span>
-            </button>
-        </div>
-        <div class="col-md-4 mb-3">
-            <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-yellow" @onclick="() => ShowModal(InventoryManagementType.Expiry)">
-                <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                <span class="text-center">
-                    Expiry Products Count:
-                    @if (_isExpiryLoading)
-                    {
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    }
-                    else
-                    {
-                        @ExpiryCount
-                    }
-                </span>
-            </button>
-        </div>
-        <div class="col-md-4 mb-3">
-            <button class="btn btn-light w-100 h-100 d-flex flex-column align-items-center justify-content-center background-colour-light-red" @onclick="() => ShowModal(InventoryManagementType.Shortage)">
-                <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
-                <span class="text-center">
-                    Shortage Products Count:
-                    @if (_isShortageLoading)
-                    {
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    }
-                    else
-                    {
-                        @ShortageCount
-                    }
-                </span>
-            </button>
-        </div>
-    </div>
+<div class="d-flex gap-2 align-items-start">
+    <button class="btn btn-light d-flex flex-column align-items-center justify-content-center flex-fill background-colour-light-green" @onclick="() => ShowModal(InventoryManagementType.Refill)">
+        <img src="images/icons/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+        <span class="text-center">
+            Refill Products Count:
+            @if (_isRefillLoading)
+            {
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+            else
+            {
+                @RefillCount
+            }
+        </span>
+    </button>
+    <button class="btn btn-light d-flex flex-column align-items-center justify-content-center flex-fill background-colour-light-yellow" @onclick="() => ShowModal(InventoryManagementType.Expiry)">
+        <img src="images/icons/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+        <span class="text-center">
+            Expiry Products Count:
+            @if (_isExpiryLoading)
+            {
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+            else
+            {
+                @ExpiryCount
+            }
+        </span>
+    </button>
+    <button class="btn btn-light d-flex flex-column align-items-center justify-content-center flex-fill background-colour-light-red" @onclick="() => ShowModal(InventoryManagementType.Shortage)">
+        <img src="images/icons/trolley_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" class="img-fluid mb-2" />
+        <span class="text-center">
+            Shortage Products Count:
+            @if (_isShortageLoading)
+            {
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+            else
+            {
+                @ShortageCount
+            }
+        </span>
+    </button>
 </div>
 
 @if (_showRefillModal)
