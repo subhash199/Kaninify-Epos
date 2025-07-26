@@ -1,5 +1,10 @@
 ﻿@page "/backoffice"
 @inject NavigationManager NavigationManager
+@inject DataHandlerLibrary.Services.PrinterServices PrinterService
+@inject DataHandlerLibrary.Services.DrawerLogServices DrawerLogService
+@inject EposRetail.Services.UserSessionService UserSessionService
+@inject DataHandlerLibrary.Services.SiteServices SiteService
+@inject DataHandlerLibrary.Services.TillServices TillService
 
 
 <div class="row m-4 justify-content-center">
@@ -66,7 +71,7 @@
             </div>
 
             <div class="col-md-3">
-                <div class="Card-box">
+                <div class="Card-box" style="cursor: pointer;" @onclick="OpenDrawer">
                     <div class="thumb">
                         <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Open Drawer" />
                     </div>
@@ -126,5 +131,40 @@
     private void NavigateToDayLogSales()
     {
         NavigationManager.NavigateTo("/salesdashboard?isDayLog=true");
+    }
+
+    private async Task OpenDrawer()
+    {
+        try
+        {
+            // Open the till drawer using printer service
+            PrinterService.OpenDrawer();
+
+            // Get current user, site, and till information
+            var currentUser = UserSessionService.CurrentUser;
+            var currentSite = await SiteService.GetFirstSiteRecord();
+            var currentTill = await TillService.GetFirstTillRecord();
+
+            // Create drawer log entry
+            var drawerLog = new EntityFrameworkDatabaseLibrary.Models.DrawerLog
+            {
+                OpenedById = currentUser?.User_ID,
+                DrawerOpenDateTime = DateTime.UtcNow,
+                Site_Id = currentSite?.Site_Id,
+                Till_Id = currentTill?.Till_Id,
+                Created_By_Id = currentUser?.User_ID,
+                Last_Modified_By_Id = currentUser?.User_ID,
+                Date_Created = DateTime.UtcNow,
+                Last_Modified = DateTime.UtcNow
+            };
+
+            // Insert the drawer log into the database
+            await DrawerLogService.AddAsync(drawerLog);
+        }
+        catch (Exception ex)
+        {
+            // Handle any errors (you might want to show a toast or alert)
+            Console.WriteLine($"Error opening drawer: {ex.Message}");
+        }
     }
 }
