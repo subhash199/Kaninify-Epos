@@ -1225,3 +1225,101 @@
     }
 }
 
+/* Drawer Log Section Styles */
+.drawer-log-section {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.drawer-log-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #17a2b8, #117a8b);
+}
+
+.drawer-log-section .section-header {
+    margin-bottom: 1.5rem;
+}
+
+.drawer-log-section .section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.drawer-log-section .section-title i {
+    color: #17a2b8;
+    font-size: 1.25rem;
+}
+
+/* Modern Table Container */
+.modern-table-container {
+    background: #f8f9fa;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+/* No Data Message */
+.no-data-message {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.no-data-message i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #adb5bd;
+}
+
+.no-data-message span {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Responsive Design for Drawer Log */
+@media (max-width: 768px) {
+    .drawer-log-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .drawer-log-section .section-title {
+        font-size: 1.25rem;
+    }
+    
+    .no-data-message {
+        padding: 2rem 1rem;
+    }
+    
+    .no-data-message i {
+        font-size: 1.5rem;
+    }
+    
+    .no-data-message span {
+        font-size: 0.875rem;
+    }
+}
+

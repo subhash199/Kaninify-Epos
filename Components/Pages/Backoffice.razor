@@ -1,10 +1,11 @@
 ﻿@page "/backoffice"
 @inject NavigationManager NavigationManager
-@inject DataHandlerLibrary.Services.PrinterServices PrinterService
+@inject DataHandlerLibrary.Interfaces.IPrinterService PrinterService
 @inject DataHandlerLibrary.Services.DrawerLogServices DrawerLogService
 @inject EposRetail.Services.UserSessionService UserSessionService
 @inject DataHandlerLibrary.Services.SiteServices SiteService
 @inject DataHandlerLibrary.Services.TillServices TillService
+@using DataHandlerLibrary.Models
 
 
 <div class="row m-4 justify-content-center">
@@ -127,7 +128,7 @@
     {
         NavigationManager.NavigateTo("/salesdashboard?filter=today");
     }
-    
+
     private void NavigateToDayLogSales()
     {
         NavigationManager.NavigateTo("/salesdashboard?isDayLog=true");
@@ -146,9 +147,9 @@
             var currentTill = await TillService.GetFirstTillRecord();
 
             // Create drawer log entry
-            var drawerLog = new EntityFrameworkDatabaseLibrary.Models.DrawerLog
+            var drawerLog = new DrawerLog()
             {
-                OpenedById = currentUser?.User_ID,
+                OpenedById = currentUser?.User_ID??1,
                 DrawerOpenDateTime = DateTime.UtcNow,
                 Site_Id = currentSite?.Site_Id,
                 Till_Id = currentTill?.Till_Id,

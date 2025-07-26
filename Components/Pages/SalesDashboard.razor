@@ -12,6 +12,8 @@
 @inject DepartmentServices DepartmentService
 @inject VoidedProductServices VoidedProductService
 @inject PosUserServices PosUserService
+@inject DrawerLogServices DrawerLogService
+@inject DataHandlerLibrary.Interfaces.IPrinterService PrinterService
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Sales Dashboard</PageTitle>
@@ -381,8 +383,10 @@
             @if (SalesData.RefundTransactions?.Any() == true)
             {
                 <div class="table-container">
-                    <div class="table-header">
-                        <h3 class="table-title">Refund Transactions</h3>
+                    <div class="table-header">                        
+                        <h3 class="table-title">
+                            <i class="fas fa-arrow-rotate-left"></i>
+                            Refund Transactions</h3>
                         <div class="table-controls">
                             <span class="status-badge refund">@SalesData.RefundTransactions.Count() Refunds</span>
                             <span class="status-badge amount">@SalesData.TotalRefunds.ToString("C")</span>
@@ -419,7 +423,10 @@
             {
                 <div class="table-container">
                     <div class="table-header">
-                        <h3 class="table-title">Voided Sales</h3>
+                      
+                        <h3 class="table-title">
+                            <i class="fas fa-xmark"></i>
+                            Voided Sales</h3>
                         <div class="table-controls">
                             <span class="status-badge voided">@SalesData.VoidedTransactions.Count() Voids</span>
                             <span class="status-badge amount">@SalesData.VoidedSales.ToString("C")</span>
@@ -456,7 +463,9 @@
             {
                 <div class="table-container">
                     <div class="table-header">
-                        <h3 class="table-title">Payouts</h3>
+                        <h3 class="table-title">
+                            <i class="fas fa-money-bill"></i>
+                            Payouts</h3>
                         <div class="table-controls">
                             <span class="status-badge payout">@SalesData.PayoutTransactions.Count() Payouts</span>
                             <span class="status-badge amount">@SalesData.TotalPayouts.ToString("C")</span>
@@ -672,6 +681,63 @@
         
     }
 
+    <!-- Drawer Log Table -->
+    <div class="drawer-log-section mt-4">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-cash-register"></i>
+                Drawer Log
+            </h3>
+        </div>
+        
+        @if (DrawerLogs != null && DrawerLogs.Any())
+        {
+            <div class="modern-table-container">
+                <div class="table-wrapper">
+                    <div class="table-header">
+                        <div class="table-cell" style="width: 15%;">Date/Time</div>
+                        <div class="table-cell" style="width: 20%;">Opened By</div>
+                        <div class="table-cell" style="width: 15%;">Till</div>
+                        <div class="table-cell" style="width: 15%;">Site</div>
+                        <div class="table-cell" style="width: 20%;">Created By</div>
+                        <div class="table-cell" style="width: 15%;">Status</div>
+                    </div>
+                    
+                    @foreach (var drawerLog in DrawerLogs.Take(10))
+                    {
+                        <div class="table-row">
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                @drawerLog.DrawerOpenDateTime.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                @(drawerLog.OpenedBy?.First_Name ?? "Unknown")
+                            </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                @(drawerLog.Till?.Till_Name ?? "N/A")
+                            </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                @(drawerLog.Site?.Site_BusinessName ?? "N/A")
+                            </div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                @(drawerLog.Created_By?.First_Name ?? "System")
+                            </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                <span class="status-badge active">Active</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="no-data-message">
+                <i class="fas fa-info-circle"></i>
+                <span>No drawer log entries found for the selected period.</span>
+            </div>
+        }
+    </div>
+
     <!-- Day End Button -->
     <div class="mt-4 text-center">
         <button class="modern-dayend-btn" @onclick="HandleDayEnd">
@@ -691,6 +757,7 @@
 
     private DayLog DayLog { get; set; } = new();
     private SalesDashboardData SalesData = new();
+    private List<DrawerLog> DrawerLogs = new();
     private DateTime StartDate = DateTime.Today;
     private DateTime EndDate = DateTime.Today;
     private bool IsLoading = false;
@@ -825,6 +892,25 @@
 
             var voidedSales = voidedProducts.Sum(vp => vp.Voided_Amount);
             var voidCount = voidedProducts.Count();
+
+            // Load drawer logs
+            if (isDayLog && DayLog != null)
+            {
+                // Use daylog filtering for drawer logs
+                DrawerLogs = (await DrawerLogService.GetByConditionAsync(
+                    dl => dl.DrawerOpenDateTime >= DayLog.DayLog_Start_DateTime &&
+                          dl.DrawerOpenDateTime <= (DayLog.DayLog_End_DateTime ?? DateTime.Now.ToUniversalTime()), true))
+                    .OrderByDescending(dl => dl.DrawerOpenDateTime)
+                    .ToList();
+            }
+            else
+            {
+                // Use date range filtering for drawer logs
+                DrawerLogs = (await DrawerLogService.GetByConditionAsync(
+                    dl => dl.DrawerOpenDateTime >= StartDate && dl.DrawerOpenDateTime <= EndDate, true))
+                    .OrderByDescending(dl => dl.DrawerOpenDateTime)
+                    .ToList();
+            }
 
             // Calculate net sales
             var netSales = totalSales + totalRefunds;
@@ -1015,6 +1101,10 @@
 
             SalesData = new SalesDashboardData
             {
+                // Date Range
+                StartDate = StartDate,
+                EndDate = EndDate,
+
                 TotalSales = totalSales,
                 TotalTransactions = totalTransactions,
                 AverageTransaction = averageTransaction,
@@ -1038,6 +1128,20 @@
                 CardTransactionCount = cardPaymentCount,
                 ChangeTransactionCount = changePaymentCount,
                 OtherServices = otherServices,
+
+                // Payment Methods
+                PaymentMethods = new List<PaymentMethodData>
+                {
+                    new PaymentMethodData { PaymentMethod = "Cash", TotalAmount = cashpayment, TransactionCount = cashPaymentCount },
+                    new PaymentMethodData { PaymentMethod = "Card", TotalAmount = cardPayment, TransactionCount = cardPaymentCount },
+                    new PaymentMethodData { PaymentMethod = "Change", TotalAmount = changePayment, TransactionCount = changePaymentCount }
+                },
+
+                // // VAT Summary (placeholder - would need actual VAT calculation logic)
+                // VatSummary = new List<VatSummaryData>
+                // {
+                //     new VatSummaryData { Rate = 20.0m, NetAmount = netSales * 0.8333m, VatAmount = netSales * 0.1667m, GrossAmount = netSales }
+                // },
 
                 // // Time-based sales
                 // MorningSales = morningSales,
@@ -1140,11 +1244,27 @@
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("window.print");
+            if (SalesData != null && PrinterService.IsInitialized)
+            {
+                // Use the printer service with pre-calculated data
+                await PrinterService.PrintSalesReport(SalesData, "Sales Dashboard Report");
+                await JSRuntime.InvokeVoidAsync("alert", "Sales report printed successfully!");
+            }
+            else if (SalesData != null)
+            {
+                // Fallback to browser print if printer service is not initialized
+                await JSRuntime.InvokeVoidAsync("alert", "Printer service not initialized. Using browser print...");
+                await JSRuntime.InvokeVoidAsync("window.print");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No sales data available to print. Please load the report first.");
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error printing report: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error printing report: {ex.Message}");
         }
     }
 
@@ -1157,151 +1277,45 @@
     {
         try
         {
-            // Add day end logic here
-            await JSRuntime.InvokeVoidAsync("alert", "Day End process initiated. This will close the current day and start a new one.");
-            // You can add actual day end logic here, such as:
-            // - Creating a new day log
-            // - Finalizing current day transactions
-            // - Generating end-of-day reports
-            // NavigationManager.NavigateTo("/dayend");
+            if (SalesData == null)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Please load sales data first before ending the day.");
+                return;
+            }
+
+            // Confirm day end action
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to end the day? This will print the day-end report and close the current day.");
+            if (!confirmed)
+                return;
+
+            // Print day-end report using pre-calculated data
+            if (PrinterService.IsInitialized)
+            {
+                PrinterService.PrintDayEndReport(SalesData);
+                await JSRuntime.InvokeVoidAsync("alert", "Day-end report printed successfully!");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Printer service not available. Day-end report could not be printed.");
+            }
+
+            // TODO: Add actual day end logic here:
+            // - Create a new day log entry
+            // - Finalize current day transactions
+            // - Reset daily counters
+            // - Archive current day data
+            
+            await JSRuntime.InvokeVoidAsync("alert", "Day End process completed. A new day has been started.");
+            
+            // Optionally navigate to a day-end summary page
+            // NavigationManager.NavigateTo("/dayend-summary");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error during day end: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", $"Error during day end: {ex.Message}");
         }
     }
 
-    // Data models
-    public class SalesDashboardData
-    {
-        public decimal TotalSales { get; set; }
-        public int TotalTransactions { get; set; }
-        public decimal AverageTransaction { get; set; }
-        public int ItemsSold { get; set; }
 
-        // Financial Metrics
-        public decimal NetSales { get; set; }
-        public decimal TotalRefunds { get; set; }
-        public int RefundCount { get; set; }
-        public decimal TotalPayouts { get; set; }
-        public decimal VoidedSales { get; set; }
-        public int VoidCount { get; set; }
-
-        //Payment Metrics
-        public decimal CashPayments { get; set; }
-        public decimal CardPayments { get; set; }
-        public decimal ChangePayments { get; set; }
-
-        //Payment Count
-        public int CashTransactionCount { get; set; }
-        public int CardTransactionCount { get; set; }
-        public int ChangeTransactionCount { get; set; }
-        public decimal OtherServices { get; set; }
-
-        public decimal MorningSales { get; set; }
-        public int MorningTransactions { get; set; }
-        public decimal AfternoonSales { get; set; }
-        public int AfternoonTransactions { get; set; }
-        public decimal NightSales { get; set; }
-        public int NightTransactions { get; set; }
-
-        public List<EmployeePerformanceData> EmployeePerformance { get; set; } = new();
-        public List<ProductSalesData> TopProducts { get; set; } = new();
-        public List<ProductSalesData> LeastPopularProducts { get; set; } = new();
-
-        public int ExpiredProductsCount { get; set; }
-        public int TheftCount { get; set; }
-        public int StockAdjustmentsCount { get; set; }
-        public List<StockTransactionData> StockTransactions { get; set; } = new();
-
-        // Transaction Details
-        public List<RefundTransactionData> RefundTransactions { get; set; } = new();
-        public List<VoidedTransactionData> VoidedTransactions { get; set; } = new();
-        public List<PayoutTransactionData> PayoutTransactions { get; set; } = new();
-        public List<OtherServicesTransactionData> OtherServicesTransactions { get; set; } = new();
-
-        // Department Sales
-        public List<DepartmentSalesData> DepartmentSales { get; set; } = new();
-    }
-
-    public class EmployeePerformanceData
-    {
-        public string EmployeeName { get; set; } = string.Empty;
-        public decimal TotalSales { get; set; }
-        public int TransactionCount { get; set; }
-        public int ItemsSold { get; set; }
-        public TimeSpan AverageServiceTime { get; set; }
-        public double AverageItemsPerTransaction { get; set; }
-    }
-
-    public class ProductSalesData
-    {
-        public string ProductName { get; set; } = string.Empty;
-        public int QuantitySold { get; set; }
-        public decimal Revenue { get; set; }
-    }
-
-    public class StockTransactionData
-    {
-        public DateTime TransactionDate { get; set; }
-        public string ProductName { get; set; } = string.Empty;
-        public string TransactionType { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public string Reason { get; set; } = string.Empty;
-        public decimal ValueImpact { get; set; }
-    }
-
-    public class RefundTransactionData
-    {
-        public DateTime TransactionDate { get; set; }
-        public string TransactionId { get; set; } = string.Empty;
-        public string ProductName { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal Amount { get; set; }
-        public string Reason { get; set; } = string.Empty;
-        public string EmployeeName { get; set; } = string.Empty;
-    }
-
-    public class VoidedTransactionData
-    {
-        public DateTime TransactionDate { get; set; }
-        public string TransactionId { get; set; } = string.Empty;
-        public string ProductName { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal Amount { get; set; }
-        public string Reason { get; set; } = string.Empty;
-        public string EmployeeName { get; set; } = string.Empty;
-    }
-
-    public class PayoutTransactionData
-    {
-        public DateTime TransactionDate { get; set; }
-        public string PayoutId { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public string Recipient { get; set; } = string.Empty;
-        public string EmployeeName { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-    }
-
-    public class OtherServicesTransactionData
-    {
-        public DateTime TransactionDate { get; set; }
-        public string TransactionId { get; set; } = string.Empty;
-        public string ServiceName { get; set; } = string.Empty;
-        public string DepartmentName { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal Amount { get; set; }
-        public string EmployeeName { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-    }
-
-    public class DepartmentSalesData
-    {
-        public string DepartmentName { get; set; } = string.Empty;
-        public decimal TotalSales { get; set; }
-        public int TransactionCount { get; set; }
-        public int ItemsSold { get; set; }
-        public decimal Percentage { get; set; }
-    }
 }

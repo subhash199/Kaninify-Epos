@@ -1,3 +1,4 @@
+using DataHandlerLibrary.Interfaces;
 using DataHandlerLibrary.Models;
 using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Data;
@@ -54,7 +55,7 @@ public static class MauiProgram
         builder.Services.AddScoped<PromotionServices>();
         builder.Services.AddScoped<MigrateDataServices>();
 		builder.Services.AddScoped<PayoutServices>(); // Ensure DbContext is scoped
-		builder.Services.AddScoped<PrinterServices>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<IPrinterService, PrinterServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<StockTransactionServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<TillServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<ShiftServices>(); // Ensure DbContext is scoped
