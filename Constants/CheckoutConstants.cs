@@ -14,10 +14,10 @@ namespace EposRetail.Constants
 
         public static class Images
         {
-            public const string AddIcon = "images/icons/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            public const string HideIcon = "images/icons/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            public const string CardIcon = "images/icons/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
-            public const string CashIcon = "images/icons/money_bag_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png";
+            public const string AddIcon = "images/icons/svg/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg";
+            public const string HideIcon = "images/icons/svg/hide_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg";
+            public const string CardIcon = "images/icons/svg/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg";
+            public const string CashIcon = "images/icons/svg/money_bag_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg";
         }
 
         public static class TableHeights

@@ -1,0 +1,204 @@
+@page "/history"
+@using Microsoft.AspNetCore.Components
+@inject NavigationManager Navigation
+@inject DataHandlerLibrary.Services.SalesTransactionServices SalesTransactionService
+@inject DataHandlerLibrary.Services.DayLogServices DayLogService
+@inject DataHandlerLibrary.Services.DrawerLogServices DrawerLogService
+@inject DataHandlerLibrary.Services.VoidedProductServices VoidedProductService
+@inject DataHandlerLibrary.Services.StockTransactionServices StockTransactionService
+@inject DataHandlerLibrary.Services.PayoutServices PayoutService
+@inject DataHandlerLibrary.Services.DepartmentServices DepartmentService
+@inject DataHandlerLibrary.Services.ShiftServices ShiftService
+@inject DataHandlerLibrary.Services.SalesItemTransactionServices SalesItemTransactionService
+@using DataHandlerLibrary.Models
+
+<div class="history-container">
+    <div class="history-header">
+        <h1>History Dashboard</h1>
+        <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 10px; font-weight: 500;">Access all your transaction and operational history</p>
+    </div>
+
+    <div class="history-grid">
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToReceiptHistory()">
+            <div class="thumb">
+                <img src="images/icons/svg/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Receipt History" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Receipt History</h3>
+                <p>View all past receipts and transactions</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToDayEndHistory()">
+            <div class="thumb">
+                <img src="images/icons/svg/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Day End History" class="history-icon" />
+            </div>
+            <div class="Content">
+                <h3>Day End History</h3>
+                <p>Review daily closing reports and summaries</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToDrawerHistory()">
+            <div class="thumb">
+                <img src="images/icons/svg/add_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Open Drawer History" class="history-icon" />
+            </div>
+            <div class="Content">
+                <h3>Open Drawer History</h3>
+                <p>Track all cash drawer opening events</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToVoidedProducts()">
+            <div class="thumb">
+                <img src="images/icons/svg/close_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Voided Products" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Voided Products</h3>
+                <p>Review all voided items and reasons</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToStockTransfer()">
+            <div class="thumb">
+                <img src="images/icons/svg/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Stock Transfer" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Stock Transfer</h3>
+                <p>View stock movement and transfer records</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToRefundHistory()">
+            <div class="thumb">
+                <img src="images/icons/svg/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Refund History" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Refund History</h3>
+                <p>Track all refunds and returns processed</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToDepartmentSales()">
+            <div class="thumb">
+                <img src="images/icons/svg/apps_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Department Sales" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Department Sales</h3>
+                <p>Analyze sales performance by department</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToShiftEnd()">
+            <div class="thumb">
+                <img src="images/icons/svg/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Shift End" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Shift End History</h3>
+                <p>Review shift closing reports and handovers</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToPayoutHistory()">
+            <div class="thumb">
+                <img src="images/icons/svg/payments_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Payout History" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Payout History</h3>
+                <p>Track all cash payouts and withdrawals</p>
+            </div>
+        </div>
+
+        <div class="Card-box history-card" style="cursor: pointer;" @onclick="() => NavigateToItemSoldHistory()">
+            <div class="thumb">
+                <img src="images/icons/svg/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Item Sold History" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Item Sold History</h3>
+                <p>Detailed view of individual item sales</p>
+            </div>
+        </div>
+
+        <div class="Card-box back-card" style="cursor: pointer;" @onclick="() => NavigateToBackoffice()">
+            <div class="thumb">
+                <img src="images/icons/svg/arrow_circle_left_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Back to Backoffice" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Back to Backoffice</h3>
+                <p>Return to main backoffice dashboard</p>
+            </div>
+        </div>
+
+        <div class="Card-box stats-card">
+            <div class="thumb">
+                <img src="images/icons/svg/monitoring_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Quick Stats" class="history-icon"/>
+            </div>
+            <div class="Content">
+                <h3>Quick Stats</h3>
+                <p>@GetQuickStatsText()</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private void NavigateToReceiptHistory()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=receipts");
+    }
+
+    private void NavigateToDayEndHistory()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=dayend");
+    }
+
+    private void NavigateToDrawerHistory()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=drawer");
+    }
+
+    private void NavigateToVoidedProducts()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=voided");
+    }
+
+    private void NavigateToStockTransfer()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=stock");
+    }
+
+    private void NavigateToRefundHistory()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=refunds");
+    }
+
+    private void NavigateToDepartmentSales()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=departments");
+    }
+
+    private void NavigateToShiftEnd()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=shifts");
+    }
+
+    private void NavigateToPayoutHistory()
+    {
+        Navigation.NavigateTo("/salesdashboard?filter=payouts");
+    }
+
+    private void NavigateToItemSoldHistory()
+    {
+        Navigation.NavigateTo("/itemsalehistory");
+    }
+
+    private void NavigateToBackoffice()
+    {
+        Navigation.NavigateTo("/backoffice");
+    }
+
+    private string GetQuickStatsText()
+    {
+        return "Access comprehensive analytics and reporting tools";
+    }
+}

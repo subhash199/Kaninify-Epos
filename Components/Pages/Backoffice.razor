@@ -1,4 +1,4 @@
-﻿@page "/backoffice"
+@page "/backoffice"
 @inject NavigationManager NavigationManager
 @inject DataHandlerLibrary.Interfaces.IPrinterService PrinterService
 @inject DataHandlerLibrary.Services.DrawerLogServices DrawerLogService
@@ -14,7 +14,7 @@
         <div class="col-md-4">
                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToSalesDashboard()">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report"/>
+                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Sales Report"/>
                      </div>
                     <div class="Content">
                         <h4 class="title">
@@ -28,7 +28,7 @@
         <div class="col-md-4">
                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToTodaysSales()">
                     <div class="thumb">
-                        <img src="images/icons/today_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Today's Sales"/>
+                        <img src="images/icons/svg/today_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Today's Sales"/>
                      </div>
                     <div class="Content">
                         <h4 class="title">
@@ -42,7 +42,7 @@
          <div class="col-md-4">
                <div class="Card-box">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Sales Report"/>
+                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Sales Report"/>
                      </div>
                     <div class="Content">
                         <h4 class="title">
@@ -60,7 +60,7 @@
             <div class="col-md-3">
                 <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToDayLogSales()">
                     <div class="thumb">
-                        <img src="images/icons/calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Current DayLog Sales" />
+                        <img src="images/icons/svg/calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Current DayLog Sales" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -74,7 +74,7 @@
             <div class="col-md-3">
                 <div class="Card-box" style="cursor: pointer;" @onclick="OpenDrawer">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Open Drawer" />
+                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Open Drawer" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -86,9 +86,9 @@
             </div>
 
             <div class="col-md-3">
-                <div class="Card-box">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToHistory()">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="History" />
+                        <img src="images/icons/svg/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="History" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -102,7 +102,7 @@
             <div class="col-md-3">
                 <div class="Card-box">
                     <div class="thumb">
-                        <img src="images/icons/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png" alt="Promotion" />
+                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Promotion" />
                     </div>
                     <div class="Content">
                         <h4 class="title">
@@ -132,6 +132,11 @@
     private void NavigateToDayLogSales()
     {
         NavigationManager.NavigateTo("/salesdashboard?isDayLog=true");
+    }
+
+    private void NavigateToHistory()
+    {
+        NavigationManager.NavigateTo("/history");
     }
 
     private async Task OpenDrawer()
