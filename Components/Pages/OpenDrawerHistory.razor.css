@@ -300,7 +300,6 @@
 /* Main Content */
 .main-content {
     flex: 1;
-    max-width: 1400px;
     margin: 0 auto;
     width: 100%;
     padding: 20px 30px;
