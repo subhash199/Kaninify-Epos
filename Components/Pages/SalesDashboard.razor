@@ -1,4 +1,5 @@
 @page "/salesdashboard"
+@page "/sales-dashboard/{DayLogId:int}"
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
 @using System.Web
@@ -754,6 +755,7 @@
 
 @code {
     [Parameter] public bool isDayLog { get; set; }
+    [Parameter] public int? DayLogId { get; set; }
 
     private DayLog DayLog { get; set; } = new();
     private SalesDashboardData SalesData = new();
@@ -782,7 +784,24 @@
             return;
         }
 
-        if (isDayLog)
+        // Handle specific DayLogId parameter
+        if (DayLogId.HasValue)
+        {
+            isDayLog = true;
+            DayLog = await DayLogService.GetByIdAsync(DayLogId.Value);
+            if (DayLog != null)
+            {
+                StartDate = DayLog.DayLog_Start_DateTime.Date.ToUniversalTime();
+                EndDate = DayLog.DayLog_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
+            }
+            else
+            {
+                // Fallback if daylog not found
+                StartDate = DateTime.Today.ToUniversalTime();
+                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
+            }
+        }
+        else if (isDayLog)
         {
             // Get the last daylog and set dates based on it
             DayLog = await DayLogService.GetLastDayLog();

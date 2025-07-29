@@ -1,0 +1,436 @@
+@page "/dayendhistory"
+@using DataHandlerLibrary.Models
+@using DataHandlerLibrary.Services
+@using DataHandlerLibrary.Interfaces
+@using EntityFrameworkDatabaseLibrary.Models
+@inject DayLogServices DayLogService
+@inject SalesTransactionServices SalesService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IPrinterService PrinterService
+
+<PageTitle>Day End History</PageTitle>
+
+<div class="dayend-history-container">
+    <!-- Header Section -->
+    <div class="dayend-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="page-title">Day End History</h1>
+                <p class="page-subtitle">Historical Day Log Records</p>
+            </div>
+            <div class="header-right">
+                <button class="nav-btn back-btn" @onclick="NavigateToHistory">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to History</span>
+                </button>
+                <button class="nav-btn checkout-btn" @onclick="NavigateToCheckout">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Go to Checkout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-container">
+            <div class="search-filters">
+                <div class="search-input-group">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Search by Day Log ID or Till..." 
+                           @bind="SearchQuery" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+                    @if (!string.IsNullOrEmpty(SearchQuery))
+                    {
+                        <button class="clear-search-btn" @onclick="ClearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    }
+                </div>
+                
+                <div class="date-range-group">
+                    <div class="date-input-wrapper">
+                        <label for="fromDate">From Date:</label>
+                        <input type="date" id="fromDate" class="date-input @(IsDateRangeInvalid ? "invalid" : "")" @bind-value="FromDate" @bind-value:event="oninput" @onchange="OnDateRangeChanged" />
+                    </div>
+                    <div class="date-input-wrapper">
+                        <label for="toDate">To Date:</label>
+                        <input type="date" id="toDate" class="date-input @(IsDateRangeInvalid ? "invalid" : "")" @bind-value="ToDate" @bind-value:event="oninput" @onchange="OnDateRangeChanged" />
+                    </div>
+                    <button class="clear-dates-btn" @onclick="ClearDateRange">
+                        <i class="fas fa-calendar-times"></i>
+                        <span>Clear Dates</span>
+                    </button>
+                    @if (IsDateRangeInvalid)
+                    {
+                        <div class="date-range-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Start date must be less than or equal to end date</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading day logs...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Day Logs List (Left Side) -->
+            <div class="daylogs-panel">
+                <div class="panel-header">
+                    <h3>Day Logs (@FilteredDayLogs.Count())</h3>
+                </div>
+                
+                <div class="daylogs-list">
+                    @if (FilteredDayLogs.Any())
+                    {
+                        @foreach (var dayLog in FilteredDayLogs)
+                        {
+                            <div class="daylog-item @(SelectedDayLog?.DayLog_Id == dayLog.DayLog_Id ? "selected" : "")"
+                                 @onclick="() => SelectDayLog(dayLog)">
+                                <div class="daylog-header">
+                                    <span class="daylog-id">#@dayLog.DayLog_Id</span>
+                                    <span class="daylog-status @(dayLog.DayLog_End_DateTime.HasValue ? "closed" : "open")">@(dayLog.DayLog_End_DateTime.HasValue ? "CLOSED" : "OPEN")</span>
+                                </div>
+                                <div class="daylog-details">
+                                    <span class="daylog-date">@TimeZoneInfo.ConvertTimeFromUtc(@dayLog.DayLog_Start_DateTime, TimeZoneInfo.Local).ToString("dd/MM/yyyy")</span>
+                                    <span class="daylog-time">@TimeZoneInfo.ConvertTimeFromUtc(@dayLog.DayLog_Start_DateTime, TimeZoneInfo.Local).ToString("HH:mm:ss")</span>
+                                    @if (dayLog.DayLog_End_DateTime.HasValue)
+                                    {
+                                        <span class="daylog-end-time">Ended: @TimeZoneInfo.ConvertTimeFromUtc(@dayLog.DayLog_End_DateTime.Value, TimeZoneInfo.Local).ToString("HH:mm:ss")</span>
+                                    }
+                                </div>
+                                <div class="daylog-amounts">
+                                    <span class="opening-amount">Opening: @dayLog.Opening_Cash_Amount.ToString("C")</span>
+                                    <span class="closing-amount">Closing: @dayLog.Closing_Cash_Amount.ToString("C")</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="no-daylogs">
+                            <i class="fas fa-calendar-day"></i>
+                            <p>@(string.IsNullOrEmpty(SearchQuery) ? "No day logs found" : "No day logs match your search")</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Day Log Details (Right Side) -->
+            <div class="details-panel">
+                @if (SelectedDayLog != null)
+                {
+                    <div class="panel-header">
+                        <h3>Day Log Details</h3>
+                        <span class="daylog-id-large">#@SelectedDayLog.DayLog_Id</span>
+                        <div class="header-buttons">
+                            <button class="print-btn" @onclick="PrintDayEndReport">
+                                <i class="fas fa-print"></i>
+                                <span>Print Day End Report</span>
+                            </button>
+                            <button class="view-report-btn" @onclick="ViewDayEndReport">
+                                <i class="fas fa-chart-bar"></i>
+                                <span>View Day End Report</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="daylog-summary">
+                        <div class="summary-row">
+                            <span class="label">Start Date & Time:</span>
+                            <span class="value">@TimeZoneInfo.ConvertTimeFromUtc(@SelectedDayLog.DayLog_Start_DateTime, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm:ss")</span>
+                        </div>
+                        @if (SelectedDayLog.DayLog_End_DateTime.HasValue)
+                        {
+                            <div class="summary-row">
+                                <span class="label">End Date & Time:</span>
+                                <span class="value">@TimeZoneInfo.ConvertTimeFromUtc(@SelectedDayLog.DayLog_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm:ss")</span>
+                            </div>
+                        }
+                        <div class="summary-row">
+                            <span class="label">Opening Cash Amount:</span>
+                            <span class="value">@SelectedDayLog.Opening_Cash_Amount.ToString("C")</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Closing Cash Amount:</span>
+                            <span class="value">@SelectedDayLog.Closing_Cash_Amount.ToString("C")</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span class="label">Cash Difference:</span>
+                            <span class="value @(CashDifference >= 0 ? "positive" : "negative")">@CashDifference.ToString("C")</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Status:</span>
+                            <span class="value status @(SelectedDayLog.DayLog_End_DateTime.HasValue ? "closed" : "open")">@(SelectedDayLog.DayLog_End_DateTime.HasValue ? "CLOSED" : "OPEN")</span>
+                        </div>
+                        @if (SelectedDayLog.Till != null)
+                        {
+                            <div class="summary-row">
+                                <span class="label">Till:</span>
+                                <span class="value">@SelectedDayLog.Till.Till_Name</span>
+                            </div>
+                        }
+                        @if (SelectedDayLog.Site != null)
+                        {
+                            <div class="summary-row">
+                                <span class="label">Site:</span>
+                                <span class="value">@SelectedDayLog.Site.Site_BusinessName</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Transactions Summary -->
+                    <div class="transactions-section">
+                        <h4>Transactions Summary</h4>
+                        @if (DayLogTransactions.Any())
+                        {
+                            <div class="transactions-summary">
+                                <div class="summary-card">
+                                    <div class="card-header">
+                                        <i class="fas fa-receipt"></i>
+                                        <span>Total Transactions</span>
+                                    </div>
+                                    <div class="card-value">@DayLogTransactions.Count()</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="card-header">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Total Sales</span>
+                                    </div>
+                                    <div class="card-value">@DayLogTransactions.Sum(t => t.SaleTransaction_Total_Amount).ToString("C")</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="card-header">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                        <span>Cash Sales</span>
+                                    </div>
+                                    <div class="card-value">@DayLogTransactions.Sum(t => t.SaleTransaction_Cash).ToString("C")</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="card-header">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Card Sales</span>
+                                    </div>
+                                    <div class="card-value">@DayLogTransactions.Sum(t => t.SaleTransaction_Card).ToString("C")</div>
+                                </div>
+                            </div>
+                        }
+                        else if (IsLoadingTransactions)
+                        {
+                            <div class="loading-transactions">
+                                <div class="spinner-small"></div>
+                                <span>Loading transactions...</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="no-transactions">
+                                <p>No transactions found for this day log</p>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="no-selection">
+                        <i class="fas fa-mouse-pointer"></i>
+                        <h3>Select a Day Log</h3>
+                        <p>Click on a day log from the left panel to view its details and transaction summary</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DayLog> AllDayLogs = new();
+    private List<SalesTransaction> DayLogTransactions = new();
+    private DayLog? SelectedDayLog;
+    private string SearchQuery = string.Empty;
+    private DateTime? FromDate;
+    private DateTime? ToDate;
+    private bool IsLoading = true;
+    private bool IsLoadingTransactions = false;
+
+    private bool IsDateRangeInvalid => FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date > ToDate.Value.Date;
+
+    private decimal CashDifference => SelectedDayLog != null ? SelectedDayLog.Closing_Cash_Amount - SelectedDayLog.Opening_Cash_Amount : 0;
+
+    private IEnumerable<DayLog> FilteredDayLogs
+    {
+        get
+        {
+            var filteredDayLogs = AllDayLogs.AsEnumerable();
+
+            // Apply date range filter only when both dates are selected and start date is less than or equal to end date
+            if (FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date <= ToDate.Value.Date)
+            {
+                filteredDayLogs = filteredDayLogs.Where(d => 
+                    d.DayLog_Start_DateTime.Date >= FromDate.Value.Date && 
+                    d.DayLog_Start_DateTime.Date <= ToDate.Value.Date);
+            }
+
+            // Apply text search filter
+            if (!string.IsNullOrEmpty(SearchQuery))
+            {
+                var query = SearchQuery.ToLower();
+                filteredDayLogs = filteredDayLogs.Where(d =>
+                    d.DayLog_Id.ToString().Contains(query) ||
+                    (d.Till?.Till_Name?.ToLower().Contains(query) == true) ||
+                    (d.Site?.Site_BusinessName?.ToLower().Contains(query) == true)
+                );
+            }
+
+            return filteredDayLogs;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllDayLogs();
+    }
+
+    private async Task LoadAllDayLogs()
+    {
+        try
+        {
+            IsLoading = true;
+
+            // Get all day logs with related data
+            AllDayLogs = (await DayLogService.GetAllAsync(true)).ToList();
+
+            // Sort by most recent first
+            AllDayLogs = AllDayLogs.OrderByDescending(d => d.DayLog_Start_DateTime).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading day logs: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectDayLog(DayLog dayLog)
+    {
+        if (SelectedDayLog?.DayLog_Id == dayLog.DayLog_Id)
+            return;
+
+        SelectedDayLog = dayLog;
+        DayLogTransactions.Clear();
+        IsLoadingTransactions = true;
+        StateHasChanged();
+
+        try
+        {
+            // Load transactions for this day log
+            var transactions = await SalesService.GetByConditionAsync(
+                t => t.DayLog_Id == dayLog.DayLog_Id, true);
+            
+            DayLogTransactions = transactions.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading day log transactions: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingTransactions = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        // Debounce search to avoid too many updates
+        await Task.Delay(300);
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        SearchQuery = string.Empty;
+        StateHasChanged();
+    }
+    
+    private void OnDateRangeChanged()
+    {
+        // Validate date range and trigger UI update
+        if (FromDate.HasValue && ToDate.HasValue)
+        {
+            if (FromDate.Value.Date <= ToDate.Value.Date)
+            {
+                // Valid date range - filtering will be applied automatically through FilteredDayLogs property
+                Console.WriteLine($"Date range filter applied: {FromDate.Value.Date:yyyy-MM-dd} to {ToDate.Value.Date:yyyy-MM-dd}");
+            }
+            else
+            {
+                // Invalid date range - show validation error
+                Console.WriteLine("Invalid date range: Start date is greater than end date");
+            }
+        }
+        
+        StateHasChanged();
+    }
+    
+    private void ClearDateRange()
+    {
+        FromDate = null;
+        ToDate = null;
+        StateHasChanged();
+    }
+
+    private void NavigateToHistory()
+    {
+        NavigationManager.NavigateTo("/history");
+    }
+
+    private void NavigateToCheckout()
+    {
+        NavigationManager.NavigateTo("/checkout");
+    }
+    
+    private async Task PrintDayEndReport()
+    {
+        if (SelectedDayLog == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No day log selected for printing.");
+            return;
+        }
+
+        try
+        {
+            await PrinterService.PrintDayEndReport(null);
+            await JSRuntime.InvokeVoidAsync("alert", "Day end report printed successfully!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing day end report: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error printing day end report: {ex.Message}");
+        }
+    }
+    
+    private void ViewDayEndReport()
+    {
+        if (SelectedDayLog == null)
+        {
+            return;
+        }
+        
+        // Navigate to SalesDashboard with the selected day log ID
+        NavigationManager.NavigateTo($"/sales-dashboard/{SelectedDayLog.DayLog_Id}");
+    }
+}
