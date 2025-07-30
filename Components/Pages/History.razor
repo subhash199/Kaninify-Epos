@@ -179,17 +179,17 @@
 
     private void NavigateToShiftEnd()
     {
-        Navigation.NavigateTo("/salesdashboard?filter=shifts");
+        Navigation.NavigateTo("/shifthistory");
     }
 
     private void NavigateToPayoutHistory()
     {
-        Navigation.NavigateTo("/salesdashboard?filter=payouts");
+        Navigation.NavigateTo("/payouthistory");
     }
 
     private void NavigateToItemSoldHistory()
     {
-        Navigation.NavigateTo("/itemsalehistory");
+        Navigation.NavigateTo("/itemsalehistory?backurl=/history");
     }
 
     private void NavigateToBackoffice()

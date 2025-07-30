@@ -36,7 +36,7 @@
             </div>
         }
         <div class="d-flex align-items-start mt-2">
-            <div class="col-md-6 row">
+            <div class="@(ShowRightPanel ? "col-md-7 row" : "col-md-12 row")">
                 <!-- Search Box -->
                 <div class="mb-2">
                     <input type="text" @ref="searchBox" @bind-value="_state.SearchText"
@@ -48,16 +48,21 @@
                                  OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
                                  OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
                                  OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"
-                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"></CheckoutButtons>
+                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick" ShowRightPanel=ShowRightPanel OnShowRightPanelClick="HandleOnShowRightPanelClick"></CheckoutButtons>
 
             </div>
+            @if (ShowRightPanel)
+            {
+                <div class="row mb-2">
+                    <DepartmentButtons State="_state" OnPayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
+                    <NumberPadComponent OnNumberClick="HandleNumPadClick" />
+                </div>
+            }
 
-            <div class="row mb-2">
-                <DepartmentButtons State="_state" OnPayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
-                <NumberPadComponent OnNumberClick="HandleNumPadClick" />
-            </div>
         </div>
-        <StatusBarComponent />
+        <div class="d-flex align-items-start">
+            <StatusBarComponent />
+        </div>                   
 
     </div>
     <!-- modals -->
@@ -182,6 +187,8 @@
 @code {
     ElementReference searchBox;
     CheckoutState _state = new CheckoutState();
+
+    private bool ShowRightPanel = false;
 
     // Payout-related properties
     private bool showPayoutModal = false;
@@ -1563,5 +1570,10 @@
 
         // Only allow discount on non-promotional products
         return !hasPromotion && !hasPromotionObject;
+    }
+    private void HandleOnShowRightPanelClick()
+    {
+        ShowRightPanel = !ShowRightPanel;
+        StateHasChanged();
     }
 }

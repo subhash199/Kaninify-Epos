@@ -24,6 +24,11 @@
             <img src="@State.LeftCollapseButtonPanel" class="img-fluid mb-2" />
             <span class="fw-bold">@State.LeftPanelLabel</span>
         </button>
+        <button class="col-md-3 btn-light d-flex flex-column align-items-center flex-fill"
+                @onclick="RightPanelButtonClick">
+            <img src=@(ShowRightPanel ? "images/icons/svg/close_fullscreen_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" : "images/icons/svg/expand_content_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg") class="img-fluid mb-2" />
+            <span class="fw-bold">@(ShowRightPanel ? "Minimize" : "Expand")</span>
+        </button>
     </div>
 
     @if (!IsCollapsed)
@@ -80,6 +85,8 @@
 </div>
 
 @code {
+    [Parameter] public bool ShowRightPanel { get; set; } = false;
+    [Parameter] public EventCallback<bool> OnShowRightPanelClick { get; set; }
     [Parameter] public CheckoutState State { get; set; } = new();
     [Parameter] public EventCallback<PaymentType> OnPaymentClicked { get; set; }
     [Parameter] public EventCallback OnVoidLineClicked { get; set; }
@@ -97,7 +104,7 @@
     {
         IsCollapsed = !IsCollapsed;
         State.LeftCollapseButtonPanel = IsCollapsed ? CheckoutConstants.Images.AddIcon : CheckoutConstants.Images.HideIcon;
-        State.LeftPanelLabel = IsCollapsed ? "More" : "Collapse";        
+        State.LeftPanelLabel = IsCollapsed ? "More" : "Collapse";
         await OnMoreSalesClicked.InvokeAsync(IsCollapsed);
 
     }
@@ -118,5 +125,8 @@
     {
         NavigationManager.NavigateTo("/backoffice");
     }
-
+    private async Task RightPanelButtonClick()
+    {
+        await OnShowRightPanelClick.InvokeAsync();
+    }
 }

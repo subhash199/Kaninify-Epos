@@ -261,7 +261,7 @@
     <div class="modal-overlay" @onclick="CloseModal">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h3>Refund Details - @($"RF{@SelectedRefund.SaleTransaction_ID.ToString("D4")}")</h3>
+                <h3>Refund Details - @($"RF{SelectedRefund.SaleTransaction_ID.ToString("D4")}")</h3>
                 <button class="close-btn" @onclick="CloseModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -269,7 +269,7 @@
             <div class="modal-body">
                 <div class="detail-row">
                     <span class="label">Refund ID:</span>
-                    <span class="value">@($"RF{@SelectedRefund.SaleTransaction_ID.ToString("D4")}")</span>
+                    <span class="value">@($"RF{SelectedRefund.SaleTransaction_ID.ToString("D4")}")</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Transaction Date:</span>

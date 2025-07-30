@@ -6,6 +6,7 @@
 @inject ProductServices _productServices
 @inject NavigationManager _navigationManager
 @inject IPrinterService _printerServices
+
 <PageTitle>Equiry</PageTitle>
 
 @if (!showItemSaleHistory)
@@ -103,11 +104,6 @@
                     OnModalClose="onmodalcloseasync"
                     OnProductSave="onmodalproductupsertedasync" />
 }
-else
-{
-    <ItemSaleHistory _state="_state" _product="selectedProduct" OnBackClick="HandleItemSaleHistoryBackClick" />
-}
-
 
 
 
@@ -262,8 +258,9 @@ else
                 selectedProduct = searchProducts.FirstOrDefault();
             }
             _state.SearchText = selectedProduct.Product_Barcode;
+            _navigationManager.NavigateTo($"/itemsalehistory?barcode={selectedProduct.Product_Barcode}&backurl=/enquiry", false);
         }
-        showItemSaleHistory = true;
+        
         StateHasChanged();
     }
     private void HandleItemSaleHistoryBackClick()
