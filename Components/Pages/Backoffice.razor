@@ -40,9 +40,9 @@
         </div>
 
          <div class="col-md-4">
-               <div class="Card-box">
+               <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToInventoryManagement()">
                     <div class="thumb">
-                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Sales Report"/>
+                        <img src="images/icons/svg/inventory_2_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Inventory Management"/>
                      </div>
                     <div class="Content">
                         <h4 class="title">
@@ -127,6 +127,11 @@
     private void NavigateToTodaysSales()
     {
         NavigationManager.NavigateTo("/salesdashboard?filter=today");
+    }
+
+    private void NavigateToInventoryManagement()
+    {
+        NavigationManager.NavigateTo("/inventory-management");
     }
 
     private void NavigateToDayLogSales()

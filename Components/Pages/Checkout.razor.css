@@ -7,3 +7,7 @@
 .table tbody tr:hover {
     cursor: pointer;
 }
+
+.disable-right-margin {
+    margin-right: 0px!important;
+}

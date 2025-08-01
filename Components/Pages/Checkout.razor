@@ -49,20 +49,25 @@
                                  OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
                                  OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"
                                  OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick" ShowRightPanel=ShowRightPanel OnShowRightPanelClick="HandleOnShowRightPanelClick"></CheckoutButtons>
-
+                @if (!ShowRightPanel)
+                {
+                    <StatusBarComponent />
+                }
             </div>
             @if (ShowRightPanel)
             {
-                <div class="row mb-2">
+                <div class="row mb-2 disable-right-margin">
                     <DepartmentButtons State="_state" OnPayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
                     <NumberPadComponent OnNumberClick="HandleNumPadClick" />
                 </div>
             }
 
         </div>
-        <div class="d-flex align-items-start">
+        @if (ShowRightPanel)
+        {
             <StatusBarComponent />
-        </div>                   
+        }
+
 
     </div>
     <!-- modals -->
