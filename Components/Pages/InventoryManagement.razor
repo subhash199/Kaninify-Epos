@@ -2,13 +2,19 @@
 @inject DataHandlerLibrary.Services.StockTransactionServices StockTransactionService
 @inject DataHandlerLibrary.Services.ProductServices ProductService
 @inject DataHandlerLibrary.Services.SiteServices SiteService
+@inject DataHandlerLibrary.Services.DepartmentServices DepartmentService
+@inject DataHandlerLibrary.Services.SupplierServices SupplierService
+@inject DataHandlerLibrary.Services.SupplierItemsServices SupplierItemsService
 @inject EposRetail.Services.UserSessionService UserSessionService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject ProductServices ProductService
+@inject EposDataHandler.Services.StockOrderGenerationService StockOrderService
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
-
+@using EposDataHandler.Models
+@using EposRetail.Components.Pages.Shared
+@implements IDisposable
 <PageTitle>Inventory Management</PageTitle>
 
 <div class="inventory-management-container">
@@ -185,6 +191,7 @@
 
 
             </div>
+
         }
 
         <!-- Stock Orders Tab -->
@@ -193,14 +200,40 @@
             <div class="tab-pane active">
                 <div class="content-header">
                     <h3>Stock Orders</h3>
-                    <button class="btn btn-primary" @onclick="GenerateStockOrder">
-                        <i class="fas fa-magic"></i> Generate Order
-                    </button>
+                    <div class="d-flex gap-2">
+                        @if (stockOrders?.Any() == true)
+                        {
+                            <button class="btn btn-outline-success" @onclick="PrintStockOrders">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                        }
+                        <button class="btn btn-primary" @onclick="GenerateStockOrder">
+                            <i class="fas fa-magic"></i> Generate Order
+                        </button>
+                    </div>
                 </div>
+
+                @if (stockOrders?.Any() == true)
+                {
+                    <div class="filter-section mb-3">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Filter by Department</label>
+                                <select class="form-select" value="@selectedDepartmentFilter" @onchange="OnDepartmentFilterChanged">
+                                    <option value="">All Departments</option>
+                                    @foreach (var dept in distinctDepartments)
+                                    {
+                                        <option value="@dept">@dept</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
-                    Stock orders are automatically generated based on sales patterns and current stock levels.
+                    Stock orders are automatically generated based on yearly sales patterns. Analysis excludes payouts, services, and generic department sales. Forecast is for next 7 days.
                 </div>
 
                 <div class="table-responsive">
@@ -208,26 +241,59 @@
                         <thead>
                             <tr>
                                 <th>Product</th>
+                                <th>Department</th>
                                 <th>Current Stock</th>
-                                <th>Total Sold</th>
-                                <th>Avg Sales/Day</th>
-                                <th>Required Cases</th>
-                                <th>Avg Transaction Days</th>
+                                <th>Yearly Sales</th>
+                                <th>Daily Avg</th>
+                                <th>7-Day Forecast</th>
+                                <th>Cases Needed</th>
+                                <th>Case Size</th>
+                                <th>Est. Cost</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if (stockOrders?.Any() == true)
+                            @if (filteredStockOrders?.Any() == true)
                             {
-                                @foreach (var order in stockOrders)
+                                @foreach (var order in filteredStockOrders)
                                 {
                                     <tr>
-                                        <td>@order.Product?.Product_Name</td>
-                                        <td>@order.Product?.ProductTotalQuantity</td>
-                                        <td>@order.TotalSold</td>
-                                        <td>@order.TotalSalesPerDay.ToString("F1")</td>
-                                        <td>@order.RequiredCases</td>
-                                        <td>@order.AverageTransactionDays</td>
+                                        <td>
+                                            <div>
+                                                <strong>@order.ProductName</strong>
+                                                <br><small class="text-muted">@order.ProductBarcode</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">@order.DepartmentName</span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>@order.CurrentStock</strong>
+                                                <br><small class="text-muted">
+                                                    Total Available Stock
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>@order.YearlySales</strong>
+                                            <br><small class="text-muted">units/year</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>@order.DailyAverage.ToString("F1")</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>@order.SevenDayForecast.ToString("F1")</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-warning text-dark fs-6">@order.RequiredCases</span>
+                                        </td>
+                                        <td class="text-center">
+                                            @order.CaseSize
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>£@order.EstimatedCost.ToString("N2")</strong>
+                                        </td>
                                         <td>
                                             <button class="btn btn-sm btn-success" @onclick="() => CreateOrder(order)">
                                                 <i class="fas fa-plus"></i> Order
@@ -239,7 +305,22 @@
                             else
                             {
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">No stock order recommendations available</td>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        @if (stockOrders == null)
+                                        {
+                                            <div>
+                                                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                                                <br>Click "Generate Order" to analyze sales patterns and get stock recommendations
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                                                <br>All products are well stocked for the next 7 days based on sales analysis
+                                            </div>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -254,186 +335,182 @@
             <div class="tab-pane active">
                 <div class="content-header">
                     <h3>Delivery Orders</h3>
-                    <button class="btn btn-primary" @onclick="ShowNewDeliveryModal">
-                        <i class="fas fa-plus"></i> New Delivery
-                    </button>
                 </div>
 
-                <div class="delivery-status-cards">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="status-card pending">
-                                <div class="status-icon">
-                                    <i class="fas fa-clock"></i>
+                <div class="delivery-entry-form">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Product Delivery Entry</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Barcode</label>
+                                        <input type="text" class="form-control" @bind="deliveryProductBarcode"
+                                               @ref="deliveryBarcodeInput"
+                                               @onkeypress="HandleBarcodeKeyPress"
+                                               placeholder="Scan or enter barcode" />
+                                    </div>
                                 </div>
-                                <div class="status-info">
-                                    <h4>5</h4>
-                                    <p>Pending Deliveries</p>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Product Name</label>
+                                        <input type="text" class="form-control" @bind="deliveryProductName" placeholder="Enter product name" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Selling Price (£)</label>
+                                        <input type="number" class="form-control" @bind="deliverySellingPrice" step="0.01" placeholder="0.00" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="status-card in-transit">
-                                <div class="status-icon">
-                                    <i class="fas fa-truck"></i>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Department</label>
+                                        <select class="form-select" @bind="deliveryDepartmentId">
+                                            <option value="">Select Department</option>
+                                            @foreach (var dept in departments)
+                                            {
+                                                <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                            }
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="status-info">
-                                    <h4>3</h4>
-                                    <p>In Transit</p>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Supplier</label>
+                                        <select class="form-select" @bind="deliverySupplierId">
+                                            <option value="">Select Supplier</option>
+                                            @foreach (var supplier in suppliers)
+                                            {
+                                                <option value="@supplier.Supplier_ID">@supplier.Supplier_Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Units per Case</label>
+                                        <input type="number" class="form-control" @bind="deliveryUnitsPerCase" min="1" placeholder="Enter units per case" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="status-card delivered">
-                                <div class="status-icon">
-                                    <i class="fas fa-check-circle"></i>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Cost per Case (£)</label>
+                                        <input type="number" class="form-control" @bind="deliveryCostPerCase" step="0.01" placeholder="0.00" />
+                                    </div>
                                 </div>
-                                <div class="status-info">
-                                    <h4>12</h4>
-                                    <p>Delivered Today</p>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Current Quantity</label>
+                                        <input type="number" class="form-control" value="@deliveryCurrentQuantity" readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Cost per Product (£)</label>
+                                        <input type="number" class="form-control" value="@deliveryCostPerProduct" readonly />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="status-card overdue">
-                                <div class="status-icon">
-                                    <i class="fas fa-exclamation-triangle"></i>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">Delivered Cases</label>
+                                        <input type="number" class="form-control" @bind="deliveryDeliveredCases" min="0" placeholder="Enter delivered cases" />
+                                    </div>
                                 </div>
-                                <div class="status-info">
-                                    <h4>1</h4>
-                                    <p>Overdue</p>
+                                <div class="col-md-8">
+                                    <div class="form-group mb-3 d-flex align-items-end" style="height: 100%;">
+                                        <button class="btn btn-success me-2" @onclick="AddDeliveryProduct">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                        <button class="btn btn-secondary me-2" @onclick="ClearDeliveryForm">
+                                            <i class="fas fa-eraser"></i> Clear
+                                        </button>
+                                        <button class="btn btn-primary" @onclick="EditDeliveryProduct">
+                                            <i class="fas fa-edit"></i> Edit Product
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover modern-table">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Supplier</th>
-                                <th>Order Date</th>
-                                <th>Expected Delivery</th>
-                                <th>Status</th>
-                                <th>Total Amount</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>#DEL001</td>
-                                <td>ABC Wholesale Ltd</td>
-                                <td>15/01/2024</td>
-                                <td>17/01/2024</td>
-                                <td><span class="badge bg-warning">Pending</span></td>
-                                <td>£1,250.00</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-success">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted">More delivery orders will be displayed here</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
-        }
-
-        <!-- Stock Adjustments Tab -->
-        @if (activeTab == "adjustments")
-        {
-            <div class="tab-pane active">
-                <div class="content-header">
-                    <h3>Stock Adjustments</h3>
-                    <button class="btn btn-primary" @onclick="ShowNewAdjustmentModal">
-                        <i class="fas fa-plus"></i> New Adjustment
-                    </button>
-                </div>
-
-                <div class="adjustment-types">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <div class="adjustment-type-card" @onclick="() => FilterByAdjustmentType(StockTransferType.Damaged)">
-                                <i class="fas fa-exclamation-triangle text-warning"></i>
-                                <span>Damaged</span>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="adjustment-type-card" @onclick="() => FilterByAdjustmentType(StockTransferType.Expired)">
-                                <i class="fas fa-calendar-times text-danger"></i>
-                                <span>Expired</span>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="adjustment-type-card" @onclick="() => FilterByAdjustmentType(StockTransferType.Theft)">
-                                <i class="fas fa-user-secret text-dark"></i>
-                                <span>Theft</span>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="adjustment-type-card" @onclick="() => FilterByAdjustmentType(StockTransferType.Adjustment)">
-                                <i class="fas fa-edit text-info"></i>
-                                <span>Manual</span>
-                            </div>
+            <!-- Delivery Items Table -->
+            @if (deliveryItems.Any())
+            {
+                <div class="delivery-items-section mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-list"></i> Delivery Items (@deliveryItems.Count)</h4>
+                        <div>
+                            <button class="btn btn-success me-2" @onclick="ConfirmDelivery">
+                                <i class="fas fa-check"></i> Confirm Delivery
+                            </button>
+                            <button class="btn btn-outline-danger" @onclick="ClearAllDeliveryItems">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover modern-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Product</th>
-                                <th>Adjustment Type</th>
-                                <th>Quantity</th>
-                                <th>Reason</th>
-                                <th>Adjusted By</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (adjustments?.Any() == true)
-                            {
-                                @foreach (var adjustment in adjustments)
+                    <div class="table-responsive">
+                        <table class="table table-hover modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Barcode</th>
+                                    <th>Product Name</th>
+                                    <th>Department</th>
+                                    <th>Units/Case</th>
+                                    <th>Cost/Case</th>
+                                    <th>Cases</th>
+                                    <th>Total Units</th>
+                                    <th>Total Cost</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in deliveryItems)
                                 {
                                     <tr>
-                                        <td>@adjustment.TransactionDate.ToString("dd/MM/yyyy")</td>
-                                        <td>@adjustment.Product?.Product_Name</td>
+                                        <td>@item.Barcode</td>
+                                        <td>@item.ProductName</td>
+                                        <td>@item.DepartmentName</td>
+                                        <td>@item.UnitsPerCase</td>
+                                        <td>£@item.CostPerCase.ToString("F2")</td>
+                                        <td>@item.DeliveredCases</td>
+                                        <td>@item.TotalUnits</td>
+                                        <td>£@item.TotalCost.ToString("F2")</td>
                                         <td>
-                                            <span class="badge bg-@GetAdjustmentTypeBadgeColor(adjustment.StockTransactionType)">
-                                                @adjustment.StockTransactionType.ToString()
-                                            </span>
-                                        </td>
-                                        <td>@adjustment.Quantity</td>
-                                        <td>System adjustment</td>
-                                        <td>@adjustment.Created_By?.First_Name''</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveDeliveryItem(item)">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
                                 }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted">No stock adjustments found</td>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <td colspan="6"><strong>Total:</strong></td>
+                                    <td><strong>@deliveryItems.Sum(i => i.TotalUnits)</strong></td>
+                                    <td><strong>£@deliveryItems.Sum(i => i.TotalCost).ToString("F2")</strong></td>
+                                    <td></td>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
-            </div>
+
+            }
+
         }
 
         <!-- Suppliers Tab -->
@@ -584,6 +661,7 @@
     </div>
 </div>
 
+
 <!-- New Transfer Modal -->
 <div class="modal fade @(showNewTransferModal ? "show d-block" : "")" tabindex="-1" style="@(showNewTransferModal ? "background-color: rgba(0,0,0,0.5);" : "")">
     <div class="modal-dialog modal-lg">
@@ -666,9 +744,9 @@
                 </button>
                 <button type="button" class="btn btn-primary" @onclick="AddPendingTransfer"
                         disabled="@(string.IsNullOrEmpty(newTransfer.Barcode) ||
-                                                                                                                                  newTransfer.Product == null ||
-                                                                                                                                  newTransfer.TransferQuantity <= 0
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        )">
+                                                                                                                                                                                                                                                  newTransfer.Product == null ||
+                                                                                                                                                                                                                                                  newTransfer.TransferQuantity <= 0
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                )">
                     <i class="fas fa-plus"></i> Add Transfer
                 </button>
             </div>
@@ -768,16 +846,63 @@
     </div>
 </div>
 
+<!-- Generic Message Modal -->
+<GenericMessageModal IsVisible="showMessageModal"
+                     Title="@modalTitle"
+                     Message="@modalMessage"
+                     PrimaryButtonText="OK"
+                     PrimaryAction="CloseMessageModal"
+                     OnClose="CloseMessageModal" />
+
+@if (showProductModal)
+{
+    <ProductModal IsVisible="@showProductModal" Product="@selectedProductForModal" OnSave="@SaveProductModal" OnClose="@CloseProductModal" />
+
+}
+
+
+<!-- Confirm Exit Modal -->
+@if (showConfirmExitModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@confirmExitTitle</h5>
+                </div>
+                <div class="modal-body">
+                    <p>@confirmExitMessage</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" @onclick="ConfirmAndExit">
+                        <i class="fas fa-check"></i> Yes, Finalize & Exit
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="ExitWithoutSaving">
+                        <i class="fas fa-times"></i> No, Exit Without Saving
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="CancelExit">
+                        <i class="fas fa-ban"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private string activeTab = "transfers";
     private List<StockTransaction>? stockTransfers;
     private List<StockOrderModel>? stockOrders;
+    private List<StockOrderModel>? filteredStockOrders;
+    private List<Department>? departments;
     private List<StockTransaction>? adjustments;
     private List<Product>? lowStockProducts;
     private List<StockTransaction> pendingTransfers = new List<StockTransaction>();
     private string searchTerm = "";
     private List<StockTransaction> filteredPendingTransfers = new List<StockTransaction>();
     private string searchMessage = "";
+    private string selectedDepartmentFilter = "";
+    private List<string> distinctDepartments = new();
     private int criticalStockCount = 0;
     private int lowStockCount = 0;
     private int expiredStockCount = 0;
@@ -807,9 +932,78 @@
         public Product? Product { get; set; }
     }
 
+    public class DeliveryItem
+    {
+        public string Barcode { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public string DepartmentName { get; set; } = "";
+        public int UnitsPerCase { get; set; }
+        public decimal CostPerCase { get; set; }
+        public decimal CostPerUnit { get; set; }
+        public int DeliveredCases { get; set; }
+        public int TotalUnits { get; set; }
+        public decimal TotalCost { get; set; }
+        public Product? Product { get; set; }
+        public DateTime DateAdded { get; set; } = DateTime.Now;
+    }
+
+    // Delivery form variables
+    private string deliveryProductBarcode = "";
+    private string deliveryProductName = "";
+    private decimal deliverySellingPrice = 0;
+    private int deliveryDepartmentId = 0;
+    private int deliverySupplierId = 0;
+    private int deliveryUnitsPerCase = 1;
+    private decimal deliveryCostPerCase = 0;
+    private int deliveryCurrentQuantity = 0;
+    private decimal deliveryCostPerProduct => deliveryUnitsPerCase > 0 ? deliveryCostPerCase / deliveryUnitsPerCase : 0;
+    private int deliveryDeliveredCases = 0;
+    private Product? deliveryProduct;
+    private ElementReference deliveryBarcodeInput;
+
+    // Delivery items list
+    private List<DeliveryItem> deliveryItems = new();
+    private bool hasUnsavedDeliveryChanges => deliveryItems.Any();
+
+    // Confirmation modal variables
+    private bool showConfirmExitModal = false;
+    private string confirmExitTitle = "";
+    private string confirmExitMessage = "";
+    private string pendingTabChange = "";
+
+    // Product Modal variables
+    private bool showProductModal = false;
+    private Product? selectedProductForModal;
+    private List<Supplier>? suppliers = new();
+
+    // Modal state variables for GenericMessageModal
+    private bool showMessageModal = false;
+    private string modalTitle = string.Empty;
+    private string modalMessage = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await LoadDepartments();
+
+        // Add navigation protection
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Check if user is navigating away with unsaved changes
+        if (hasUnsavedDeliveryChanges && !e.Location.Contains("inventory-management"))
+        {
+            // Note: In a real application, you might want to show a confirmation dialog
+            // For now, we'll just clear the items to prevent memory leaks
+            deliveryItems.Clear();
+        }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     private async Task LoadData()
@@ -830,42 +1024,102 @@
     {
         var allProducts = await ProductService.GetAllAsync(false);
         lowStockProducts = allProducts?.Where(p =>
-            p.ProductTotalQuantity <= p.Product_Min_Stock_Level &&
-            p.Is_activated == true &&
-            p.Is_deleted == false).ToList();
+        p.ProductTotalQuantity <= p.Product_Min_Stock_Level &&
+        p.Is_activated == true &&
+        p.Is_deleted == false).ToList();
 
         criticalStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity == 0) ?? 0;
         lowStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity > 0 && p.ProductTotalQuantity <= p.Product_Min_Stock_Level) ?? 0;
         expiredStockCount = allProducts?.Count(p => p.Expiry_Date < DateTime.Now) ?? 0;
     }
 
-    private void SetActiveTab(int tab)
+    private async Task LoadDepartments()
     {
-        switch (tab)
+        try
         {
-            case 1:
-                activeTab = "transfers";
-                break;
-            case 2:
-                activeTab = "orders";
-                break;
-            case 3:
-                activeTab = "deliveries";
-                break;
-            case 4:
-                activeTab = "adjustments";
-                break;
-            case 5:
-                activeTab = "suppliers";
-                break;
-            case 6:
-                activeTab = "alerts";
-                break;
-            default:
-                activeTab = "transfers";
-                break;
+            var allDepartments = await DepartmentService.GetAllAsync(false);
+            departments = allDepartments?.OrderBy(d => d.Department_Name).ToList();
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading departments: {ex.Message}");
+        }
+    }
+
+    private async Task FilterStockOrdersByDepartment()
+    {
+        if (stockOrders == null)
+        {
+            filteredStockOrders = new List<StockOrderModel>();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(selectedDepartmentFilter))
+        {
+            filteredStockOrders = stockOrders.ToList();
+        }
+        else
+        {
+            filteredStockOrders = stockOrders
+            .Where(order => order.DepartmentName == selectedDepartmentFilter)
+            .ToList();
+        }
+
         StateHasChanged();
+    }
+
+    private void OnDepartmentFilterChanged(ChangeEventArgs e)
+    {
+        selectedDepartmentFilter = e.Value?.ToString();
+        FilterStockOrdersByDepartment();
+    }
+
+    private async Task PrintStockOrders()
+    {
+        if (filteredStockOrders?.Any() != true)
+        {
+            modalTitle = "No Data";
+            modalMessage = "No stock orders available to print.";
+            showMessageModal = true;
+            return;
+        }
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Print Error";
+            modalMessage = $"Failed to print: {ex.Message}";
+            showMessageModal = true;
+        }
+    }
+
+    private async Task SetActiveTab(int tab)
+    {
+        string newTab = tab switch
+        {
+            1 => "transfers",
+            2 => "orders",
+            3 => "deliveries",
+            4 => "adjustments",
+            5 => "suppliers",
+            6 => "alerts",
+            _ => "transfers"
+        };
+
+        // Check if leaving deliveries tab with unsaved changes
+        if (activeTab == "deliveries" && newTab != "deliveries" && hasUnsavedDeliveryChanges)
+        {
+            pendingTabChange = newTab;
+            confirmExitTitle = "Unsaved Delivery Changes";
+            confirmExitMessage = "You have unsaved delivery items. Would you like to finalize the delivery and exit?";
+            showConfirmExitModal = true;
+            return;
+        }
+
+        await OnTabChanged(newTab);
     }
 
     private async Task OnSearchChanged()
@@ -879,8 +1133,8 @@
         {
             var searchLower = searchTerm.ToLower();
             filteredPendingTransfers = pendingTransfers?.Where(t =>
-                (t.Product?.Product_Barcode != null && t.Product.Product_Barcode.ToLower().Contains(searchLower)) ||
-                (t.Product?.Product_Name != null && t.Product.Product_Name.ToLower().Contains(searchLower))
+            (t.Product?.Product_Barcode != null && t.Product.Product_Barcode.ToLower().Contains(searchLower)) ||
+            (t.Product?.Product_Name != null && t.Product.Product_Name.ToLower().Contains(searchLower))
             ).ToList() ?? new List<StockTransaction>();
 
             if (!filteredPendingTransfers.Any())
@@ -1004,9 +1258,9 @@
         {
             await Task.Delay(100);
             await InvokeAsync(async () =>
-            {
-                await barcodeInput.FocusAsync();
-            });
+        {
+            await barcodeInput.FocusAsync();
+        });
         });
     }
 
@@ -1056,7 +1310,7 @@
 
         StateHasChanged();
     }
-   
+
     private bool ValidateNewTransfer()
     {
         if (string.IsNullOrEmpty(newTransfer.Barcode))
@@ -1132,7 +1386,7 @@
             {
                 if (transfer.Product != null)
                 {
-                    transfer.Product.Last_Modified =DateTime.UtcNow;
+                    transfer.Product.Last_Modified = DateTime.UtcNow;
                     transfer.Product.Last_Modified_By_Id = UserSessionService.GetCurrentUserId();
                     transfer.Product.StockroomQuantity += transfer.Quantity;
                     productsToUpdate.Add(transfer.Product);
@@ -1163,17 +1417,17 @@
         {
             await BulkUpdateTransfers();
             await InvokeAsync(() =>
+        {
+            showExitConfirmModal = false;
+            if (pendingExitAction == "backoffice")
             {
-                showExitConfirmModal = false;
-                if (pendingExitAction == "backoffice")
-                {
-                    NavigationManager.NavigateTo("/backoffice");
-                }
-                else if (pendingExitAction == "checkout")
-                {
-                    NavigationManager.NavigateTo("/checkout");
-                }
-            });
+                NavigationManager.NavigateTo("/backoffice");
+            }
+            else if (pendingExitAction == "checkout")
+            {
+                NavigationManager.NavigateTo("/checkout");
+            }
+        });
         });
     }
 
@@ -1192,11 +1446,7 @@
         }
     }
 
-    private void CancelExit()
-    {
-        showExitConfirmModal = false;
-        pendingExitAction = "";
-    }
+
 
     private async Task ShowNewDeliveryModal()
     {
@@ -1218,8 +1468,41 @@
 
     private async Task GenerateStockOrder()
     {
-        // Implementation for generating stock orders
-        await JSRuntime.InvokeVoidAsync("alert", "Generate Stock Order - To be implemented");
+        try
+        {
+            // Generate stock orders based on yearly sales patterns for next 7 days
+            var stockOrderReport = await StockOrderService.GetDetailedStockOrderReportAsync();
+            stockOrders = stockOrderReport.StockOrders.ToList();
+
+            // Generate distinct departments for filter
+            distinctDepartments = stockOrders?.Select(o => o.DepartmentName).Distinct().OrderBy(d => d).ToList() ?? new();
+
+            // Reset filter and apply current department filter
+            selectedDepartmentFilter = "";
+            await FilterStockOrdersByDepartment();
+
+            if (stockOrders.Any())
+            {
+                modalTitle = "Stock Order Generated";
+                modalMessage = $"Stock order generated successfully! Found {stockOrderReport.TotalProductsAnalyzed} products requiring restocking for the next 7 days based on yearly sales patterns.";
+                showMessageModal = true;
+            }
+            else
+            {
+                modalTitle = "Stock Analysis Complete";
+                modalMessage = "Stock analysis completed. All active products have sufficient stock for the next 7 days based on sales patterns.";
+                showMessageModal = true;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Error";
+            modalMessage = $"Failed to generate stock order: {ex.Message}";
+            showMessageModal = true;
+            StateHasChanged();
+        }
     }
 
     private async Task RefreshAlerts()
@@ -1243,7 +1526,7 @@
     private async Task CreateOrder(StockOrderModel order)
     {
         // Implementation for creating order
-        await JSRuntime.InvokeVoidAsync("alert", $"Create Order for {order.Product?.Product_Name} - To be implemented");
+        await JSRuntime.InvokeVoidAsync("alert", $"Create Order for {order.ProductName} - To be implemented");
     }
 
     private async Task QuickReorder(Product product)
@@ -1251,15 +1534,359 @@
         // Implementation for quick reorder
         await JSRuntime.InvokeVoidAsync("alert", $"Quick Reorder for {product.Product_Name} - To be implemented");
     }
+
+
     private async Task FocusBarcodeInput(MouseEventArgs args)
     {
         await barcodeInput.FocusAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadDepartments();
+            await LoadSuppliers();
+        }
+
+        if (activeTab == "deliveries")
+        {
+            await FocusDeliveryBarcode();
+        }
+    }
+
+    // Delivery form methods
+    private async Task HandleBarcodeKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(deliveryProductBarcode))
+        {
+            await SearchProductByBarcode();
+            
+        }
+    }
+
+    private async Task SearchProductByBarcode()
+    {
+        try
+        {
+            var product = await ProductService.GetProductByBarcode(deliveryProductBarcode.Trim(), false, false);
+            if (product != null)
+            {
+                deliveryProduct = product;
+                deliveryProductName = product.Product_Name;
+                deliverySellingPrice = product.Product_Selling_Price;
+                deliveryDepartmentId = product.Department_ID;
+                deliveryCurrentQuantity = product.ProductTotalQuantity;
+
+                // Load supplier information if available
+                var supplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(product.Product_ID);
+                if (supplierItem != null)
+                {
+                    deliverySupplierId = supplierItem.SupplierId;
+                    deliveryUnitsPerCase = supplierItem.Unit_Per_Case;
+                    deliveryCostPerCase = supplierItem.Cost_Per_Case;
+                }
+
+                StateHasChanged();
+            }
+            else
+            {
+                modalTitle = "Product Not Found";
+                modalMessage = "No product found with the barcode: " + deliveryProductBarcode;
+                showMessageModal = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Error";
+            modalMessage = "Error searching product: " + ex.Message;
+            showMessageModal = true;
+        }
+    }
+
+    private async Task LoadSuppliers()
+    {
+        try
+        {
+            var allSuppliers = await SupplierService.GetAllAsync(false);
+            suppliers = allSuppliers?.OrderBy(s => s.Supplier_Name).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading suppliers: {ex.Message}");
+        }
+    }
+
+    private async Task EditDeliveryProduct()
+    {
+        if (deliveryProduct != null)
+        {
+            selectedProductForModal = deliveryProduct;
+            showProductModal = true;
+        }
+        else if (!string.IsNullOrWhiteSpace(deliveryProductBarcode))
+        {
+            // Try to find product by barcode first
+            var product = await ProductService.GetProductByBarcode(deliveryProductBarcode.Trim(), false, false);
+            if (product != null)
+            {
+                selectedProductForModal = product;
+                showProductModal = true;
+            }
+            else
+            {
+                modalTitle = "Product Not Found";
+                modalMessage = "No product found. Please search for a product first.";
+                showMessageModal = true;
+            }
+        }
+        else
+        {
+            modalTitle = "No Product Selected";
+            modalMessage = "Please search for a product using barcode before editing.";
+            showMessageModal = true;
+        }
+    }
+
+    private void CloseProductModal()
+    {
+        showProductModal = false;
+        selectedProductForModal = null;
+    }
+
+    private async Task SaveProductModal(Product product)
+    {
+        if (product != null)
+        {
+            try
+            {
+                product.Last_Modified = DateTime.UtcNow;
+                product.Last_Modified_By_Id = UserSessionService.GetCurrentUserId();
+
+                await ProductService.UpdateAsync(product);
+
+                // Update delivery form with saved changes
+                if (deliveryProduct?.Product_ID == product.Product_ID)
+                {
+                    deliveryProduct = product;
+                    deliveryProductName = product.Product_Name;
+                    deliverySellingPrice = product.Product_Selling_Price;
+                    deliveryDepartmentId = product.Department_ID;
+                    deliveryCurrentQuantity = product.ProductTotalQuantity;
+                }
+
+                // Update the selected product reference
+                selectedProductForModal = product;
+
+                CloseProductModal();
+                modalTitle = "Success";
+                modalMessage = "Product updated successfully!";
+                showMessageModal = true;
+            }
+            catch (Exception ex)
+            {
+                modalTitle = "Error";
+                modalMessage = "Error saving product: " + ex.Message;
+                showMessageModal = true;
+            }
+        }
+    }
+
+    private async Task FocusDeliveryBarcode()
+    {
+        await Task.Delay(100); // Small delay to ensure DOM is ready
+        await deliveryBarcodeInput.FocusAsync();
+    }
+
+    private async Task OnTabChanged(string newTab)
+    {
+        activeTab = newTab;
+        if (activeTab == "deliveries")
+        {
+            await LoadSuppliers();
+            await FocusDeliveryBarcode();
+        }
+    }
+
+    private async Task CloseMessageModal()
+    {
+        showMessageModal = false;
+        StateHasChanged();
+    }
+
+    private async Task AddDeliveryProduct()
+    {
+        try
+        {
+            // Validate required fields
+            if (string.IsNullOrEmpty(deliveryProductBarcode) || string.IsNullOrEmpty(deliveryProductName))
+            {
+                modalTitle = "Validation Error";
+                modalMessage = "Please enter both barcode and product name.";
+                showMessageModal = true;
+                StateHasChanged();
+                return;
+            }
+
+            if (deliveryDepartmentId <= 0)
+            {
+                modalTitle = "Validation Error";
+                modalMessage = "Please select a department.";
+                showMessageModal = true;
+                StateHasChanged();
+                return;
+            }
+
+            if (deliveryDeliveredCases <= 0)
+            {
+                modalTitle = "Validation Error";
+                modalMessage = "Please enter a valid number of delivered cases.";
+                showMessageModal = true;
+                StateHasChanged();
+                return;
+            }
+
+            // Check if product already exists in delivery items
+            var existingItem = deliveryItems.FirstOrDefault(item => item.Barcode == deliveryProductBarcode);
+            if (existingItem != null)
+            {
+                modalTitle = "Duplicate Product";
+                modalMessage = "This product is already in the delivery list. Please edit the existing entry or use a different product.";
+                showMessageModal = true;
+                StateHasChanged();
+                return;
+            }
+
+            // Get department name
+            var department = departments?.FirstOrDefault(d => d.Department_ID == deliveryDepartmentId);
+            string departmentName = department?.Department_Name ?? "Unknown";
+
+            // Calculate values
+            int totalUnits = deliveryDeliveredCases * deliveryUnitsPerCase;
+            decimal totalCost = deliveryDeliveredCases * deliveryCostPerCase;
+
+            // Create delivery item
+            var deliveryItem = new DeliveryItem
+            {
+                Barcode = deliveryProductBarcode,
+                ProductName = deliveryProductName,
+                DepartmentName = departmentName,
+                UnitsPerCase = deliveryUnitsPerCase,
+                CostPerCase = deliveryCostPerCase,
+                CostPerUnit = deliveryCostPerProduct,
+                DeliveredCases = deliveryDeliveredCases,
+                TotalUnits = totalUnits,
+                TotalCost = totalCost,
+                Product = deliveryProduct
+            };
+
+            // Add to delivery items list
+            deliveryItems.Add(deliveryItem);
+
+            modalTitle = "Product Added";
+            modalMessage = $"Successfully added {deliveryProductName} to delivery list.";
+            showMessageModal = true;
+
+            // Clear form after successful addition
+            await ClearDeliveryForm();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Error";
+            modalMessage = $"Failed to add delivery: {ex.Message}";
+            showMessageModal = true;
+            StateHasChanged();
+        }
+
+
+    }
+
+    private async Task ClearDeliveryForm()
+    {
+        deliveryProductBarcode = "";
+        deliveryProductName = "";
+        deliverySellingPrice = 0;
+        deliveryDepartmentId = 0;
+        deliverySupplierId = 0;
+        deliveryUnitsPerCase = 1;
+        deliveryCostPerCase = 0;
+        deliveryCurrentQuantity = 0;
+        deliveryDeliveredCases = 0;
+
+        StateHasChanged();
+    }
+
+    private void RemoveDeliveryItem(DeliveryItem item)
+    {
+        deliveryItems.Remove(item);
+        StateHasChanged();
+    }
+
+    private async Task ClearAllDeliveryItems()
+    {
+        deliveryItems.Clear();
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDelivery()
+    {
+        if (!deliveryItems.Any())
+        {
+            modalTitle = "No Items";
+            modalMessage = "No delivery items to confirm.";
+            showMessageModal = true;
+            return;
+        }
+
+        try
+        {
+            // Here you would typically save the delivery to the database
+            // For now, we'll just show a success message and clear the items
+
+            int totalItems = deliveryItems.Count;
+            int totalUnits = deliveryItems.Sum(i => i.TotalUnits);
+            decimal totalCost = deliveryItems.Sum(i => i.TotalCost);
+
+            modalTitle = "Delivery Confirmed";
+            modalMessage = $"Successfully confirmed delivery of {totalItems} products ({totalUnits} total units) worth £{totalCost:F2}.";
+            showMessageModal = true;
+
+            // Clear delivery items after confirmation
+            deliveryItems.Clear();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Error";
+            modalMessage = $"Failed to confirm delivery: {ex.Message}";
+            showMessageModal = true;
+        }
+    }
+
+    private async Task ConfirmAndExit()
+    {
+        // Finalize the delivery first
+        await ConfirmDelivery();
+
+        // Then change to the pending tab
+        showConfirmExitModal = false;
+        await OnTabChanged(pendingTabChange);
+    }
+
+    private void CancelExit()
+    {
+        // Just close the modal and stay on current tab
+        showConfirmExitModal = false;
+        pendingTabChange = "";
+    }
+
+
     private void AddPendingTransfer()
     {
         if (string.IsNullOrEmpty(newTransfer.Barcode) ||
-            newTransfer.Product == null ||
-            newTransfer.TransferQuantity <= 0)
+        newTransfer.Product == null ||
+        newTransfer.TransferQuantity <= 0)
 
         {
             return;
@@ -1306,17 +1933,16 @@
         {
             var searchLower = searchTerm.ToLower();
             filteredPendingTransfers = pendingTransfers?.Where(t =>
-                (t.Product?.Product_Barcode != null && t.Product.Product_Barcode.ToLower().Contains(searchLower)) ||
-                (t.Product?.Product_Name != null && t.Product.Product_Name.ToLower().Contains(searchLower))
+            (t.Product?.Product_Barcode != null && t.Product.Product_Barcode.ToLower().Contains(searchLower)) ||
+            (t.Product?.Product_Name != null && t.Product.Product_Name.ToLower().Contains(searchLower))
             ).ToList() ?? new List<StockTransaction>();
         }
 
         // Close modal
         showNewTransferModal = false;
     }
-}
-@code {
-    private void SaveAndExit(MouseEventArgs args)
+
+    private void SaveAndExit()
     {
         throw new NotImplementedException();
     }

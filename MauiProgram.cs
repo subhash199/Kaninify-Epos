@@ -3,6 +3,7 @@ using DataHandlerLibrary.Models;
 using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Data;
 using EntityFrameworkDatabaseLibrary.Models;
+using EposDataHandler.Services;
 using EposRetail.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,6 +61,11 @@ public static class MauiProgram
 		builder.Services.AddScoped<TillServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<ShiftServices>(); // Ensure DbContext is scoped
 		builder.Services.AddScoped<DrawerLogServices>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<StockOrderGenerationService>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<SupplierServices>(); // Ensure DbContext is scoped
+		builder.Services.AddScoped<SupplierItemsServices>(); // Ensure DbContext is scoped
+
+
 
         builder.Services.AddSingleton<UserSessionService>();
         builder.Services.AddSingleton<ReceiptPrinter>();
