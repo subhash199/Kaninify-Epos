@@ -244,6 +244,10 @@
             showFloatModal = true;
             StateHasChanged();
         }
+        else
+        {
+            UserSession.SetShift(activeShift);
+        }
     }
 
     private async Task QuantityValueEntered(string value)

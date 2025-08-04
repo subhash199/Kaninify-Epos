@@ -119,6 +119,7 @@
 
             await ShiftServices.AddAsync(shift);
 
+            UserSession.SetShift(shift);
             // Notify parent component
             await OnFloatSet.InvokeAsync(floatModel.Amount);
 
