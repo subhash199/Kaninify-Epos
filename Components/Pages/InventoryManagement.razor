@@ -62,11 +62,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link @(activeTab == "adjustments" ? "active" : "")"
+                <button class="nav-link @(activeTab == "supplieritems" ? "active" : "")"
                         @onclick="() => SetActiveTab(4)"
                         type="button" role="tab">
-                    <i class="fas fa-edit"></i>
-                    Stock Adjustments
+                    <i class="fas fa-boxes"></i>
+                    Supplier Items
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -227,6 +227,19 @@
                                     }
                                 </select>
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Filter by Supplier</label>
+                                <select class="form-select" value="@selectedSupplierFilterStockOrders" @onchange="OnSupplierFilterStockOrdersChanged">
+                                    <option value="">All Suppliers</option>
+                                    @if (suppliers != null)
+                                    {
+                                        @foreach (var supplier in suppliers)
+                                        {
+                                            <option value="@supplier.Supplier_Name">@supplier.Supplier_Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
                         </div>
                     </div>
                 }
@@ -295,8 +308,8 @@
                                             <strong>£@order.EstimatedCost.ToString("N2")</strong>
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-success" @onclick="() => CreateOrder(order)">
-                                                <i class="fas fa-plus"></i> Order
+                                            <button class="btn btn-sm btn-danger" @onclick="() => RemoveStockOrder(order)">
+                                                <i class="fas fa-trash"></i> Remove
                                             </button>
                                         </td>
                                     </tr>
@@ -356,13 +369,13 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Product Name</label>
-                                        <input type="text" class="form-control" @bind="deliveryProductName" placeholder="Enter product name" />
+                                        <input type="text" class="form-control" @bind="deliveryProduct.Product_Name" placeholder="Enter product name" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Selling Price (£)</label>
-                                        <input type="number" class="form-control" @bind="deliverySellingPrice" step="0.01" placeholder="0.00" />
+                                        <input type="number" class="form-control" @bind="deliveryProduct.Product_Selling_Price" step="0.01" placeholder="0.00" />
                                     </div>
                                 </div>
                             </div>
@@ -371,7 +384,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Department</label>
-                                        <select class="form-select" @bind="deliveryDepartmentId">
+                                        <select class="form-select" @bind="deliveryProduct.Department_ID">
                                             <option value="">Select Department</option>
                                             @foreach (var dept in departments)
                                             {
@@ -395,7 +408,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Units per Case</label>
-                                        <input type="number" class="form-control" @bind="deliveryUnitsPerCase" min="1" placeholder="Enter units per case" />
+                                        <input type="number" class="form-control" @bind="deliveryProduct.Product_Unit_Per_Case" min="1" placeholder="Enter units per case" />
                                     </div>
                                 </div>
                             </div>
@@ -404,19 +417,19 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Cost per Case (£)</label>
-                                        <input type="number" class="form-control" @bind="deliveryCostPerCase" step="0.01" placeholder="0.00" />
+                                        <input type="number" class="form-control" @bind="deliveryProduct.Product_Cost_Per_Case" step="0.01" placeholder="0.00" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Current Quantity</label>
-                                        <input type="number" class="form-control" value="@deliveryCurrentQuantity" readonly />
+                                        <input type="number" class="form-control" value="@(deliveryProduct?.ProductTotalQuantity ?? 0)" readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label class="form-label">Cost per Product (£)</label>
-                                        <input type="number" class="form-control" value="@deliveryCostPerProduct" readonly />
+                                        <input type="number" class="form-control" value="@deliveryProduct.Product_Cost" readonly />
                                     </div>
                                 </div>
                             </div>
@@ -513,6 +526,154 @@
 
         }
 
+        <!-- Supplier Items Tab -->
+        @if (activeTab == "supplieritems")
+        {
+            <div class="tab-pane active">
+                <div class="content-header">
+                    <h3>Supplier Items</h3>
+                    <button class="btn btn-primary" @onclick="RefreshSupplierItems">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="filter-section mb-3">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Supplier</label>
+                            <select class="form-select" value="@selectedSupplierFilter" @onchange="OnSupplierFilterChanged">
+                                <option value="">All Suppliers</option>
+                                @foreach (var supplier in suppliers)
+                                {
+                                    <option value="@supplier.Supplier_ID">@supplier.Supplier_Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Department</label>
+                            <select class="form-select" value="@selectedSupplierItemDepartmentFilter" @onchange="OnSupplierItemDepartmentFilterChanged">
+                                <option value="">All Departments</option>
+                                @foreach (var dept in departments)
+                                {
+                                    <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-end">
+                                <button class="btn btn-outline-secondary" @onclick="ClearSupplierItemFilters">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover modern-table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Barcode</th>
+                                <th>Supplier</th>
+                                <th>Department</th>
+                                <th>Current Stock</th>
+                                <th>Selling Price</th>
+                                <th>Cost Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (filteredSupplierItems?.Any() == true)
+                            {
+                                @foreach (var item in filteredSupplierItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div>
+                                                <strong>@item.Product?.Product_Name</strong>
+                                                @if (!string.IsNullOrEmpty(item.Product?.Product_Description))
+                                                {
+                                                    <br>
+
+                                                    <small class="text-muted">@item.Product.Product_Description</small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <code>@item.Product?.Product_Barcode</code>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">@item.Supplier?.Supplier_Name</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">@item.Product?.Department?.Department_Name</span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>@item.Product?.ProductTotalQuantity</strong>
+                                                <br><small class="text-muted">
+                                                    Shelf: @item.Product?.ShelfQuantity | Stock: @item.Product?.StockroomQuantity
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <strong>£@item.Product?.Product_Selling_Price.ToString("F2")</strong>
+                                        </td>
+                                        <td>
+                                            <strong>£@item.Product?.Product_Cost.ToString("F2")</strong>
+                                        </td>
+                                        <td>
+                                            @if (item.Product?.Is_activated == true)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => EditSupplierItem(item)">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" @onclick="() => ViewSupplierItemDetails(item)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        @if (supplierItems == null)
+                                        {
+                                            <div>
+                                                <i class="fas fa-boxes fa-2x mb-2"></i>
+                                                <br>Click "Refresh" to load supplier items
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <i class="fas fa-search fa-2x mb-2"></i>
+                                                <br>No supplier items found matching the current filters
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
         <!-- Suppliers Tab -->
         @if (activeTab == "suppliers")
         {
@@ -537,24 +698,37 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>ABC Wholesale Ltd</td>
-                                <td>+44 123 456 7890</td>
-                                <td>orders@abcwholesale.com</td>
-                                <td>£5,000.00</td>
-                                <td><span class="badge bg-success">Active</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">More suppliers will be displayed here</td>
-                            </tr>
+                            @if (suppliers?.Any() == true)
+                            {
+                                @foreach (var supplier in suppliers)
+                                {
+                                    <tr>
+                                        <td>@supplier.Supplier_Name</td>
+                                        <td>@(supplier.Supplier_Phone ?? supplier.Supplier_Mobile ?? "N/A")</td>
+                                        <td>@(supplier.Supplier_Email ?? "N/A")</td>
+                                        <td>@(supplier.Supplier_Credit_Limit?.ToString("C") ?? "N/A")</td>
+                                        <td>
+                                            <span class="badge bg-@(supplier.Is_Activated ? "success" : "secondary")">
+                                                @(supplier.Is_Activated ? "Active" : "Inactive")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditSupplier(supplier)">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" @onclick="() => ViewSupplier(supplier)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No suppliers found. Click "Add Supplier" to create your first supplier.</td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -744,9 +918,9 @@
                 </button>
                 <button type="button" class="btn btn-primary" @onclick="AddPendingTransfer"
                         disabled="@(string.IsNullOrEmpty(newTransfer.Barcode) ||
-                                                                                                                                                                                                                                                  newTransfer.Product == null ||
-                                                                                                                                                                                                                                                  newTransfer.TransferQuantity <= 0
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                )">
+                                                                                                                                                                                                                                                                                                  newTransfer.Product == null ||
+                                                                                                                                                                                                                                                                                                  newTransfer.TransferQuantity <= 0
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                )">
                     <i class="fas fa-plus"></i> Add Transfer
                 </button>
             </div>
@@ -854,6 +1028,187 @@
                      PrimaryAction="CloseMessageModal"
                      OnClose="CloseMessageModal" />
 
+<!-- Supplier Modal -->
+@if (showSupplierModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@supplierModalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseSupplierModal"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="supplierName" class="form-label">Supplier Name *</label>
+                                    <input type="text" class="form-control" id="supplierName" @bind="currentSupplier.Supplier_Name" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="supplierEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="supplierEmail" @bind="currentSupplier.Supplier_Email" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="supplierPhone" class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" id="supplierPhone" @bind="currentSupplier.Supplier_Phone" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="supplierMobile" class="form-label">Mobile</label>
+                                    <input type="tel" class="form-control" id="supplierMobile" @bind="currentSupplier.Supplier_Mobile" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierAddress" class="form-label">Address</label>
+                            <textarea class="form-control" id="supplierAddress" rows="3" @bind="currentSupplier.Supplier_Address"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="supplierWebsite" class="form-label">Website</label>
+                                    <input type="url" class="form-control" id="supplierWebsite" @bind="currentSupplier.Supplier_Website" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="supplierCreditLimit" class="form-label">Credit Limit</label>
+                                    <input type="number" class="form-control" id="supplierCreditLimit" step="0.01" @bind="currentSupplier.Supplier_Credit_Limit" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="supplierDescription" rows="2" @bind="currentSupplier.Supplier_Description"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="supplierActive" @bind="currentSupplier.Is_Activated" />
+                            <label class="form-check-label" for="supplierActive">
+                                Active Supplier
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseSupplierModal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveSupplier" disabled="@(string.IsNullOrWhiteSpace(currentSupplier.Supplier_Name))">
+                        <i class="fas fa-save"></i> @(isEditingSupplier ? "Update" : "Save") Supplier
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Supplier View Modal -->
+@if (showSupplierViewModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Supplier Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseSupplierViewModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (viewSupplier != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Basic Information</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Name:</strong></td>
+                                        <td>@viewSupplier.Supplier_Name</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td>@(viewSupplier.Supplier_Email ?? "N/A")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Phone:</strong></td>
+                                        <td>@(viewSupplier.Supplier_Phone ?? "N/A")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Mobile:</strong></td>
+                                        <td>@(viewSupplier.Supplier_Mobile ?? "N/A")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Website:</strong></td>
+                                        <td>@(viewSupplier.Supplier_Website ?? "N/A")</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Business Information</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Credit Limit:</strong></td>
+                                        <td>@(viewSupplier.Supplier_Credit_Limit?.ToString("C") ?? "N/A")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Status:</strong></td>
+                                        <td>
+                                            <span class="badge bg-@(viewSupplier.Is_Activated ? "success" : "secondary")">
+                                                @(viewSupplier.Is_Activated ? "Active" : "Inactive")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Created:</strong></td>
+                                        <td>@viewSupplier.Date_Created.ToString("dd/MM/yyyy")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Last Modified:</strong></td>
+                                        <td>@viewSupplier.Last_Modified.ToString("dd/MM/yyyy")</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(viewSupplier.Supplier_Address))
+                        {
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Address</h6>
+                                    <p>@viewSupplier.Supplier_Address</p>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(viewSupplier.Supplier_Description))
+                        {
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Description</h6>
+                                    <p>@viewSupplier.Supplier_Description</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="() => EditSupplier(viewSupplier)">
+                        <i class="fas fa-edit"></i> Edit Supplier
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="CloseSupplierViewModal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @if (showProductModal)
 {
     <ProductModal IsVisible="@showProductModal" Product="@selectedProductForModal" OnSave="@SaveProductModal" OnClose="@CloseProductModal" />
@@ -895,6 +1250,7 @@
     private List<StockOrderModel>? stockOrders;
     private List<StockOrderModel>? filteredStockOrders;
     private List<Department>? departments;
+    private List<Supplier>? suppliersList;
     private List<StockTransaction>? adjustments;
     private List<Product>? lowStockProducts;
     private List<StockTransaction> pendingTransfers = new List<StockTransaction>();
@@ -902,7 +1258,9 @@
     private List<StockTransaction> filteredPendingTransfers = new List<StockTransaction>();
     private string searchMessage = "";
     private string selectedDepartmentFilter = "";
+    private string selectedSupplierFilterStockOrders = "";
     private List<string> distinctDepartments = new();
+    private List<string> distinctSuppliers = new();
     private int criticalStockCount = 0;
     private int lowStockCount = 0;
     private int expiredStockCount = 0;
@@ -941,7 +1299,7 @@
         public decimal CostPerCase { get; set; }
         public decimal CostPerUnit { get; set; }
         public int DeliveredCases { get; set; }
-        public int TotalUnits { get; set; }
+        public int TotalUnits => UnitsPerCase * DeliveredCases;
         public decimal TotalCost { get; set; }
         public Product? Product { get; set; }
         public DateTime DateAdded { get; set; } = DateTime.Now;
@@ -949,16 +1307,9 @@
 
     // Delivery form variables
     private string deliveryProductBarcode = "";
-    private string deliveryProductName = "";
-    private decimal deliverySellingPrice = 0;
-    private int deliveryDepartmentId = 0;
     private int deliverySupplierId = 0;
-    private int deliveryUnitsPerCase = 1;
-    private decimal deliveryCostPerCase = 0;
-    private int deliveryCurrentQuantity = 0;
-    private decimal deliveryCostPerProduct => deliveryUnitsPerCase > 0 ? deliveryCostPerCase / deliveryUnitsPerCase : 0;
     private int deliveryDeliveredCases = 0;
-    private Product? deliveryProduct;
+    private Product? deliveryProduct = new();
     private ElementReference deliveryBarcodeInput;
 
     // Delivery items list
@@ -976,6 +1327,21 @@
     private Product? selectedProductForModal;
     private List<Supplier>? suppliers = new();
 
+    // Supplier Items variables
+    private List<SupplierItems>? supplierItems;
+    private List<SupplierItems>? filteredSupplierItems;
+    private List<SupplierItems>? relevantSupplierItemsCache;
+    private string selectedSupplierFilter = "";
+    private string selectedSupplierItemDepartmentFilter = "";
+
+    // Supplier modal variables
+    private bool showSupplierModal = false;
+    private bool showSupplierViewModal = false;
+    private bool isEditingSupplier = false;
+    private string supplierModalTitle = "Add New Supplier";
+    private Supplier currentSupplier = new Supplier();
+    private Supplier? viewSupplier = null;
+
     // Modal state variables for GenericMessageModal
     private bool showMessageModal = false;
     private string modalTitle = string.Empty;
@@ -985,6 +1351,7 @@
     {
         await LoadData();
         await LoadDepartments();
+        await LoadSuppliers();
 
         // Add navigation protection
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -1011,6 +1378,9 @@
         try
         {
             await LoadLowStockAlerts();
+            await LoadDepartments();
+            await LoadSuppliersList();
+            await RefreshSupplierItems();
             filteredPendingTransfers = pendingTransfers?.ToList() ?? new List<StockTransaction>();
         }
         catch (Exception ex)
@@ -1046,7 +1416,39 @@
         }
     }
 
+    private async Task LoadSuppliersList()
+    {
+        try
+        {
+            var allSuppliers = await SupplierService.GetAllAsync(false);
+            suppliers = allSuppliers?.Where(s => s.Is_Activated && !s.Is_Deleted)
+                                   .OrderBy(s => s.Supplier_Name)
+                                   .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading suppliers: {ex.Message}");
+        }
+    }
+
     private async Task FilterStockOrdersByDepartment()
+    {
+        FilterStockOrdersBySupplier(); // Use the combined filter method
+    }
+
+    private void OnDepartmentFilterChanged(ChangeEventArgs e)
+    {
+        selectedDepartmentFilter = e.Value?.ToString();
+        FilterStockOrdersByDepartment();
+    }
+
+    private void OnSupplierFilterStockOrdersChanged(ChangeEventArgs e)
+    {
+        selectedSupplierFilterStockOrders = e.Value?.ToString();
+        FilterStockOrdersBySupplier();
+    }
+
+    private void FilterStockOrdersBySupplier()
     {
         if (stockOrders == null)
         {
@@ -1054,24 +1456,38 @@
             return;
         }
 
-        if (string.IsNullOrEmpty(selectedDepartmentFilter))
+        var baseOrders = stockOrders.AsEnumerable();
+
+        // Apply department filter first if selected
+        if (!string.IsNullOrEmpty(selectedDepartmentFilter))
         {
-            filteredStockOrders = stockOrders.ToList();
-        }
-        else
-        {
-            filteredStockOrders = stockOrders
-            .Where(order => order.DepartmentName == selectedDepartmentFilter)
-            .ToList();
+            baseOrders = baseOrders.Where(order => order.DepartmentName == selectedDepartmentFilter);
         }
 
+        // Apply supplier filter if selected using cached supplier items
+        if (!string.IsNullOrEmpty(selectedSupplierFilterStockOrders))
+        {
+            // Use cached supplier items and filter by selected supplier
+            var supplierFilteredProductIds = relevantSupplierItemsCache?
+                .Where(si => si.Supplier != null && si.Supplier.Supplier_Name == selectedSupplierFilterStockOrders)
+                .Select(si => si.ProductId)
+                .ToHashSet() ?? new HashSet<int>();
+
+            baseOrders = baseOrders.Where(order => supplierFilteredProductIds.Contains(order.ProductId));
+        }
+
+        filteredStockOrders = baseOrders.ToList();
         StateHasChanged();
     }
 
-    private void OnDepartmentFilterChanged(ChangeEventArgs e)
+    private async Task RemoveStockOrder(StockOrderModel order)
     {
-        selectedDepartmentFilter = e.Value?.ToString();
-        FilterStockOrdersByDepartment();
+        if (stockOrders != null && filteredStockOrders != null)
+        {
+            stockOrders.Remove(order);
+            filteredStockOrders.Remove(order);
+            StateHasChanged();
+        }
     }
 
     private async Task PrintStockOrders()
@@ -1103,7 +1519,7 @@
             1 => "transfers",
             2 => "orders",
             3 => "deliveries",
-            4 => "adjustments",
+            4 => "supplieritems",
             5 => "suppliers",
             6 => "alerts",
             _ => "transfers"
@@ -1462,8 +1878,104 @@
 
     private async Task ShowNewSupplierModal()
     {
-        // Implementation for new supplier modal
-        await JSRuntime.InvokeVoidAsync("alert", "New Supplier Modal - To be implemented");
+        currentSupplier = new Supplier
+        {
+            Is_Activated = true,
+            Date_Created = DateTime.Now,
+            Last_Modified = DateTime.Now
+        };
+        isEditingSupplier = false;
+        supplierModalTitle = "Add New Supplier";
+        showSupplierModal = true;
+        StateHasChanged();
+    }
+
+    private void EditSupplier(Supplier supplier)
+    {
+        currentSupplier = new Supplier
+        {
+            Supplier_ID = supplier.Supplier_ID,
+            Supplier_Name = supplier.Supplier_Name,
+            Supplier_Email = supplier.Supplier_Email,
+            Supplier_Phone = supplier.Supplier_Phone,
+            Supplier_Mobile = supplier.Supplier_Mobile,
+            Supplier_Address = supplier.Supplier_Address,
+            Supplier_Website = supplier.Supplier_Website,
+            Supplier_Credit_Limit = supplier.Supplier_Credit_Limit,
+            Supplier_Description = supplier.Supplier_Description,
+            Is_Activated = supplier.Is_Activated,
+            Date_Created = supplier.Date_Created,
+            Last_Modified = DateTime.Now
+        };
+        isEditingSupplier = true;
+        supplierModalTitle = "Edit Supplier";
+        showSupplierViewModal = false;
+        showSupplierModal = true;
+        StateHasChanged();
+    }
+
+    private void ViewSupplier(Supplier supplier)
+    {
+        viewSupplier = supplier;
+        showSupplierViewModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseSupplierModal()
+    {
+        showSupplierModal = false;
+        currentSupplier = new Supplier();
+        isEditingSupplier = false;
+        StateHasChanged();
+    }
+
+    private void CloseSupplierViewModal()
+    {
+        showSupplierViewModal = false;
+        viewSupplier = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveSupplier()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(currentSupplier.Supplier_Name))
+            {
+                modalTitle = "Validation Error";
+                modalMessage = "Supplier name is required.";
+                showMessageModal = true;
+                return;
+            }
+
+            if (isEditingSupplier)
+            {
+                await SupplierService.UpdateAsync(currentSupplier);
+                modalTitle = "Success";
+                modalMessage = "Supplier updated successfully.";
+            }
+            else
+            {
+                await SupplierService.CreateAsync(currentSupplier);
+                modalTitle = "Success";
+                modalMessage = "Supplier created successfully.";
+            }
+
+            // Reload suppliers list
+            await LoadSuppliers();
+
+            // Close modal and show success message
+            CloseSupplierModal();
+            showMessageModal = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Error";
+            modalMessage = $"Failed to save supplier: {ex.Message}";
+            showMessageModal = true;
+            StateHasChanged();
+        }
     }
 
     private async Task GenerateStockOrder()
@@ -1477,8 +1989,29 @@
             // Generate distinct departments for filter
             distinctDepartments = stockOrders?.Select(o => o.DepartmentName).Distinct().OrderBy(d => d).ToList() ?? new();
 
-            // Reset filter and apply current department filter
+            // Fetch supplier items for the products in stock orders and generate distinct suppliers
+            if (stockOrders.Any())
+            {
+                var productIds = stockOrders.Select(so => so.ProductId).Distinct().ToList();
+                relevantSupplierItemsCache = (await SupplierItemsService.GetByConditionAsync(si => productIds.Contains(si.ProductId) && !si.Is_Deleted && si.Is_Active, true)).ToList();
+
+                // Get distinct suppliers from supplier items
+                distinctSuppliers = relevantSupplierItemsCache
+                    .Where(si => si.Supplier != null && !string.IsNullOrEmpty(si.Supplier.Supplier_Name))
+                    .Select(si => si.Supplier.Supplier_Name)
+                    .Distinct()
+                    .OrderBy(s => s)
+                    .ToList();
+            }
+            else
+            {
+                distinctSuppliers = new List<string>();
+                relevantSupplierItemsCache = new List<SupplierItems>();
+            }
+
+            // Reset filters and apply current department filter
             selectedDepartmentFilter = "";
+            selectedSupplierFilterStockOrders = "";
             await FilterStockOrdersByDepartment();
 
             if (stockOrders.Any())
@@ -1561,7 +2094,7 @@
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(deliveryProductBarcode))
         {
             await SearchProductByBarcode();
-            
+
         }
     }
 
@@ -1573,18 +2106,16 @@
             if (product != null)
             {
                 deliveryProduct = product;
-                deliveryProductName = product.Product_Name;
-                deliverySellingPrice = product.Product_Selling_Price;
-                deliveryDepartmentId = product.Department_ID;
-                deliveryCurrentQuantity = product.ProductTotalQuantity;
+
 
                 // Load supplier information if available
                 var supplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(product.Product_ID);
                 if (supplierItem != null)
                 {
                     deliverySupplierId = supplierItem.SupplierId;
-                    deliveryUnitsPerCase = supplierItem.Unit_Per_Case;
-                    deliveryCostPerCase = supplierItem.Cost_Per_Case;
+                    // Update product with supplier item information
+                    deliveryProduct.Product_Unit_Per_Case = supplierItem.Unit_Per_Case;
+                    deliveryProduct.Product_Cost_Per_Case = supplierItem.Cost_Per_Case;
                 }
 
                 StateHasChanged();
@@ -1669,10 +2200,6 @@
                 if (deliveryProduct?.Product_ID == product.Product_ID)
                 {
                     deliveryProduct = product;
-                    deliveryProductName = product.Product_Name;
-                    deliverySellingPrice = product.Product_Selling_Price;
-                    deliveryDepartmentId = product.Department_ID;
-                    deliveryCurrentQuantity = product.ProductTotalQuantity;
                 }
 
                 // Update the selected product reference
@@ -1719,7 +2246,7 @@
         try
         {
             // Validate required fields
-            if (string.IsNullOrEmpty(deliveryProductBarcode) || string.IsNullOrEmpty(deliveryProductName))
+            if (string.IsNullOrEmpty(deliveryProductBarcode) || string.IsNullOrEmpty(deliveryProduct?.Product_Name))
             {
                 modalTitle = "Validation Error";
                 modalMessage = "Please enter both barcode and product name.";
@@ -1728,7 +2255,7 @@
                 return;
             }
 
-            if (deliveryDepartmentId <= 0)
+            if (deliveryProduct?.Department_ID <= 0)
             {
                 modalTitle = "Validation Error";
                 modalMessage = "Please select a department.";
@@ -1758,24 +2285,22 @@
             }
 
             // Get department name
-            var department = departments?.FirstOrDefault(d => d.Department_ID == deliveryDepartmentId);
+            var department = departments?.FirstOrDefault(d => d.Department_ID == deliveryProduct.Department_ID);
             string departmentName = department?.Department_Name ?? "Unknown";
 
-            // Calculate values
-            int totalUnits = deliveryDeliveredCases * deliveryUnitsPerCase;
-            decimal totalCost = deliveryDeliveredCases * deliveryCostPerCase;
 
+            decimal totalCost = deliveryDeliveredCases * deliveryProduct.Product_Cost_Per_Case;
+            deliveryProduct.Product_Cost = deliveryProduct.Product_Unit_Per_Case < 0 ? 1 :
+            deliveryProduct.Product_Unit_Per_Case / deliveryProduct.Product_Cost_Per_Case < 0 ? 1 : deliveryProduct.Product_Cost_Per_Case;
             // Create delivery item
             var deliveryItem = new DeliveryItem
             {
                 Barcode = deliveryProductBarcode,
-                ProductName = deliveryProductName,
+                ProductName = deliveryProduct.Product_Name,
                 DepartmentName = departmentName,
-                UnitsPerCase = deliveryUnitsPerCase,
-                CostPerCase = deliveryCostPerCase,
-                CostPerUnit = deliveryCostPerProduct,
+                UnitsPerCase = deliveryProduct.Product_Unit_Per_Case,
+                CostPerCase = deliveryProduct.Product_Cost_Per_Case,
                 DeliveredCases = deliveryDeliveredCases,
-                TotalUnits = totalUnits,
                 TotalCost = totalCost,
                 Product = deliveryProduct
             };
@@ -1784,7 +2309,7 @@
             deliveryItems.Add(deliveryItem);
 
             modalTitle = "Product Added";
-            modalMessage = $"Successfully added {deliveryProductName} to delivery list.";
+            modalMessage = $"Successfully added {deliveryProduct.Product_Name} to delivery list.";
             showMessageModal = true;
 
             // Clear form after successful addition
@@ -1805,14 +2330,9 @@
     private async Task ClearDeliveryForm()
     {
         deliveryProductBarcode = "";
-        deliveryProductName = "";
-        deliverySellingPrice = 0;
-        deliveryDepartmentId = 0;
         deliverySupplierId = 0;
-        deliveryUnitsPerCase = 1;
-        deliveryCostPerCase = 0;
-        deliveryCurrentQuantity = 0;
         deliveryDeliveredCases = 0;
+        deliveryProduct = new();
 
         StateHasChanged();
     }
@@ -1841,19 +2361,70 @@
 
         try
         {
-            // Here you would typically save the delivery to the database
-            // For now, we'll just show a success message and clear the items
-
             int totalItems = deliveryItems.Count;
             int totalUnits = deliveryItems.Sum(i => i.TotalUnits);
             decimal totalCost = deliveryItems.Sum(i => i.TotalCost);
+            int successfulUpdates = 0;
+
+            // Collect products to update and stock transactions to create
+            var productsToUpdate = new List<Product>();
+            var stockTransactionsToCreate = new List<StockTransaction>();
+
+            // Process each delivery item
+            foreach (var item in deliveryItems)
+            {
+                if (item.Product != null)
+                {
+                    // Update product stock quantity
+                    item.Product.StockroomQuantity += item.TotalUnits;
+                    item.Product.Product_Cost = ((item.Product.Product_Cost_Per_Case < 1 ? 1:
+                    item.Product.Product_Cost_Per_Case) / (item.Product.Product_Unit_Per_Case < 1 ? 1 : 
+                    item.Product.Product_Unit_Per_Case));
+                    productsToUpdate.Add(item.Product);
+
+                    // Create stock transaction for delivery
+                    var stockTransaction = new StockTransaction
+                    {
+                        ProductId = item.Product.Product_ID,
+                        StockTransactionType = StockTransferType.Delivery,
+                        Quantity = item.TotalUnits,
+                        TotalAmount = item.Product.Product_Selling_Price * item.TotalUnits,
+                        TransactionDate = DateTime.UtcNow,
+                        DateCreated = DateTime.UtcNow,
+                        LastModified = DateTime.UtcNow,
+                        Created_By_Id = UserSessionService.CurrentUser?.User_ID,
+                        Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID,
+                        Till_Id = UserSessionService.CurrentTill?.Till_Id,
+                        DayLogId = UserSessionService.CurrentDayLog?.DayLog_Id ?? 1,
+                        Shift_Id = UserSessionService.CurrentShift?.Shift_Id
+                    };
+
+                    stockTransactionsToCreate.Add(stockTransaction);
+                    successfulUpdates++;
+                }
+            }
+
+            // Perform bulk updates
+            if (productsToUpdate.Any())
+            {
+                await ProductService.BulkUpdateAsync(productsToUpdate);
+            }
+
+            if (stockTransactionsToCreate.Any())
+            {
+                await StockTransactionService.AddBulkEntityAsync(stockTransactionsToCreate);
+            }
 
             modalTitle = "Delivery Confirmed";
-            modalMessage = $"Successfully confirmed delivery of {totalItems} products ({totalUnits} total units) worth £{totalCost:F2}.";
+            modalMessage = $"Successfully confirmed delivery of {totalItems} products ({totalUnits} total units) worth £{totalCost:F2}. {successfulUpdates} products updated with new stock quantities and transactions created.";
             showMessageModal = true;
 
             // Clear delivery items after confirmation
             deliveryItems.Clear();
+
+            // Refresh data to show updated stock levels
+            await LoadData();
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1945,5 +2516,83 @@
     private void SaveAndExit()
     {
         throw new NotImplementedException();
+    }
+
+    // Supplier Items Methods
+    private async Task RefreshSupplierItems()
+    {
+        try
+        {
+            supplierItems = (await SupplierItemsService.GetAllAsync(true)).ToList();
+            ApplySupplierItemFilters();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            modalTitle = "Error";
+            modalMessage = $"Failed to load supplier items: {ex.Message}";
+            showMessageModal = true;
+        }
+    }
+
+    private void OnSupplierFilterChanged(ChangeEventArgs e)
+    {
+        selectedSupplierFilter = e.Value?.ToString() ?? "";
+        ApplySupplierItemFilters();
+    }
+
+    private void OnSupplierItemDepartmentFilterChanged(ChangeEventArgs e)
+    {
+        selectedSupplierItemDepartmentFilter = e.Value?.ToString() ?? "";
+        ApplySupplierItemFilters();
+    }
+
+    private void ApplySupplierItemFilters()
+    {
+        if (supplierItems == null)
+        {
+            filteredSupplierItems = new List<SupplierItems>();
+            return;
+        }
+
+        var filtered = supplierItems.AsEnumerable();
+
+        // Apply supplier filter
+        if (!string.IsNullOrEmpty(selectedSupplierFilter) && int.TryParse(selectedSupplierFilter, out int supplierId))
+        {
+            filtered = filtered.Where(si => si.SupplierId == supplierId);
+        }
+
+        // Apply department filter
+        if (!string.IsNullOrEmpty(selectedSupplierItemDepartmentFilter) && int.TryParse(selectedSupplierItemDepartmentFilter, out int deptId))
+        {
+            filtered = filtered.Where(si => si.Product?.Department_ID == deptId);
+        }
+
+        filteredSupplierItems = filtered.ToList();
+        StateHasChanged();
+    }
+
+    private void ClearSupplierItemFilters()
+    {
+        selectedSupplierFilter = "";
+        selectedSupplierItemDepartmentFilter = "";
+        ApplySupplierItemFilters();
+    }
+
+    private void EditSupplierItem(SupplierItems item)
+    {
+        // TODO: Implement edit supplier item functionality
+        modalTitle = "Edit Supplier Item";
+        modalMessage = "Edit supplier item functionality will be implemented here.";
+        showMessageModal = true;
+    }
+
+    private void ViewSupplierItemDetails(SupplierItems item)
+    {
+        // TODO: Implement view supplier item details functionality
+        modalTitle = "Supplier Item Details";
+        modalMessage = $"Details for {item.Product?.Product_Name} from {item.Supplier?.Supplier_Name} will be shown here.";
+        showMessageModal = true;
     }
 }
