@@ -1302,6 +1302,7 @@
         public int TotalUnits => UnitsPerCase * DeliveredCases;
         public decimal TotalCost { get; set; }
         public Product? Product { get; set; }
+        public int SupplierId { get; set; } = 0;
         public DateTime DateAdded { get; set; } = DateTime.Now;
     }
 
@@ -2300,9 +2301,11 @@
                 DepartmentName = departmentName,
                 UnitsPerCase = deliveryProduct.Product_Unit_Per_Case,
                 CostPerCase = deliveryProduct.Product_Cost_Per_Case,
+                CostPerUnit = deliveryProduct.Product_Unit_Per_Case > 0 ? deliveryProduct.Product_Cost_Per_Case / deliveryProduct.Product_Unit_Per_Case : deliveryProduct.Product_Cost_Per_Case,
                 DeliveredCases = deliveryDeliveredCases,
                 TotalCost = totalCost,
-                Product = deliveryProduct
+                Product = deliveryProduct,
+                SupplierId = deliverySupplierId
             };
 
             // Add to delivery items list
@@ -2330,7 +2333,7 @@
     private async Task ClearDeliveryForm()
     {
         deliveryProductBarcode = "";
-        deliverySupplierId = 0;
+        // Keep deliverySupplierId to maintain supplier selection
         deliveryDeliveredCases = 0;
         deliveryProduct = new();
 
@@ -2366,9 +2369,10 @@
             decimal totalCost = deliveryItems.Sum(i => i.TotalCost);
             int successfulUpdates = 0;
 
-            // Collect products to update and stock transactions to create
+            // Collect products to update, stock transactions to create, and supplier items to handle
             var productsToUpdate = new List<Product>();
             var stockTransactionsToCreate = new List<StockTransaction>();
+            var supplierItemsToUpsert = new List<SupplierItems>();
 
             // Process each delivery item
             foreach (var item in deliveryItems)
@@ -2400,6 +2404,49 @@
                     };
 
                     stockTransactionsToCreate.Add(stockTransaction);
+
+                    // Handle supplier items if a supplier is selected for this item
+                    if (item.SupplierId > 0)
+                    {
+                        // Check if supplier item already exists
+                        var existingSupplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(item.Product.Product_ID);
+                        
+                        if (existingSupplierItem != null && existingSupplierItem.SupplierId == item.SupplierId)
+                        {
+                            // Update existing supplier item
+                            existingSupplierItem.Cost_Per_Case = item.CostPerCase;
+                            existingSupplierItem.Cost_Per_Unit = item.CostPerUnit;
+                            existingSupplierItem.Unit_Per_Case = item.UnitsPerCase;
+                            existingSupplierItem.Last_Modified = DateTime.UtcNow;
+                            existingSupplierItem.Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID ?? 0;
+                            supplierItemsToUpsert.Add(existingSupplierItem);
+                        }
+                        else
+                        {
+                            // Create new supplier item
+                            var newSupplierItem = new SupplierItems
+                            {
+                                SupplierId = item.SupplierId,
+                                ProductId = item.Product.Product_ID,
+                                Supplier_Product_Code = item.Barcode,
+                                Product_OuterCaseBarcode = item.Product.Product_Case_Barcode ?? "",
+                                Cost_Per_Case = item.CostPerCase,
+                                Cost_Per_Unit = item.CostPerUnit,
+                                Unit_Per_Case = item.UnitsPerCase,
+                                Profit_On_Return = 0,
+                                Is_Active = true,
+                                Is_Deleted = false,
+                                Date_Created = DateTime.UtcNow,
+                                Last_Modified = DateTime.UtcNow,
+                                Created_By_Id = UserSessionService.CurrentUser?.User_ID ?? 0,
+                                Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID ?? 0,
+                                Site_Id = UserSessionService.CurrentSite?.Site_Id,
+                                Till_Id = UserSessionService.CurrentTill?.Till_Id
+                            };
+                            supplierItemsToUpsert.Add(newSupplierItem);
+                        }
+                    }
+
                     successfulUpdates++;
                 }
             }
@@ -2415,8 +2462,15 @@
                 await StockTransactionService.AddBulkEntityAsync(stockTransactionsToCreate);
             }
 
+            // Bulk insert/update supplier items
+            if (supplierItemsToUpsert.Any())
+            {
+                await SupplierItemsService.BulkInsertUpdateAsync(supplierItemsToUpsert);
+            }
+
             modalTitle = "Delivery Confirmed";
-            modalMessage = $"Successfully confirmed delivery of {totalItems} products ({totalUnits} total units) worth £{totalCost:F2}. {successfulUpdates} products updated with new stock quantities and transactions created.";
+            string supplierMessage = supplierItemsToUpsert.Any() ? $" {supplierItemsToUpsert.Count} supplier items processed." : "";
+            modalMessage = $"Successfully confirmed delivery of {totalItems} products ({totalUnits} total units) worth £{totalCost:F2}. {successfulUpdates} products updated with new stock quantities and transactions created.{supplierMessage}";
             showMessageModal = true;
 
             // Clear delivery items after confirmation
