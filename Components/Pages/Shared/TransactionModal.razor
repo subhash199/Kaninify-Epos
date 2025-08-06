@@ -5,6 +5,70 @@
 @inject GeneralServices GeneralServices
 @inject IJSRuntime JSRuntime
 
+<style>
+    .payment-btn-cash {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+        color: white !important;
+    }
+    
+    .payment-btn-cash:hover {
+        background-color: #218838 !important;
+        border-color: #1e7e34 !important;
+        color: white !important;
+    }
+    
+    .payment-btn-cash:focus {
+        background-color: #218838 !important;
+        border-color: #1e7e34 !important;
+        color: white !important;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5) !important;
+    }
+    
+    .payment-btn-cash-outline {
+        background-color: transparent !important;
+        border-color: #28a745 !important;
+        color: #28a745 !important;
+    }
+    
+    .payment-btn-cash-outline:hover {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+        color: white !important;
+    }
+    
+    .payment-btn-card {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: white !important;
+    }
+    
+    .payment-btn-card:hover {
+        background-color: #0056b3 !important;
+        border-color: #004085 !important;
+        color: white !important;
+    }
+    
+    .payment-btn-card:focus {
+        background-color: #0056b3 !important;
+        border-color: #004085 !important;
+        color: white !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5) !important;
+    }
+    
+    .payment-btn-card-outline {
+        background-color: transparent !important;
+        border-color: #007bff !important;
+        color: #007bff !important;
+    }
+    
+    .payment-btn-card-outline:hover {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: white !important;
+    }
+</style>
+
 @if (IsVisible)
 {
     <!-- Modal Backdrop -->
@@ -52,13 +116,13 @@
                     <div class="row mb-4">
                         <div class="col-12 text-center">
                             <div class="btn-group" role="group">
-                                <button type="button" 
-                                        class="btn btn-lg @(PaymentType == PaymentType.Cash ? "btn-success" : "btn-outline-success")"
+                                <button type="button"
+                                        class="btn btn-lg @(PaymentType == PaymentType.Cash ? "payment-btn-cash" : "payment-btn-cash-outline")"
                                         @onclick="() => SelectPaymentType(PaymentType.Cash)">
                                     <i class="fas fa-money-bill-wave me-2"></i>Cash
                                 </button>
-                                <button type="button" 
-                                        class="btn btn-lg @(PaymentType == PaymentType.Card ? "btn-primary" : "btn-outline-primary")"
+                                <button type="button"
+                                        class="btn btn-lg @(PaymentType == PaymentType.Card ? "payment-btn-card" : "payment-btn-card-outline")"
                                         @onclick="() => SelectPaymentType(PaymentType.Card)">
                                     <i class="fas fa-credit-card me-2"></i>Card
                                 </button>
@@ -115,6 +179,7 @@
 }
 
 @code {
+
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string Title { get; set; } = "";
     [Parameter] public string Message { get; set; } = "";
@@ -122,11 +187,11 @@
     [Parameter] public PaymentType PaymentType { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<(decimal Amount, PaymentType PaymentType)> OnConfirm { get; set; }
-    
+
     private ElementReference amountInputRef;
     private string _amountText = "";
-    
-    public string AmountText 
+
+    public string AmountText
     {
         get => _amountText;
         set
@@ -135,9 +200,9 @@
             StateHasChanged();
         }
     }
-    
+
     private decimal Amount => decimal.TryParse(AmountText, out var amount) ? amount : 0;
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (IsVisible)
@@ -146,7 +211,7 @@
             await FocusAmountInput();
         }
     }
-    
+
     private async Task FocusAmountInput()
     {
         try
@@ -158,61 +223,64 @@
             // Ignore focus errors
         }
     }
-    
+
     private void SelectPaymentType(PaymentType paymentType)
     {
         PaymentType = paymentType;
         StateHasChanged();
     }
-    
+
     private void HandleNumPadClick(string value)
     {
         if (value == "Clear")
         {
             AmountText = "";
         }
-        else if (value == ".")
+
+        else
         {
-            if (string.IsNullOrEmpty(AmountText))
+            // Build the new amount string
+            string newAmount;
+
+            // Handle decimal point logic
+            if (value == "." && value.Contains("."))                
+                return;
+
+            // Prevent multiple leading zeros
+            if (value == "0" && AmountText == "0")
+                return;
+
+            // Handle double zero
+            if (value == "00")
             {
-                AmountText = "0.";
-            }
-            else if (!AmountText.Contains("."))
-            {
-                AmountText += ".";
-            }
-        }
-        else if (int.TryParse(value, out var digit))
-        {
-            if (string.IsNullOrEmpty(AmountText) || AmountText == "0")
-            {
-                AmountText = digit.ToString();
-            }
-            else if (AmountText.Contains("."))
-            {
-                var parts = AmountText.Split('.');
-                if (parts.Length == 2 && parts[1].Length < 2)
-                {
-                    AmountText += digit.ToString();
-                }
+                if (string.IsNullOrEmpty(AmountText) || AmountText == "0")
+                    newAmount = "0";
+                else
+                    newAmount = Amount + "00";
             }
             else
             {
-                AmountText += digit.ToString();
+                // Replace leading zero with number (except for decimal)
+                if (AmountText == "0" && value != ".")
+                    newAmount = value;
+                else
+                    newAmount = AmountText + value;
             }
+
+            // Convert using GeneralServices to ensure proper decimal formatting
+            var convertedDecimal = GeneralServices.ConvertStringToDecimal(newAmount);
+            AmountText = convertedDecimal.ToString("F2");
         }
-        
+
         StateHasChanged();
     }
-    
-    private void HandleCashSuggestionClick(int amount)
+
+    private void HandleCashSuggestionClick(decimal amount)
     {
-        // Use GeneralServices to convert and format the amount properly
-        var convertedDecimal = GeneralServices.ConvertStringToDecimal(amount.ToString());
-        AmountText = convertedDecimal.ToString("F2");
+        AmountText = amount.ToString("F2");
         StateHasChanged();
     }
-    
+
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Escape")
@@ -220,7 +288,7 @@
             await OnClose.InvokeAsync();
         }
     }
-    
+
     private async Task ConfirmPayment()
     {
         if (Amount > 0)
