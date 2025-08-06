@@ -45,10 +45,12 @@
                 </div>
                 <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
                 <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
+                                 ButtonWidthAdjustClass="@(ShowRightPanel? "col-md-3 btn btn-light btn-light-200-width d-flex flex-column align-items-center flex-fill":"col-md-3 btn btn-light btn-light-big-width d-flex flex-column align-items-center flex-fill")"
                                  OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
                                  OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
                                  OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"
-                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick" ShowRightPanel=ShowRightPanel OnShowRightPanelClick="HandleOnShowRightPanelClick"></CheckoutButtons>
+                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick" ShowRightPanel=ShowRightPanel OnShowRightPanelClick="HandleOnShowRightPanelClick"
+                                 OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"></CheckoutButtons>
                 @if (!ShowRightPanel)
                 {
                     <StatusBarComponent />
@@ -74,7 +76,8 @@
     <ModalContainer State="_state"
                     OnModalOk="onmodalokasync"
                     OnModalClose="onmodalcloseasync"
-                    OnProductSave="onmodalproductupsertedasync" />
+                    OnProductSave="onmodalproductupsertedasync"
+                    OnTransactionConfirm="OnTransactionConfirmAsync" />
 
     <!-- Payout Selection Modal -->
     @if (showPayoutModal)
@@ -573,7 +576,16 @@
         try
         {
             _state.PaymentType = paymentType;
-            await ProcessPaymentAsync(paymentType);
+            
+            // If search box is empty, show transaction modal
+            if (string.IsNullOrEmpty(_state.SearchText))
+            {
+                await ShowTransactionModalAsync(paymentType);
+            }
+            else
+            {
+                await ProcessPaymentAsync(paymentType);
+            }
         }
         catch (Exception ex)
         {
@@ -697,6 +709,19 @@
             ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}\n Would you like to process this transaction as {(_state.PaymentType == PaymentType.Cash ? "cash" : "card")}?",
             ShowModal = true,
             ModalEnum = ModalEnum.Payment
+        };
+        StateHasChanged();
+    }
+
+    private async Task ShowTransactionModalAsync(PaymentType paymentType)
+    {
+        var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+        _state.ModalSettings = new ModalSettings
+        {
+            ModalTitle = $"{(paymentType == PaymentType.Cash ? "Cash" : "Card")} Payment",
+            ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}",
+            ShowModal = true,
+            ModalEnum = ModalEnum.Transaction
         };
         StateHasChanged();
     }
@@ -847,7 +872,7 @@
         {
             _state.TableStyle = _state.ScreenModel.Height > 800
           ? "height: 335px; overflow-y: auto"
-          : "height: 225px; overflow-y: auto";
+          : "height: 235px; overflow-y: auto";
         }
         StateHasChanged();
     }
@@ -882,6 +907,21 @@
         // Handle product save/update from modal
         _state.ModalSettings.ShowModal = false;
         await AddProductToBasketAsync(product, false, null);
+        StateHasChanged();
+    }
+
+    private async Task OnTransactionConfirmAsync((decimal Amount, PaymentType PaymentType) transactionData)
+    {
+        // Handle transaction confirmation from modal
+        _state.ModalSettings.ShowModal = false;
+        
+        // Set the amount in search text for processing
+        _state.SearchText = transactionData.Amount.ToString("F2");
+        _state.PaymentType = transactionData.PaymentType;
+        
+        // Process the payment
+        await ProcessPaymentAsync(transactionData.PaymentType);
+        
         StateHasChanged();
     }
 
@@ -1584,5 +1624,14 @@
     {
         ShowRightPanel = !ShowRightPanel;
         StateHasChanged();
+    }
+    
+    private async Task HandleDepartmentWithAmountFromModal((string department, decimal amount) data)
+    {
+        // Set the search text to the amount for the existing HandleDepartmentClick method
+        _state.SearchText = data.amount.ToString("F2");
+        
+        // Call the existing department click handler
+        HandleDepartmentClick(data.department);
     }
 }

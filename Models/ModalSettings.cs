@@ -22,7 +22,8 @@ namespace EposRetail.Models
         Payment,
         Default,
         Confirmation,
-        Refund
+        Refund,
+        Transaction
     }
 
 }

@@ -50,7 +50,7 @@
                     <img src="images/icons/svg/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                     <span class="fw-bold">Void Basket</span>
                 </button>
-                <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill">
+                <button class="@ButtonWidthAdjustClass">
                     <img src="images/icons/svg/receipt_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                     <span class="fw-bold">Receipt</span>
                 </button>
@@ -72,7 +72,7 @@
                         <img src="images/icons/svg/loyalty_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                         <span class="fw-bold">Discount</span>
                     </button>
-                    <button class="col-md-3 btn btn-light d-flex flex-column align-items-center flex-fill"
+                    <button class="@ButtonWidthAdjustClass"
                             @onclick="NavigateToBackoffice">
                         <img src="images/icons/svg/account_balance_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                         <span class="fw-bold">Office</span>
@@ -83,6 +83,12 @@
     }
 
 </div>
+
+<!-- Amount Entry Modal -->
+<OtherSalesModal @bind-IsVisible="showAmountModal"
+                  State="@State"
+                  OnDepartmentWithAmountSelected="HandleDepartmentWithAmount"
+                  OnModalClosed="HandleModalClosed" />
 
 @code {
     [Parameter] public bool ShowRightPanel { get; set; } = false;
@@ -97,8 +103,11 @@
     [Parameter] public EventCallback OnEnquiryClicked { get; set; }
     [Parameter] public EventCallback OnRefundClicked { get; set; }
     [Parameter] public EventCallback OnDiscountClicked { get; set; }
+    [Parameter] public string ButtonWidthAdjustClass { get; set; }
+    [Parameter] public EventCallback<decimal> OnAmountEntered { get; set; }
 
     bool IsCollapsed = true;
+    private bool showAmountModal = false;
 
     private async Task MoreCheckoutClick()
     {
@@ -125,8 +134,27 @@
     {
         NavigationManager.NavigateTo("/backoffice");
     }
+    
     private async Task RightPanelButtonClick()
     {
-        await OnShowRightPanelClick.InvokeAsync();
+        // Show the amount entry modal instead of the original functionality
+        showAmountModal = true;
+        StateHasChanged();
+    }
+    
+    private async Task HandleDepartmentWithAmount((string department, decimal amount) data)
+    {
+        // This will be handled by the parent component (Checkout.razor)
+        // You can either invoke an event callback or handle it directly here
+        await OnDepartmentWithAmountSelected.InvokeAsync(data);
+    }
+    
+    // Add this parameter to the component
+    [Parameter] public EventCallback<(string department, decimal amount)> OnDepartmentWithAmountSelected { get; set; }
+    
+    private async Task HandleModalClosed()
+    {
+        showAmountModal = false;
+        StateHasChanged();
     }
 }

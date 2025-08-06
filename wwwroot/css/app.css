@@ -28,6 +28,13 @@ a, .btn-link {
         background-color: #ffffff !important;
     }
 
+.btn-light-big-width {
+    width: 200px !important;
+}
+
+.btn-light-200-width{
+    width: 200px !important;
+}
 thead.table-primary th {
     position: sticky;
     top: 0;

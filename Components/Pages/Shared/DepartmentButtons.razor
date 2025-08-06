@@ -1,63 +1,74 @@
 ﻿@using EposRetail.Models
-@if (!IsCollapsed)
-{
-    <div class="gap-2 d-flex align-items-start ms-2 mb-2">
 
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(1)">
-            <img src="images/icons/svg/liquor_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Alcohol</span>
-        </button>
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(2)">
-            <img src="images/icons/svg/smoking_rooms_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Tobacco</span>
-        </button>
-        <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(3)">
-            <img src="images/icons/svg/grocery_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Grocery</span>
-        </button>
-        <button @onclick="CollapseDepartmentClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
+<div class="gap-2 d-flex align-items-start ms-2 mb-2">
+
+    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(1)">
+        <img src="images/icons/svg/liquor_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Alcohol</span>
+    </button>
+    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(2)">
+        <img src="images/icons/svg/smoking_rooms_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Tobacco</span>
+    </button>
+    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(3)">
+        <img src="images/icons/svg/grocery_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Grocery</span>
+    </button>
+    @* <button @onclick="CollapseDepartmentClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
             <img src="@State.CollapseButtonImage" class="img-fluid mb-2" />
             <span class="fw-bold">More</span>
-        </button>
-        @*  <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill">
-            <img src="images/icons/svg/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Fruit & Veg</span>
         </button> *@
+    <button class="btn btn-light background-colour-light-green d-flex flex-column align-items-center flex-fill" @onclick ="() => HandleDepartmentClick(4)">
+        <img src="images/icons/svg/nutrition_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Fruit & Veg</span>
+    </button>
 
-    </div>
-}
-@if (IsCollapsed)
-{
-    <div class="gap-2 d-flex align-items-start ms-2 mb-2">
+</div>
 
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(4)">
-            <img src="images/icons/svg/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Lottery</span>
-        </button>
-        <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(5)">
-            <img src="images/icons/svg/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Scratch</span>
-        </button>
-        <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(6)">
-            <img src="images/icons/svg/settings_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
-            <span class="fw-bold">Services</span>
-        </button>
-        <button @onclick="CollapseDepartmentClick" class="btn btn-light d-flex flex-column align-items-center flex-fill">
-            <img src="@State.CollapseButtonImage" class="img-fluid mb-2" />
-            <span class="fw-bold">More</span>
-        </button>
+<div class="gap-2 d-flex align-items-start ms-2 mb-2">
 
-    </div>
-}
-@if ((IsCollapsed && State.ScreenModel.Height < 800) || State.ScreenModel.Height > 800)
-{
-    <PayoutButtonComponents PayoutClick="OnPayoutClick"></PayoutButtonComponents>
-}
+    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(5)">
+        <img src="images/icons/svg/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Lottery</span>
+    </button>
+    <button class="btn btn-light background-colour-light-red d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(6)">
+        <img src="images/icons/svg/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Scratch</span>
+    </button>
+    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(7)">
+        <img src="images/icons/svg/settings_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Paypoint</span>
+    </button>
+    <button class="btn btn-light background-colour-light-yellow d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(8)">
+        <img src="images/icons/svg/settings_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Payzone</span>
+    </button>
+</div>
+<div class="gap-2 d-flex align-items-start ms-2 mb-2">
 
-@if ((!IsCollapsed && State.ScreenModel.Height < 800) || State.ScreenModel.Height > 800)
-{
-    <CashSuggestButtons OnCashSuggestionClicked="HandleCashSuggestionClick"></CashSuggestButtons>
-}
+    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(9)">
+        <img src="images/icons/svg/casino_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Chilled</span>
+    </button>
+    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(10)">
+        <img src="images/icons/svg/front_hand_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Frozen</span>
+    </button>
+    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(11)">
+        <img src="images/icons/svg/settings_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Ice Cream</span>
+    </button>
+    <button class="btn btn-light background-colour-light-blue d-flex flex-column align-items-center flex-fill" @onclick="() => HandleDepartmentClick(12)">
+        <img src="images/icons/svg/settings_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+        <span class="fw-bold">Slush</span>
+    </button>
+</div>
+
+
+<PayoutButtonComponents PayoutClick="OnPayoutClick"></PayoutButtonComponents>
+
+
+
 
 @code {
     [Parameter] public CheckoutState State { get; set; } = new();
@@ -93,13 +104,31 @@
                 department = "Grocery";
                 break;
             case 4:
-                department = "Lottery";
+                department = "Fruit & Veg";
                 break;
             case 5:
-                department = "Scratch";
+                department = "Lottery";
                 break;
             case 6:
-                department = "Services";
+                department = "Scratch";
+                break;
+            case 7:
+                department = "Paypoint";
+                break;
+            case 8:
+                department = "Payzone";
+                break;
+            case 9:
+                department = "Chilled";
+                break;
+            case 10:
+                department = "Frozen Food";
+                break;
+            case 11:
+                department = "Ice Cream";
+                break;
+            case 12:
+                department = "Slush";
                 break;
 
             default:
