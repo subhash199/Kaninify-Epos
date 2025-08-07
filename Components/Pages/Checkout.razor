@@ -36,7 +36,7 @@
             </div>
         }
         <div class="d-flex align-items-start mt-2">
-            <div class="@(ShowRightPanel ? "col-md-7 row" : "col-md-12 row")">
+            <div class="col-md-12 row">
                 <!-- Search Box -->
                 <div class="mb-2">
                     <input type="text" @ref="searchBox" @bind-value="_state.SearchText"
@@ -45,31 +45,19 @@
                 </div>
                 <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
                 <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
-                                 ButtonWidthAdjustClass="@(ShowRightPanel? "col-md-3 btn btn-light btn-light-200-width d-flex flex-column align-items-center flex-fill":"col-md-3 btn btn-light btn-light-big-width d-flex flex-column align-items-center flex-fill")"
+                                 ButtonWidthAdjustClass="col-md-3 btn btn-light btn-light-big-width d-flex flex-column align-items-center flex-fill"
                                  OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
                                  OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
                                  OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"
-                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick" ShowRightPanel=ShowRightPanel OnShowRightPanelClick="HandleOnShowRightPanelClick"
+                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
                                  OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"></CheckoutButtons>
-                @if (!ShowRightPanel)
-                {
-                    <StatusBarComponent />
-                }
+
+                <StatusBarComponent />
+
             </div>
-            @if (ShowRightPanel)
-            {
-                <div class="row mb-2 disable-right-margin">
-                    <DepartmentButtons State="_state" OnPayoutClick="HandlePayoutClick" OnDepartmentClick="HandleDepartmentClick" OnCashSuggestionClick="HandleCashSuggestionClick"></DepartmentButtons>
-                    <NumberPadComponent OnNumberClick="HandleNumPadClick" />
-                </div>
-            }
+
 
         </div>
-        @if (ShowRightPanel)
-        {
-            <StatusBarComponent />
-        }
-
 
     </div>
     <!-- modals -->
@@ -195,8 +183,6 @@
 @code {
     ElementReference searchBox;
     CheckoutState _state = new CheckoutState();
-
-    private bool ShowRightPanel = false;
 
     // Payout-related properties
     private bool showPayoutModal = false;
@@ -576,7 +562,7 @@
         try
         {
             _state.PaymentType = paymentType;
-            
+
             // If search box is empty, show transaction modal
             if (string.IsNullOrEmpty(_state.SearchText))
             {
@@ -624,7 +610,7 @@
             }
             if (string.IsNullOrEmpty(_state.SearchText))
             {
-                paymentAmount = currentBasket.Transaction.SaleTransaction_Total_Amount;
+                paymentAmount = currentBasket.Transaction.SaleTransaction_Total_Amount - (currentBasket.Transaction.SaleTransaction_Card + currentBasket.Transaction.SaleTransaction_Cash);
             }
             else
             {
@@ -675,18 +661,18 @@
             }
 
             currentBasket.Transaction.SaleTransaction_Total_Paid += paymentAmount;
-            currentBasket.Transaction.SaleTransaction_Change =
-                currentBasket.Transaction.SaleTransaction_Total_Amount -
-                (currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card);
+            if (currentBasket.Transaction.SaleTransaction_Total_Amount <= currentBasket.Transaction.SaleTransaction_Total_Paid)
+            {
+                currentBasket.Transaction.SaleTransaction_Change =
+                (currentBasket.Transaction.SaleTransaction_Total_Amount -
+                (currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card));
 
-            if (currentBasket.Transaction.SaleTransaction_Change <= 0)
-            {
-                await CompleteTransactionAsync(currentBasket);
+                if (currentBasket.Transaction.SaleTransaction_Change <= 0)
+                {
+                    await CompleteTransactionAsync(currentBasket);
+                }
             }
-            else
-            {
-                await SetFocusOnSearchBoxAsync();
-            }
+            await SetFocusOnSearchBoxAsync();
         }
         catch (Exception ex)
         {
@@ -706,7 +692,7 @@
         _state.ModalSettings = new ModalSettings
         {
             ModalTitle = "Payment Confirmation",
-            ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}\n Would you like to process this transaction as {(_state.PaymentType == PaymentType.Cash ? "cash" : "card")}?",
+            ModalMessage = $"Total: £{(currentBasket.Transaction.SaleTransaction_Total_Amount - (currentBasket.Transaction.SaleTransaction_Card + currentBasket.Transaction.SaleTransaction_Cash)):F2}\n Would you like to process this transaction as {(_state.PaymentType == PaymentType.Cash ? "cash" : "card")}?",
             ShowModal = true,
             ModalEnum = ModalEnum.Payment
         };
@@ -716,10 +702,11 @@
     private async Task ShowTransactionModalAsync(PaymentType paymentType)
     {
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
+        decimal remainingAmount = currentBasket.Transaction.SaleTransaction_Total_Amount - (currentBasket.Transaction.SaleTransaction_Card + currentBasket.Transaction.SaleTransaction_Cash);
         _state.ModalSettings = new ModalSettings
         {
             ModalTitle = $"{(paymentType == PaymentType.Cash ? "Cash" : "Card")} Payment",
-            ModalMessage = $"Total: £{currentBasket.Transaction.SaleTransaction_Total_Amount:F2}",
+            ModalMessage = $"Total: £{remainingAmount:F2}",
             ShowModal = true,
             ModalEnum = ModalEnum.Transaction
         };
@@ -795,7 +782,7 @@
 
     private async Task ShowChangeModalAsync(decimal changeAmount)
     {
-        if (changeAmount > 0)
+        if (changeAmount < 0)
         {
             _state.ModalSettings = new ModalSettings
             {
@@ -914,14 +901,14 @@
     {
         // Handle transaction confirmation from modal
         _state.ModalSettings.ShowModal = false;
-        
+
         // Set the amount in search text for processing
         _state.SearchText = transactionData.Amount.ToString("F2");
         _state.PaymentType = transactionData.PaymentType;
-        
+
         // Process the payment
         await ProcessPaymentAsync(transactionData.PaymentType);
-        
+
         StateHasChanged();
     }
 
@@ -1620,17 +1607,12 @@
         // Only allow discount on non-promotional products
         return !hasPromotion && !hasPromotionObject;
     }
-    private void HandleOnShowRightPanelClick()
-    {
-        ShowRightPanel = !ShowRightPanel;
-        StateHasChanged();
-    }
-    
+
     private async Task HandleDepartmentWithAmountFromModal((string department, decimal amount) data)
     {
         // Set the search text to the amount for the existing HandleDepartmentClick method
         _state.SearchText = data.amount.ToString("F2");
-        
+
         // Call the existing department click handler
         HandleDepartmentClick(data.department);
     }
