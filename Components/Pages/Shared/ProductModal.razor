@@ -9,213 +9,202 @@
 @inject DataHandlerLibrary.Services.ShiftServices shiftServices
 @inject IJSRuntime JSRuntime
 
-<div class="modal @(IsVisible ? "show d-block" : "d-none")" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@Title</h5>
-                <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+<div class="modal modern-modal @(IsVisible ? "show d-block" : "d-none")" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content modern-modal-content">
+            <div class="modal-header modern-modal-header d-flex justify-content-between align-items-center">
+                <h5 class="modern-modal-title">@Title</h5>
+                <button type="button" class="modern-close-btn" @onclick="CloseModal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="modal-body">
-
-                <div class="mb-3 row">
-                    <label class="col-sm-4 col-form-label">Product Barcode:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" @bind="Product.Product_Barcode">
+            
+            <div class="modal-body modern-modal-body">
+                <div class="section-title">Basic Information</div>
+                
+                <div class="form-grid">
+                    <div class="modern-form-group">
+                        <label class="modern-label">Product Barcode</label>
+                        <input type="text" class="modern-input" @bind="Product.Product_Barcode" placeholder="Enter barcode">
                     </div>
-                </div>
-                <div class="mb-3 row">
-                    <label class="col-sm-4 col-form-label">Product Name:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" @bind="Product.Product_Name">
+                    
+                    <div class="modern-form-group">
+                        <label class="modern-label">Product Name</label>
+                        <input type="text" class="modern-input" @bind="Product.Product_Name" placeholder="Enter product name">
                     </div>
-                </div>
-                <div class="mb-3 row">
-                    <label class="col-sm-4 col-form-label">Selling Price:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control"
+                    
+                    <div class="modern-form-group">
+                        <label class="modern-label">Selling Price</label>
+                        <input type="text" class="modern-input"
                                value="@Product.Product_Selling_Price"
-                               @oninput="OnSellingPriceInput" />
+                               @oninput="OnSellingPriceInput" 
+                               placeholder="0.00" />
                     </div>
-                </div>
-                <div class="mb-3 row">
-                    <label class="col-sm-4 col-form-label">Expiry Date:</label>
-                    <div class="col-sm-8">
-                        <input type="date" class="form-control" @bind="Product.Expiry_Date" />
+                    
+                    <div class="modern-form-group">
+                        <label class="modern-label">Expiry Date</label>
+                        <input type="date" class="modern-input" @bind="Product.Expiry_Date" />
                     </div>
-                </div>
-
-                <div class="mb-3 row">
-                    <label class="col-sm-4 col-form-label">Department:</label>
-                    <div class="col-sm-8">
-                        <select class="form-select" @bind="SelectedDepartmentId">
+                    
+                    <div class="modern-form-group">
+                        <label class="modern-label">Department</label>
+                        <select class="modern-select" @bind="SelectedDepartmentId">
                             <option value="0">-- Select Department --</option>
-
                             @foreach (var dept in Departments)
                             {
                                 <option value="@dept.Department_ID">@dept.Department_Name</option>
                             }
                         </select>
                     </div>
-                </div>
-                <div class="mb-3 row">
-                    <label class="col-sm-4 col-form-label">VAT:</label>
-                    <div class="col-sm-8">
-                        <select class="form-select" @bind="SelectedVatId">
+                    
+                    <div class="modern-form-group">
+                        <label class="modern-label">VAT Rate</label>
+                        <select class="modern-select" @bind="SelectedVatId">
                             <option value="0">-- Select VAT --</option>
                             @foreach (var vat in VatRates)
                             {
-                                <option value="@vat.VAT_ID">@vat.VAT_Value.ToString("F2")</option>
+                                <option value="@vat.VAT_ID">@vat.VAT_Value.ToString("F2")%</option>
                             }
                         </select>
                     </div>
                 </div>
-
-
-            </div>
-            <div class="d-flex justify-content-center">
-                <div class="mb-3">
-                    <button class="btn btn-link p-0" type="button" @onclick="ToggleOptional">
-                        @(ShowOptional ? "Hide Optional Details" : "Show Optional Details")
+                
+                <div class="optional-toggle">
+                    <button class="toggle-btn" type="button" @onclick="ToggleOptional">
+                        <i class="fas @(ShowOptional ? "fa-chevron-up" : "fa-chevron-down")"></i>
+                        @(ShowOptional ? "Hide Advanced Details" : "Show Advanced Details")
                     </button>
                 </div>
+                
+                @if (ShowOptional)
+                {
+                    <div class="optional-section">
+                        <div class="section-title">Advanced Details</div>
+                        
+                        <div class="modern-form-group">
+                            <label class="modern-label">Product Description</label>
+                            <textarea class="modern-textarea" rows="3" @bind="Product.Product_Description" placeholder="Enter product description"></textarea>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="modern-form-group">
+                                <label class="modern-label">Case Barcode</label>
+                                <input type="text" class="modern-input" @bind="Product.Product_Case_Barcode" placeholder="Enter case barcode">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Brand Name</label>
+                                <input type="text" class="modern-input" @bind="Product.Brand_Name" placeholder="Enter brand name">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Shelf Quantity</label>
+                                <input type="number" class="modern-input" @bind="Product.ShelfQuantity" placeholder="0">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Stockroom Quantity</label>
+                                <input type="number" class="modern-input" @bind="Product.StockroomQuantity" placeholder="0">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Cost Per Unit</label>
+                                <input type="number" step="0.01" class="modern-input" @bind="Product.Product_Cost" placeholder="0.00">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Cost Per Case</label>
+                                <input type="text" class="modern-input"
+                                       value="@Product.Product_Cost_Per_Case"
+                                       @oninput="OnCostPerCaseInput" 
+                                       placeholder="0.00" />
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Units Per Case</label>
+                                <input type="number" class="modern-input"
+                                       value="@Product.Product_Unit_Per_Case"
+                                       @oninput="OnUnitPerCaseInput" 
+                                       placeholder="0" />
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Profit Percentage</label>
+                                <input type="number" step="0.01" class="modern-input" @bind="Product.Profit_On_Return_Percentage" placeholder="0.00">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Product Size</label>
+                                <input type="number" class="modern-input" @bind="Product.Product_Size" placeholder="0">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Measurement Unit</label>
+                                <input type="text" class="modern-input" @bind="Product.Product_Measurement" placeholder="e.g., kg, lbs, pcs">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Minimum Order</label>
+                                <input type="number" class="modern-input" @bind="Product.Product_Min_Order" placeholder="0">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Low Stock Alert</label>
+                                <input type="number" class="modern-input" @bind="Product.Product_Low_Stock_Alert_QTY" placeholder="0">
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <label class="modern-label">Min Stock Level</label>
+                                <input type="number" class="modern-input" @bind="Product.Product_Min_Stock_Level" placeholder="0">
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">Settings</div>
+                        
+                        <div class="form-grid">
+                            <div class="modern-form-group">
+                                <div class="modern-checkbox-wrapper">
+                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Print_To_Second_Printer" id="print-second">
+                                    <label for="print-second" class="modern-label mb-0">Print to Second Printer</label>
+                                </div>
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <div class="modern-checkbox-wrapper">
+                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Is_activated" id="activated">
+                                    <label for="activated" class="modern-label mb-0">Product Activated</label>
+                                </div>
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <div class="modern-checkbox-wrapper">
+                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Allow_Discount" id="allow-discount">
+                                    <label for="allow-discount" class="modern-label mb-0">Allow Discount</label>
+                                </div>
+                            </div>
+                            
+                            <div class="modern-form-group">
+                                <div class="modern-checkbox-wrapper">
+                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Is_deleted" id="deleted">
+                                    <label for="deleted" class="modern-label mb-0">Mark as Deleted</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
-
-
-            @if (ShowOptional)
-            {
-
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Product Description:</label>
-                    <div class="col-sm-8">
-                        <textarea class="form-control" @bind="Product.Product_Description"></textarea>
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Case Barcode:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" @bind="Product.Product_Case_Barcode">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Shelf Quantity:</label>
-                    <div class="col-sm-8">
-                        <input type="number" class="form-control" @bind="Product.ShelfQuantity">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Stockroom Quantity:</label>
-                    <div class="col-sm-8">
-                        <input type="number" class="form-control" @bind="Product.StockroomQuantity">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Cost:</label>
-                    <div class="col-sm-8">
-                        <input type="number" step="0.01" class="form-control" @bind="Product.Product_Cost">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Cost Per Case:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control"
-                               value="@Product.Product_Cost_Per_Case"
-                               @oninput="OnCostPerCaseInput" />
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Unit Per Case:</label>
-                    <div class="col-sm-8">
-
-                        <input type="number" class="form-control"
-                               value="@Product.Product_Unit_Per_Case"
-                               @oninput="OnUnitPerCaseInput" />
-                    </div>
-                </div>
-
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Profit %:</label>
-                    <div class="col-sm-8">
-                        <input type="number" step="0.01" class="form-control" @bind="Product.Profit_On_Return_Percentage">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Product Size:</label>
-                    <div class="col-sm-8">
-                        <input type="number" class="form-control" @bind="Product.Product_Size">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Measurement:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" @bind="Product.Product_Measurement">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Brand Name:</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" @bind="Product.Brand_Name">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Min Order:</label>
-                    <div class="col-sm-8">
-                        <input type="number" class="form-control" @bind="Product.Product_Min_Order">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Low Stock Alert QTY:</label>
-                    <div class="col-sm-8">
-                        <input type="number" class="form-control" @bind="Product.Product_Low_Stock_Alert_QTY">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Min Stock Level:</label>
-                    <div class="col-sm-8">
-                        <input type="number" class="form-control" @bind="Product.Product_Min_Stock_Level">
-                    </div>
-                </div>
-
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Print To Second Printer:</label>
-                    <div class="col-sm-8">
-                        <input type="checkbox" class="form-check-input" @bind="Product.Print_To_Second_Printer">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Activated:</label>
-                    <div class="col-sm-8">
-                        <input type="checkbox" class="form-check-input" @bind="Product.Is_activated">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Delete:</label>
-                    <div class="col-sm-8">
-                        <input type="checkbox" class="form-check-input" @bind="Product.Is_deleted">
-                    </div>
-                </div>
-                <div class="m-2 row">
-                    <label class="col-sm-4 col-form-label">Allow Discount:</label>
-                    <div class="col-sm-8">
-                        <input type="checkbox" class="form-check-input" @bind="Product.Allow_Discount">
-                    </div>
-                </div>
-
-            }
-
-
-            <div class="modal-footer">
-
-                <button type="button" class="btn btn-secondary" @onclick="CloseModal">@SecondaryButtonText</button>
-
-                <button type="button" class="btn btn-primary" @onclick="SaveChanges">@PrimaryButtonText</button>
-
+            
+            <div class="modal-footer modern-modal-footer">
+                <button type="button" class="modern-btn modern-btn-secondary" @onclick="CloseModal">
+                    <i class="fas fa-times me-2"></i>@SecondaryButtonText
+                </button>
+                <button type="button" class="modern-btn modern-btn-primary" @onclick="SaveChanges">
+                    <i class="fas fa-save me-2"></i>@PrimaryButtonText
+                </button>
             </div>
         </div>
     </div>
-
 </div>
-
 
 @code {
     [Parameter]

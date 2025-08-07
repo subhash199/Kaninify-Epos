@@ -11,52 +11,6 @@
 <div class="row m-4 justify-content-center">
     <div class="col-md-12">
         <div class="d-flex gap-2 mb-2">
-        <div class="col-md-4">
-               <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToSalesDashboard()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Sales Report"/>
-                     </div>
-                    <div class="Content">
-                        <h4 class="title">
-                        <a href="#">Sales Reports</a>
-                        </h4>
-                        <p>View comprehensive sales reports</p>
-                    </div>
-                </div>
-        </div>
-
-        <div class="col-md-4">
-               <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToTodaysSales()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/today_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Today's Sales"/>
-                     </div>
-                    <div class="Content">
-                        <h4 class="title">
-                        <a href="#">Sales Report</a>
-                        </h4>
-                        <p>View today's sales summary</p>
-                    </div>
-                </div>
-        </div>
-
-         <div class="col-md-4">
-               <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToInventoryManagement()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/inventory_2_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Inventory Management"/>
-                     </div>
-                    <div class="Content">
-                        <h4 class="title">
-                        <a href="#">Inventory Management</a>
-                        </h4>
-                        <p>View, manage and order stocks</p>
-                    </div>
-                </div>
-        </div>
-        </div>
-    </div>
-
-    <div class="col-md-12">
-        <div class="d-flex gap-2 mb-2">
             <div class="col-md-3">
                 <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToDayLogSales()">
                     <div class="thumb">
@@ -64,12 +18,34 @@
                     </div>
                     <div class="Content">
                         <h4 class="title">
-                            <a href="#">Current DayLog</a>
+                            <a href="#">Today's Sales</a>
                         </h4>
-                        <p>View current daylog sales</p>
+                        <p>View Today's sales, x-read, Day End</p>
                     </div>
                 </div>
             </div>
+
+
+
+            <div class="col-md-4">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToInventoryManagement()">
+                    <div class="thumb">
+                        <img src="images/icons/svg/inventory_2_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Inventory Management" />
+                    </div>
+                    <div class="Content">
+                        <h4 class="title">
+                            <a href="#">Inventory Management</a>
+                        </h4>
+                        <p>View, manage and order stocks</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="d-flex gap-2 mb-2">
+
 
             <div class="col-md-3">
                 <div class="Card-box" style="cursor: pointer;" @onclick="OpenDrawer">
@@ -159,7 +135,7 @@
             // Create drawer log entry
             var drawerLog = new DrawerLog()
             {
-                OpenedById = currentUser?.User_ID??1,
+                OpenedById = currentUser?.User_ID ?? 1,
                 DrawerOpenDateTime = DateTime.UtcNow,
                 Site_Id = currentSite?.Site_Id,
                 Till_Id = currentTill?.Till_Id,
