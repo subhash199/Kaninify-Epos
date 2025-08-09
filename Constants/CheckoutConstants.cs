@@ -19,14 +19,7 @@ namespace EposRetail.Constants
             public const string CardIcon = "images/icons/svg/account_balance_wallet_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg";
             public const string CashIcon = "images/icons/svg/money_bag_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg";
         }
-
-        public static class TableHeights
-        {
-            public const string Default = "height: 512px; overflow-y: auto";
-            public const string SmallScreen = "height: 425px; overflow-y: auto";
-            public const string Collapsed = "height: 335px; overflow-y: auto";
-            public const string SmallCollapsed = "height: 225px; overflow-y: auto";
-        }
+       
     }
    
 }

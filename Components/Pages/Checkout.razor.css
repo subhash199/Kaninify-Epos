@@ -11,3 +11,8 @@
 .disable-right-margin {
     margin-right: 0px!important;
 }
+
+.checkout-table-container {
+    overflow-y: auto;
+    min-height: 0;
+}

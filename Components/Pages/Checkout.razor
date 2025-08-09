@@ -26,7 +26,7 @@
 
 @* <h3 class="text-center">Checkout Dashboard</h3> *@
 <div class="d-flex flex-column vh-100 mt-1 disable-scroll">
-    <div class="container-fluid">
+    <div class="container-fluid h-100 d-flex flex-column">
         <!-- Make the row full height and align items to the start -->
         @if ((_state.SalesBaskets?.Count ?? 0) > 0 &&
                 (_state.SalesBaskets[_state.HoldBasketIndex]?.Transaction?.Is_Refund ?? false))
@@ -35,30 +35,34 @@
                 <h1 class="text-danger">Refund Mode</h1>
             </div>
         }
-        <div class="d-flex align-items-start mt-2">
-            <div class="col-md-12 row">
+        <div class="d-flex flex-column h-100 mt-2">
+            <div class="col-md-12 d-flex flex-column h-100">
                 <!-- Search Box -->
                 <div class="mb-2">
                     <input type="text" @ref="searchBox" @bind-value="_state.SearchText"
                            @bind-value:event="oninput" @onkeydown="SearchKeyDownAsync"
                            class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
-                <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
-                <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
-                                 ButtonWidthAdjustClass="col-md-3 btn btn-light btn-light-big-width d-flex flex-column align-items-center flex-fill"
-                                 OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
-                                 OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
-                                 OnMoreSalesClicked="MoreSalesButtonClick" OnRefundClicked="HandleRefundClick"
-                                 OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
-                                 OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"></CheckoutButtons>
+                
+                <!-- CheckoutTable takes remaining space -->
+                <div class="flex-grow-1 checkout-table-container">
+                    <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
+                </div>
+                
+                <!-- Bottom aligned elements -->
+                <div class="mt-auto">
+                    <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
+                                     ButtonWidthAdjustClass="col-md-3 btn btn-light btn-light-big-width d-flex flex-column align-items-center flex-fill"
+                                     OnVoidBasketClicked="HandleVoidBasketClicked" OnPaymentClicked="PaymentButtonClickedAsync"
+                                     OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
+                                     OnRefundClicked="HandleRefundClick"
+                                     OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
+                                     OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"></CheckoutButtons>
 
-                <StatusBarComponent />
-
+                    <StatusBarComponent />
+                </div>
             </div>
-
-
         </div>
-
     </div>
     <!-- modals -->
     <ModalContainer State="_state"
@@ -495,8 +499,6 @@
 
         // Check for active shift or create new one
         await CheckShiftStatusAsync(newDayLogCreated);
-
-        await InitializeScreenSettingsAsync();
     }
 
     private async Task CreateDayLog()
@@ -523,23 +525,6 @@
         }
     }
 
-    private async Task InitializeScreenSettingsAsync()
-    {
-        _state.ScreenModel = ScreenInfoService.GetScreenSize();
-
-        if (_state.ScreenModel.Height < 800)
-        {
-            _state.DisplayGenericButtons = false;
-            _state.TableStyle = CheckoutConstants.TableHeights.SmallScreen;
-            _state.CollapseButtonLabel = "More";
-        }
-        else
-        {
-            _state.DisplayGenericButtons = true;
-            _state.TableStyle = CheckoutConstants.TableHeights.Default;
-            _state.CollapseButtonLabel = "Collapse";
-        }
-    }
 
     private void SelectItem(SalesItemTransaction item)
     {
@@ -844,23 +829,6 @@
             ShowModal = true,
             ModalEnum = ModalEnum.Error
         };
-        StateHasChanged();
-    }
-    private void MoreSalesButtonClick(bool isCollapsed)
-    {
-        if (isCollapsed)
-        {
-            _state.TableStyle = _state.ScreenModel.Height > 800
-            ? "height:512px; overflow-y: auto"
-            : "height: 425px; overflow-y: auto";
-
-        }
-        else
-        {
-            _state.TableStyle = _state.ScreenModel.Height > 800
-          ? "height: 335px; overflow-y: auto"
-          : "height: 235px; overflow-y: auto";
-        }
         StateHasChanged();
     }
 
