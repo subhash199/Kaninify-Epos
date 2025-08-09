@@ -25,8 +25,6 @@
                 </div>
             </div>
 
-
-
             <div class="col-md-4">
                 <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToInventoryManagement()">
                     <div class="thumb">
@@ -40,13 +38,25 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="col-md-3">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToDepartmentManagement()">
+                    <div class="thumb">
+                        <img src="images/icons/svg/category_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Department Management" />
+                    </div>
+                    <div class="Content">
+                        <h4 class="title">
+                            <a href="#">Department Management</a>
+                        </h4>
+                        <p>Manage departments and products</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="col-md-12">
         <div class="d-flex gap-2 mb-2">
-
-
             <div class="col-md-3">
                 <div class="Card-box" style="cursor: pointer;" @onclick="OpenDrawer">
                     <div class="thumb">
@@ -88,11 +98,23 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="col-md-3">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToExpiryManagement()">
+                    <div class="thumb">
+                        <img src="images/icons/svg/schedule_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Expiry Management" />
+                    </div>
+                    <div class="Content">
+                        <h4 class="title">
+                            <a href="#">Expiry Products</a>
+                        </h4>
+                        <p>Manage expiring and expired products</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
-
 
 @code {
     private void NavigateToSalesDashboard()
@@ -118,6 +140,16 @@
     private void NavigateToHistory()
     {
         NavigationManager.NavigateTo("/history");
+    }
+    
+    private void NavigateToDepartmentManagement()
+    {
+        NavigationManager.NavigateTo("/department-management");
+    }
+
+    private void NavigateToExpiryManagement()
+    {
+        NavigationManager.NavigateTo("/expiry-management");
     }
 
     private async Task OpenDrawer()
