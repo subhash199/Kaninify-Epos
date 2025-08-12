@@ -1,4 +1,4 @@
-﻿@page "/usermanagement"
+﻿@page "/businessmanagement"
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using DataHandlerLibrary.Services
@@ -6,9 +6,10 @@
 @inject UserManagementServices UserManagementServices
 @inject UserSiteAccessServices UserSiteAccessServices
 @inject SiteServices SiteServices
+@inject TillServices TillServices
 @inject IJSRuntime JSRuntime
 
-<PageTitle>User Management</PageTitle>
+<PageTitle>Business Management</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
@@ -29,6 +30,13 @@
                                     @onclick="SetSitesTab"
                                     type="button" role="tab">
                                 <i class="fas fa-building me-2"></i>Sites
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "tills" ? "active" : "")"
+                                    @onclick="SetTillsTab"
+                                    type="button" role="tab">
+                                <i class="fas fa-cash-register me-2"></i>Tills
                             </button>
                         </li>
                     </ul>
@@ -296,23 +304,139 @@
                             </div>
                         </div>
                     }
+
+                    <!-- Tills Tab -->
+                    @if (activeTab == "tills")
+                    {
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h3 class="mb-0">Till Management</h3>
+                                <button class="btn btn-primary" @onclick="ShowCreateTillModal">
+                                    <i class="fas fa-plus"></i> Add New Till
+                                </button>
+                            </div>
+
+                            <!-- Search and Filter Section -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" placeholder="Search tills..."
+                                               @bind="tillSearchTerm" @bind:event="oninput" @bind:after="FilterTills" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" @bind="selectedTillSiteFilter" @bind:after="FilterTills">
+                                        <option value="">All Sites</option>
+                                        @if (sites != null)
+                                        {
+                                            @foreach (var site in sites)
+                                            {
+                                                <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" @bind="selectedTillStatusFilter" @bind:after="FilterTills">
+                                        <option value="">All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Tills Table -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Till Name</th>
+                                            <th>Site</th>
+                                            <th>IP Address</th>
+                                            <th>Port</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (filteredTills != null && filteredTills.Any())
+                                        {
+                                            @foreach (var till in filteredTills)
+                                            {
+                                                <tr>
+                                                    <td>@till.Till_Name</td>
+                                                    <td>
+                                                        @{
+                                                            var tillSite = sites?.FirstOrDefault(s => s.Site_Id == till.Site_Id);
+                                                        }
+                                                        @(tillSite?.Site_BusinessName ?? "Unknown Site")
+                                                    </td>
+                                                    <td>@(till.Till_IP_Address ?? "N/A")</td>
+                                                    <td>@(till.Till_Port_Number?.ToString() ?? "N/A")</td>
+                                                    <td>
+                                                        @if (till.Is_Active)
+                                                        {
+                                                            <span class="badge bg-success">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group" role="group">
+                                                            <button class="btn btn-sm btn-primary" style="min-width: 80px;" @onclick="() => ViewTillDetails(till)">
+                                                                <i class="fas fa-eye me-1"></i>View
+                                                            </button>
+                                                            <button class="btn btn-sm btn-warning" style="min-width: 80px;" @onclick="() => EditTill(till)">
+                                                                <i class="fas fa-edit me-1"></i>Edit
+                                                            </button>
+                                                            @if (till.Is_Active)
+                                                            {
+                                                                <button class="btn btn-sm btn-danger" style="min-width: 100px;" @onclick="() => DeactivateTill(till.Till_Id)">
+                                                                    <i class="fas fa-pause me-1"></i>Deactivate
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button class="btn btn-sm btn-success" style="min-width: 90px;" @onclick="() => ActivateTill(till.Till_Id)">
+                                                                    <i class="fas fa-play me-1"></i>Activate
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted">No tills found</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-@* <!-- Create/Edit Role Modal -->
-@if (showRoleModal)
+<!-- Till Modal -->
+@if (showTillModal)
 {
-    <UserRoleModal @bind-IsVisible="showRoleModal"
-                   UserRoleToEdit="currentRole"
-                   OnUserRoleSaved="HandleUserRoleSaved"
-                   OnUserRoleUpdated="HandleUserRoleUpdated"
-                   OnUserRoleDeleted="HandleUserRoleDeleted" />
-} *@
+    <TillModal @bind-IsVisible="showTillModal"
+               TillToEdit="currentTill"
+               IsViewMode="isViewMode"
+               AvailableSites="sites"
+               OnTillSaved="SaveTill"
+               OnModalClosed="CloseTillModal" />
+}
 
-<!-- Create/Edit Site Modal -->
+
 @if (showSiteModal)
 {
     <SiteModal @bind-IsVisible="showSiteModal"
@@ -343,13 +467,15 @@
 
 <!-- Site User Management Modal -->
 <SiteUserManagementModal IsVisible="showSiteUserManagementModal"
-                         SelectedSite="selectedSiteForUserManagement"                         
+                         SelectedSite="selectedSiteForUserManagement"
                          OnModalClosed="CloseSiteUserManagementModal" />
 
 @code {
     private void SetUsersTab() => SetActiveTab("users");
     private void SetRolesTab() => SetActiveTab("roles");
     private void SetSitesTab() => SetActiveTab("sites");
+    private void SetTillsTab() => SetActiveTab("tills");
+
     // New properties for role and site management
     private string activeTab = "users";
 
@@ -391,6 +517,16 @@
     private List<PosUser> filteredUsers = new();
     private List<Site> sites = new();
 
+    // Till management
+    Till currentTill = new Till { Is_Active = true };
+    bool isEditingTill = false;
+    bool showTillModal = true;
+    List<Till> tills = new();
+    List<Till> filteredTills = new();
+    string tillSearchTerm = string.Empty;
+    string selectedTillSiteFilter = string.Empty;
+    string selectedTillStatusFilter = string.Empty;
+
 
 
     // Update your existing OnInitializedAsync to include:
@@ -399,8 +535,10 @@
         SetRolesTab();
         SetSitesTab();
         SetUsersTab();
+        SetTillsTab();
         await LoadUsers();
         await LoadSites();
+        await LoadTills();
     }
 
     // Tab management
@@ -410,123 +548,156 @@
         StateHasChanged();
     }
 
-
-
-
-    private void FilterRoles()
-    {
-
-
-        StateHasChanged();
-    }
-
-    // Site Management Methods
-    #region
-    private void ShowCreateSiteModal()
-    {
-        currentSite = new Site { Is_Active = true, Date_Created = DateTime.UtcNow };
-        isEditingSite = false;
-        isViewMode = false;
-        showSiteModal = true;
-    }
-
-    private void EditSite(Site site)
-    {
-        currentSite = new Site
-        {
-            Site_Id = site.Site_Id,
-            Site_BusinessName = site.Site_BusinessName,
-            Site_AddressLine1 = site.Site_AddressLine1,
-            Site_AddressLine2 = site.Site_AddressLine2,
-            Site_City = site.Site_City,
-            Site_Postcode = site.Site_Postcode,
-            Site_ContactNumber = site.Site_ContactNumber,
-            Site_Email = site.Site_Email,
-            Is_Active = site.Is_Active,
-            Date_Created = site.Date_Created
-        };
-        isEditingSite = true;
-        isViewMode = false;
-        showSiteModal = true;
-    }
-
-    private void CloseSiteModal()
-    {
-        showSiteModal = false;
-        currentSite = new Site();
-        isViewMode = false;
-    }
-
-    private async Task SaveSite()
+    // Till Management Methods
+    private async Task LoadTills()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(currentSite.Site_BusinessName) ||
-                string.IsNullOrWhiteSpace(currentSite.Site_AddressLine1) ||
-                string.IsNullOrWhiteSpace(currentSite.Site_City) ||
-                string.IsNullOrWhiteSpace(currentSite.Site_Postcode))
+            tills = (await TillServices.GetAllAsync(false)).ToList();
+            FilterTills();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading tills: {ex.Message}");
+        }
+    }
+
+    private void ShowCreateTillModal()
+    {
+        currentTill = new Till { Is_Active = true };
+        isEditingTill = false;
+        isViewMode = false;
+        showTillModal = true;
+    }
+
+    private void EditTill(Till till)
+    {
+        currentTill = new Till
+        {
+            Till_Id = till.Till_Id,
+            Till_Name = till.Till_Name,
+            Till_Password = till.Till_Password,
+            Till_IP_Address = till.Till_IP_Address,
+            Till_Port_Number = till.Till_Port_Number,
+            Site_Id = till.Site_Id,
+            Is_Active = till.Is_Active
+        };
+        isEditingTill = true;
+        isViewMode = false;
+        showTillModal = true;
+    }
+
+    private void ViewTillDetails(Till till)
+    {
+        currentTill = till;
+        isViewMode = true;
+        showTillModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseTillModal()
+    {
+        showTillModal = false;
+        currentTill = new Till();
+        isViewMode = false;
+    }
+
+    private async Task SaveTill()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(currentTill.Till_Name) || currentTill.Site_Id == 0)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Please fill in all required fields.");
                 return;
             }
 
-            if (isEditingSite)
+            if (isEditingTill)
             {
-                await UserManagementServices.UpdateSiteAsync(currentSite);
-                await JSRuntime.InvokeVoidAsync("alert", "Site updated successfully!");
+                await TillServices.UpdateAsync(currentTill);
+                await JSRuntime.InvokeVoidAsync("alert", "Till updated successfully!");
             }
             else
             {
-                await UserManagementServices.CreateSiteAsync(currentSite);
-                await JSRuntime.InvokeVoidAsync("alert", "Site created successfully!");
+                await TillServices.AddAsync(currentTill);
+                await JSRuntime.InvokeVoidAsync("alert", "Till created successfully!");
             }
 
-            CloseSiteModal();
-            await LoadSites();
-            FilterSites();
+            CloseTillModal();
+            await LoadTills();
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error saving site: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving till: {ex.Message}");
         }
     }
 
-    private void FilterSites()
+    private void FilterTills()
     {
-        if (sites == null) return;
+        if (tills == null) return;
 
-        var filtered = sites.AsEnumerable();
+        var filtered = tills.AsEnumerable();
 
-        if (!string.IsNullOrEmpty(siteSearchTerm))
+        if (!string.IsNullOrEmpty(tillSearchTerm))
         {
-            filtered = filtered.Where(s =>
-                s.Site_BusinessName.Contains(siteSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                s.Site_AddressLine1.Contains(siteSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                (s.Site_City?.Contains(siteSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+            filtered = filtered.Where(t =>
+                t.Till_Name.Contains(tillSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (t.Till_IP_Address?.Contains(tillSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
             );
         }
 
-        if (!string.IsNullOrEmpty(selectedSiteStatusFilter))
+        if (!string.IsNullOrEmpty(selectedTillSiteFilter) && int.TryParse(selectedTillSiteFilter, out int siteId))
         {
-            bool isActive = selectedSiteStatusFilter == "active";
-            filtered = filtered.Where(s => s.Is_Active == isActive);
+            filtered = filtered.Where(t => t.Site_Id == siteId);
         }
 
-        filteredSites = filtered.ToList();
+        if (!string.IsNullOrEmpty(selectedTillStatusFilter))
+        {
+            bool isActive = selectedTillStatusFilter == "active";
+            filtered = filtered.Where(t => t.Is_Active == isActive);
+        }
+
+        filteredTills = filtered.ToList();
         StateHasChanged();
     }
-    #endregion
-    // Helper Methods
-    private int GetUserCountForRole(PosUserType posUserType)
+
+    private async Task ActivateTill(int tillId)
     {
-        return users?.Count(u => u.User_Type == posUserType && !u.Is_Deleted) ?? 0;
+        try
+        {
+            var till = tills.FirstOrDefault(t => t.Till_Id == tillId);
+            if (till != null)
+            {
+                till.Is_Active = true;
+                await TillServices.UpdateAsync(till);
+                await LoadTills();
+                await JSRuntime.InvokeVoidAsync("alert", "Till activated successfully!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error activating till: {ex.Message}");
+        }
     }
 
-    private int GetUserCountForSite(int siteId)
+    private async Task DeactivateTill(int tillId)
     {
-        return users?.Count(u => u.Primary_Site_Id == siteId && !u.Is_Deleted) ?? 0;
+        try
+        {
+            var till = tills.FirstOrDefault(t => t.Till_Id == tillId);
+            if (till != null)
+            {
+                till.Is_Active = false;
+                await TillServices.UpdateAsync(till);
+                await LoadTills();
+                await JSRuntime.InvokeVoidAsync("alert", "Till deactivated successfully!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error deactivating till: {ex.Message}");
+        }
     }
-
 
     // Load data methods (add these to your existing OnInitializedAsync)
     private async Task LoadUsers()
@@ -695,7 +866,7 @@
     {
         try
         {
-            if(currentUser.User_Type == PosUserType.Staff || currentUser.User_Type == PosUserType.Trainee)
+            if (currentUser.User_Type == PosUserType.Staff || currentUser.User_Type == PosUserType.Trainee)
             {
                 // Only allow Directors and Admins to create new users
                 await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to create new users.");
@@ -881,4 +1052,69 @@
     }
 
 
+    private void FilterSites()
+    {
+        if (sites == null) return;
+
+        var filtered = sites.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(siteSearchTerm))
+        {
+            filtered = filtered.Where(s =>
+                s.Site_BusinessName.Contains(siteSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (s.Site_AddressLine1?.Contains(siteSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (s.Site_Postcode?.Contains(siteSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+        }
+
+        if (!string.IsNullOrEmpty(selectedSiteStatusFilter))
+        {
+            bool isActive = selectedSiteStatusFilter == "active";
+            filtered = filtered.Where(s => s.Is_Active == isActive);
+        }
+
+        filteredSites = filtered.ToList();
+        StateHasChanged();
+    }
+
+    private void EditSite(Site site)
+    {
+        currentSite = new Site
+        {
+            Site_Id = site.Site_Id,
+            Site_BusinessName = site.Site_BusinessName,
+            Site_AddressLine1 = site.Site_AddressLine1,
+            Site_Postcode = site.Site_Postcode,
+            Site_ContactNumber = site.Site_ContactNumber,
+            Site_Email = site.Site_Email,
+            Is_Active = site.Is_Active
+        };
+        isEditMode = true;
+        isViewMode = false;
+        showSiteModal = true;
+        StateHasChanged();
+    }
+
+    private void ShowCreateSiteModal()
+    {
+        currentSite = new Site { Is_Active = true };
+        isEditMode = false;
+        isViewMode = false;
+        showSiteModal = true;
+        StateHasChanged();
+    }
+
+    // Add this missing method
+    private int GetUserCountForSite(int siteId)
+    {
+        if (users == null || !users.Any())
+            return 0;
+
+        return users.Count(u => u.Primary_Site_Id == siteId && u.Is_Activated);
+    }
+
 }
+                    
+
+
+

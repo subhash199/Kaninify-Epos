@@ -67,6 +67,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<UserSessionService>();
         builder.Services.AddSingleton<ReceiptPrinter>();
+		builder.Services.AddSingleton<PosUser>();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
