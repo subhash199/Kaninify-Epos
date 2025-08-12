@@ -40,10 +40,16 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="isActive" class="form-label">Status</label>
+                                <label class="form-label">Till Options</label>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox id="isPrimaryTill" class="form-check-input" @bind-Value="CurrentTill.Is_Primary" disabled="@IsViewMode" />
+                                    <label class="form-check-label" for="isPrimaryTill">
+                                        Primary Till
+                                    </label>
+                                </div>
                                 <div class="form-check">
-                                    <InputCheckbox id="isActive" class="form-check-input" @bind-Value="CurrentTill.Is_Active" disabled="@IsViewMode" />
-                                    <label class="form-check-label" for="isActive">
+                                    <InputCheckbox id="isActiveTill" class="form-check-input" @bind-Value="CurrentTill.Is_Active" disabled="@IsViewMode" />
+                                    <label class="form-check-label" for="isActiveTill">
                                         Active
                                     </label>
                                 </div>

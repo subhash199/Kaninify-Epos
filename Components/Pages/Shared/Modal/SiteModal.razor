@@ -40,7 +40,13 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="isActive" class="form-label">Status</label>
+                                <label class="form-label">Site Options</label>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox id="isPrimary" class="form-check-input" @bind-Value="CurrentSite.Is_Primary" disabled="@IsViewMode" />
+                                    <label class="form-check-label" for="isPrimary">
+                                        Primary Site
+                                    </label>
+                                </div>
                                 <div class="form-check">
                                     <InputCheckbox id="isActive" class="form-check-input" @bind-Value="CurrentSite.Is_Active" disabled="@IsViewMode" />
                                     <label class="form-check-label" for="isActive">

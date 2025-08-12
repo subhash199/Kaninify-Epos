@@ -218,6 +218,7 @@
                                             <th>Address</th>
                                             <th>Contact</th>
                                             <th>Users Count</th>
+                                            <th>Primary</th>
                                             <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
@@ -235,9 +236,7 @@
                                                         @site.Site_AddressLine1<br />
                                                         @if (!string.IsNullOrEmpty(site.Site_AddressLine2))
                                                         {
-                                                            @site.Site_AddressLine2
-
-                                                            <br />
+                                                            @site.Site_AddressLine2<br />
                                                         }
                                                         @site.Site_City, @site.Site_Postcode
                                                     </td>
@@ -253,6 +252,16 @@
                                                     </td>
                                                     <td>
                                                         <span class="badge bg-info">@GetUserCountForSite(site.Site_Id)</span>
+                                                    </td>
+                                                    <td>
+                                                        @if (site.Is_Primary)
+                                                        {
+                                                            <span class="badge bg-warning"><i class="fas fa-star"></i> Primary</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
                                                     </td>
                                                     <td>
                                                         @if (site.Is_Active)
@@ -296,7 +305,7 @@
                                         else
                                         {
                                             <tr>
-                                                <td colspan="6" class="text-center text-muted">No sites found</td>
+                                                <td colspan="7" class="text-center text-muted">No sites found</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -355,6 +364,7 @@
                                             <th>Site</th>
                                             <th>IP Address</th>
                                             <th>Port</th>
+                                            <th>Primary</th>
                                             <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
@@ -374,6 +384,16 @@
                                                     </td>
                                                     <td>@(till.Till_IP_Address ?? "N/A")</td>
                                                     <td>@(till.Till_Port_Number?.ToString() ?? "N/A")</td>
+                                                    <td>
+                                                        @if (till.Is_Primary)
+                                                        {
+                                                            <span class="badge bg-warning"><i class="fas fa-star"></i> Primary</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
                                                     <td>
                                                         @if (till.Is_Active)
                                                         {
@@ -412,7 +432,7 @@
                                         else
                                         {
                                             <tr>
-                                                <td colspan="6" class="text-center text-muted">No tills found</td>
+                                                <td colspan="7" class="text-center text-muted">No tills found</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -520,7 +540,7 @@
     // Till management
     Till currentTill = new Till { Is_Active = true };
     bool isEditingTill = false;
-    bool showTillModal = true;
+    bool showTillModal = false;
     List<Till> tills = new();
     List<Till> filteredTills = new();
     string tillSearchTerm = string.Empty;
