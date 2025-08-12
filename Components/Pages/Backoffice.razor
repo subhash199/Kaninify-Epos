@@ -114,6 +114,24 @@
             </div>
         </div>
     </div>
+    
+    <div class="col-md-12">
+        <div class="d-flex gap-2 mb-2">
+            <div class="col-md-3">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToStockRefill()">
+                    <div class="thumb">
+                        <img src="images/icons/svg/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Stock Refill" />
+                    </div>
+                    <div class="Content">
+                        <h4 class="title">
+                            <a href="#">Stock Refill</a>
+                        </h4>
+                        <p>Manage products needing refill</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -150,6 +168,11 @@
     private void NavigateToExpiryManagement()
     {
         NavigationManager.NavigateTo("/expiry-management");
+    }
+
+    private void NavigateToStockRefill()
+    {
+        NavigationManager.NavigateTo("/stock-refill");
     }
 
     private async Task OpenDrawer()
