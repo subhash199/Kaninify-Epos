@@ -28,13 +28,6 @@
 <div class="d-flex flex-column vh-100 mt-1 disable-scroll">
     <div class="container-fluid h-100 d-flex flex-column">
         <!-- Make the row full height and align items to the start -->
-        @if ((_state.SalesBaskets?.Count ?? 0) > 0 &&
-                (_state.SalesBaskets[_state.HoldBasketIndex]?.Transaction?.Is_Refund ?? false))
-        {
-            <div class="text-center mb-2">
-                <h1 class="text-danger">Refund Mode</h1>
-            </div>
-        }
         <div class="d-flex flex-column h-100 mt-2">
             <div class="col-md-12 d-flex flex-column h-100">
                 <!-- Search Box -->
@@ -157,7 +150,7 @@
     <QuantityBoxComponent IsVisible="_state.ShowQuantityBox"
                           value="_state.QuantityValue"
                           ValueChanged="QuantityValueEntered"
-                          onapply="applyquantityasync" />
+                          onapply="ApplyQuantityAsync" />
 
     <!-- Discount Confirmation Modal -->
     <GenericMessageModal IsVisible="showDiscountConfirmationModal"
@@ -207,6 +200,9 @@
 
     // Float amount modal
     private bool showFloatModal = false;
+
+    //Refund-related properties
+    private bool refundMode = false;
 
     private async Task OnFloatAmountSet(decimal floatAmount)
     {
@@ -274,7 +270,7 @@
         StateHasChanged();
     }
 
-    private async Task applyquantityasync()
+    private async Task ApplyQuantityAsync()
     {
         _state.ShowQuantityBox = false;
         if (!string.IsNullOrEmpty(_state.QuantityValue) && int.TryParse(_state.QuantityValue, out int quantity) && quantity > 0)
@@ -344,19 +340,20 @@
             return;
         }
 
-        await AddProductToBasketAsync(product, false, null);
+        SalesItemTransactionType salesItemTransactionType = refundMode ? SalesItemTransactionType.Refund : SalesItemTransactionType.Sale;
+        await AddProductToBasketAsync(product, salesItemTransactionType, null);
         await JS.InvokeVoidAsync("scrollTableToBottom");
         StateHasChanged();
     }
 
-    private async Task AddProductToBasketAsync(Product product, bool isGeneric, int? payoutId)
+    private async Task AddProductToBasketAsync(Product product, SalesItemTransactionType transactionType, int? payoutId)
     {
         if (_state.SalesBaskets.Count < 1)
         {
             await InitializeSalesTransactionAsync();
         }
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
-        await CheckoutService.AddProductToBasketAsync(currentBasket, product, isGeneric, payoutId);
+        await CheckoutService.AddProductToBasketAsync(currentBasket, product, transactionType, payoutId);
 
         UpdateCashSuggestions(currentBasket.Transaction.SaleTransaction_Total_Amount);
         await SetFocusOnSearchBoxAsync();
@@ -861,7 +858,8 @@
     {
         // Handle product save/update from modal
         _state.ModalSettings.ShowModal = false;
-        await AddProductToBasketAsync(product, false, null);
+        SalesItemTransactionType salesItemTransactionType = refundMode ? SalesItemTransactionType.Refund : SalesItemTransactionType.Sale;
+        await AddProductToBasketAsync(product, salesItemTransactionType, null);
         StateHasChanged();
     }
 
@@ -905,7 +903,16 @@
         else
         {
             departmentProduct.Product_Selling_Price = amount;
-            await AddProductToBasketAsync(departmentProduct, true, null);
+            // Replace the problematic code block with the following inside HandleDepartmentClick:
+
+            SalesItemTransactionType salesItemTransactionType = departmentClickName switch
+            {
+                "Paypoint" => SalesItemTransactionType.Service,
+                "Payzone" => SalesItemTransactionType.Payout,
+                _ => SalesItemTransactionType.Misc
+            };
+            salesItemTransactionType = refundMode ? SalesItemTransactionType.Refund : SalesItemTransactionType.Sale;
+            await AddProductToBasketAsync(departmentProduct, salesItemTransactionType, null);
             await JS.InvokeVoidAsync("scrollTableToBottom");
         }
         StateHasChanged();
@@ -1174,45 +1181,13 @@
     }
     private async Task HandleRefundClick()
     {
-        if (_state.SalesBaskets?.Count > 0)
-        {
-            if (_state.SalesBaskets[_state.HoldBasketIndex]?.Transaction.Is_Refund ?? false)
-            {
-                _state.ModalSettings = new ModalSettings
-                {
-                    ModalTitle = "Refund",
-                    ModalMessage = "Would you like to exit the Refund Mode? All the items in the checkout basket will be cleared!",
-                    ShowModal = true,
-                    ModalEnum = ModalEnum.Refund
-                };
-            }
-            else if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
-            {
-                _state.ModalSettings = new ModalSettings
-                {
-                    ModalTitle = "Refund Error",
-                    ModalMessage = "Please process the current transaction before processing refund!",
-                    ShowModal = true,
-                    ModalEnum = ModalEnum.Error
-                };
-            }
-            else
-            {
-                InitiateRefundMode();
-            }
-
-        }
-        else
-        {
-            InitiateRefundMode();
-        }
+        await HandleRefundMode();
         StateHasChanged();
     }
 
-    private async Task InitiateRefundMode()
+    private async Task HandleRefundMode()
     {
-        await InitializeSalesTransactionAsync();
-        _state.SalesBaskets[_state.HoldBasketIndex].Transaction.Is_Refund = true;
+        refundMode = !refundMode;
     }
     private void HandleOnEnquiryClick()
     {
@@ -1426,7 +1401,7 @@
             // Update product selling price for this transaction
             payoutProduct.Product_Selling_Price = -payoutAmount;
 
-            await AddProductToBasketAsync(payoutProduct, true, payout.Payout_Id);
+            await AddProductToBasketAsync(payoutProduct, SalesItemTransactionType.Payout, payout.Payout_Id);
         }
         catch (Exception ex)
         {

@@ -1,0 +1,37 @@
+/* You can copy the same CSS from SalesDashboard.razor.css */
+/* Or create shift-specific styling if needed */
+
+.modern-end-shift-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.modern-end-shift-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.shift-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-right: 20px;
+}
+
+.shift-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.shift-period {
+    font-size: 1rem;
+    color: #333;
+    font-weight: 600;
+}

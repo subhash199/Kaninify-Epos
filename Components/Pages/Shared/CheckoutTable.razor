@@ -23,15 +23,15 @@
 
         <tbody>
             @if (State.SalesBaskets?.Count > State.HoldBasketIndex &&
-                State.SalesBaskets[State.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+                        State.SalesBaskets[State.HoldBasketIndex]?.SalesItemsList?.Count > 0)
             {
                 @for (int index = 0; index < State.SalesBaskets[State.HoldBasketIndex].SalesItemsList.Count; index++)
                 {
                     var item = State.SalesBaskets[State.HoldBasketIndex].SalesItemsList[index];
-                    <tr @onclick="@(() => OnItemSelected.InvokeAsync(item))" 
-                        class="@(State.SelectedItemIndex == index ? "table-primary" : "")" 
+                    <tr @onclick="@(() => OnItemSelected.InvokeAsync(item))"
+                        class="@(State.SelectedItemIndex == index ? "table-primary" : "")"
                         style="cursor: pointer;">
-                        <td class="text-truncate">@item.Product_QTY</td>
+                        <td class="text-truncate @(item.SalesItemTransactionType == SalesItemTransactionType.Refund ? "bg-warning" : "")">@(item.SalesItemTransactionType == SalesItemTransactionType.Refund ? "Refund" +" "+ @item.Product_QTY : @item.Product_QTY)</td>
                         <td class="text-truncate">@item.Product?.Product_Name</td>
                         <td class="@(item.Product_Total_Amount != item.Product_Total_Amount_Before_Discount ? "background-colour-light-green text-truncate" : "text-truncate")">@item.Product?.Promotion?.Promotion_Name</td>
                         <td class="text-truncate">@item.Product_Amount.ToString("C2")</td>
@@ -47,14 +47,14 @@
                     @{
                         decimal grandTotal = 0;
                         if (State.SalesBaskets?.Count > State.HoldBasketIndex &&
-                            State.SalesBaskets[State.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+                        State.SalesBaskets[State.HoldBasketIndex]?.SalesItemsList?.Count > 0)
                         {
                             grandTotal = State.SalesBaskets[State.HoldBasketIndex].Transaction.SaleTransaction_Total_Amount;
 
                             if (State.SalesBaskets[State.HoldBasketIndex].Transaction != null)
                             {
                                 var totalPaid = (State.SalesBaskets[State.HoldBasketIndex].Transaction.SaleTransaction_Cash) +
-                                               (State.SalesBaskets[State.HoldBasketIndex].Transaction.SaleTransaction_Card);
+                                (State.SalesBaskets[State.HoldBasketIndex].Transaction.SaleTransaction_Card);
                                 grandTotal = grandTotal - totalPaid;
                             }
                         }

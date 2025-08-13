@@ -1,0 +1,520 @@
+@page "/shift-dashboard"
+@page "/shift-dashboard/{ShiftId:int}"
+@using DataHandlerLibrary.Models
+@using DataHandlerLibrary.Services
+@using System.Web
+@inject SalesTransactionServices SalesService
+@inject SalesItemTransactionServices SalesItemService
+@inject ProductServices ProductService
+@inject StockTransactionServices StockService
+@inject PosUserServices UserService
+@inject NavigationManager NavigationManager
+@inject ShiftServices ShiftService
+@inject DepartmentServices DepartmentService
+@inject VoidedProductServices VoidedProductService
+@inject PosUserServices PosUserService
+@inject DrawerLogServices DrawerLogService
+@inject DataHandlerLibrary.Interfaces.IPrinterService PrinterService
+@inject IJSRuntime JSRuntime
+@inject EposRetail.Services.UserSessionService UserSessionService
+
+<PageTitle>Shift Dashboard</PageTitle>
+
+<div class="modern-dashboard">
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="dashboard-title">Shift Dashboard</h1>
+                <p class="dashboard-subtitle">Current shift insights and analytics</p>
+            </div>
+            <div class="header-right">
+                @if (CurrentShift != null)
+                {
+                    <div class="shift-info">
+                        <span class="shift-label">Current Shift</span>
+                        <span class="shift-period">@(CurrentShift.Shift_Start_DateTime.ToString("dd/MM/yyyy HH:mm")) - @(CurrentShift.Shift_End_DateTime?.ToString("dd/MM/yyyy HH:mm") ?? "Ongoing")</span>
+                    </div>
+                }
+
+                <div class="shift-controls">
+                    <button class="modern-nav-btn" @onclick="NavigateToBackoffice">
+                        <div class="btn-content">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Back to Backoffice</span>
+                        </div>
+                    </button>
+                    <button class="modern-print-btn" @onclick="PrintShiftReport">
+                        <div class="btn-content">
+                            <i class="fas fa-print"></i>
+                            <span>Print Shift Report</span>
+                        </div>
+                    </button>
+                    @if (CurrentShift?.Shift_End_DateTime == null)
+                    {
+                        <button class="modern-end-shift-btn" @onclick="EndCurrentShift">
+                            <div class="btn-content">
+                                <i class="fas fa-stop"></i>
+                                <span>End Shift</span>
+                            </div>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading shift data...</p>
+        </div>
+    }
+    else if (ShiftData != null)
+    {
+        <!-- Summary Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card primary">
+                <div class="metric-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.TotalSales.ToString("C")</h3>
+                    <p class="metric-label">Total Sales</p>
+                </div>
+            </div>
+
+            <div class="metric-card net-sales">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.NetSales.ToString("C")</h3>
+                    <p class="metric-label">Net Sales</p>
+                </div>
+            </div>
+
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.OtherServices.ToString("C")</h3>
+                    <p class="metric-label">Other Services</p>
+                    <div class="metric-detail">Separate sales departments</div>
+                </div>
+            </div>
+            
+            <div class="metric-card refunds">
+                <div class="metric-icon">
+                    <i class="fas fa-undo"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.TotalRefunds.ToString("C")</h3>
+                    <p class="metric-label">Refunds</p>
+                    <div class="metric-detail">@ShiftData.RefundCount transactions</div>
+                </div>
+            </div>
+            
+            <div class="metric-card payouts">
+                <div class="metric-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.TotalPayouts.ToString("C")</h3>
+                    <p class="metric-label">Payouts</p>
+                </div>
+            </div>
+            
+            <div class="metric-card voided">
+                <div class="metric-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.VoidedSales.ToString("C")</h3>
+                    <p class="metric-label">Voided Sales</p>
+                    <div class="metric-detail">@ShiftData.VoidCount transactions</div>
+                </div>
+            </div>
+
+            <div class="metric-card success">
+                <div class="metric-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.CashPayments.ToString("C")</h3>
+                    <p class="metric-label">Cash Payments</p>
+                    <div class="metric-detail">@ShiftData.CashTransactionCount transactions</div>
+                </div>
+            </div>
+            
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.CardPayments.ToString("C")</h3>
+                    <p class="metric-label">Card Payments</p>
+                    <div class="metric-detail">@ShiftData.CardTransactionCount transactions</div>
+                </div>
+            </div>
+            
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.ChangePayments.ToString("C")</h3>
+                    <p class="metric-label">Change Payments</p>
+                    <div class="metric-detail">@ShiftData.ChangeTransactionCount transactions</div>
+                </div>
+            </div>
+            
+            <div class="metric-card success">
+                <div class="metric-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.TotalTransactions</h3>
+                    <p class="metric-label">Total Transactions</p>
+                </div>
+            </div>
+            
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.AverageTransaction.ToString("C")</h3>
+                    <p class="metric-label">Average Transaction</p>
+                </div>
+            </div>
+            
+            <div class="metric-card warning">
+                <div class="metric-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@ShiftData.ItemsSold</h3>
+                    <p class="metric-label">Items Sold</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Sales Table -->
+        @if (ShiftData?.DepartmentSales?.Any() == true)
+        {
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">
+                        <i class="fas fa-building"></i>
+                        Department Sales
+                    </h3>
+                    <div class="table-controls">
+                        <button class="action-btn primary">Export</button>
+                        <button class="action-btn secondary">View All</button>
+                    </div>
+                </div>
+                <div class="modern-table">
+                    <div class="table-row table-header-row">
+                        <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Department</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Total Sales</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Transactions</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Items Sold</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Percentage</div>
+                    </div>
+                    @foreach (var dept in ShiftData.DepartmentSales)
+                    {
+                        <div class="table-row">
+                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon" style="background: @GetDepartmentColor(ShiftData.DepartmentSales.IndexOf(dept));">
+                                        <i class="fas fa-building"></i>
+                                    </div>
+                                    <span>@dept.DepartmentName</span>
+                                </div>
+                            </div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@dept.TotalSales.ToString("C")</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@dept.TransactionCount</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@dept.ItemsSold</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@dept.Percentage.ToString("F1")%</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Transaction Tables -->
+        <div class="tables-section">
+            @if (ShiftData.RefundTransactions?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">                        
+                        <h3 class="table-title">
+                            <i class="fas fa-arrow-rotate-left"></i>
+                            Refund Transactions
+                        </h3>
+                        <div class="table-controls">
+                            <span class="status-badge refund">@ShiftData.RefundTransactions.Count() Refunds</span>
+                            <span class="status-badge amount">@ShiftData.TotalRefunds.ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
+                            <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Amount</div>
+                        </div>
+                        @foreach (var refund in ShiftData.RefundTransactions.Take(10))
+                        {
+                            <div class="table-row">
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@refund.TransactionId</div>
+                                <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">@refund.ProductName</div>
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@refund.EmployeeName</div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@refund.RefundDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">@refund.RefundAmount.ToString("C")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <div class="alert alert-info">
+                <h4>No Active Shift</h4>
+                <p>There is no active shift currently. Please start a new shift to view shift analytics.</p>
+                <button class="btn btn-primary" @onclick="StartNewShift">
+                    <i class="fas fa-play"></i> Start New Shift
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int? ShiftId { get; set; }
+    
+    private ShiftSalesData? ShiftData;
+    private Shift? CurrentShift;
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShiftData();
+    }
+
+    private async Task LoadShiftData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            if (ShiftId.HasValue)
+            {
+                // Load specific shift data
+                CurrentShift = await ShiftService.GetByIdAsync(ShiftId.Value);
+            }
+            else
+            {
+                // Load current active shift
+                var currentUser = UserSessionService.CurrentUser;
+                if (currentUser != null)
+                {
+                    CurrentShift = await ShiftService.GetActiveShiftByUserAsync(currentUser.User_ID);
+                }
+            }
+
+            if (CurrentShift != null)
+            {
+                ShiftData = await LoadShiftSalesData(CurrentShift);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading shift data: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<ShiftSalesData> LoadShiftSalesData(Shift shift)
+    {
+        var startDate = shift.Shift_Start_DateTime;
+        var endDate = shift.Shift_End_DateTime ?? DateTime.Now;
+
+        // Load sales data for the shift period
+        // Replace lines 358-361 with:
+        var salesTransactions = await SalesService.GetByConditionAsync(
+            t => t.Sale_Date >= startDate && t.Sale_Date <= endDate, true);
+        var salesItems = await SalesItemService.GetByConditionAsync(
+            item => item.Date_Created >= startDate && item.Date_Created <= endDate, true);
+        var refunds = await SalesService.GetByConditionAsync(
+            t => t.Is_Refund == true && t.Sale_Date >= startDate && t.Sale_Date <= endDate, true);
+        var voidedProducts = await VoidedProductService.GetByConditionAsync(
+            vp => vp.Void_Date >= startDate && vp.Void_Date <= endDate, true);
+        var departments = await DepartmentService.GetAllAsync(false);
+
+        // Calculate shift metrics
+        return new ShiftSalesData
+        {
+            TotalSales = salesTransactions.Sum(s => s.SaleTransaction_Total_Amount),
+            NetSales = salesTransactions.Sum(s => s.SaleTransaction_Total_Amount) - refunds.Sum(r => r.SaleTransaction_Total_Amount),
+            TotalRefunds = refunds.Sum(r => r.SaleTransaction_Total_Amount),
+            RefundCount = refunds.Count(),
+            TotalTransactions = salesTransactions.Count(),
+            ItemsSold = salesItems.Sum(i => i.Product_QTY),
+            AverageTransaction = salesTransactions.Any() ? salesTransactions.Average(s => s.SaleTransaction_Total_Amount) : 0,
+            CashPayments = salesTransactions.Sum(s => s.SaleTransaction_Cash),
+            CardPayments = salesTransactions.Sum(s => s.SaleTransaction_Card),
+            ChangePayments = salesTransactions.Sum(s => s.SaleTransaction_Change),
+            CashTransactionCount = salesTransactions.Count(s => s.SaleTransaction_Cash >=0),
+            CardTransactionCount = salesTransactions.Count(s => s.SaleTransaction_Card >=0),
+            ChangeTransactionCount = salesTransactions.Count(s => s.SaleTransaction_Change <0),
+            VoidedSales = voidedProducts.Sum(v => v.Product.Product_Selling_Price * v.Voided_Quantity),
+            VoidCount = voidedProducts.Count(),
+            // RefundTransactions = refunds.Select(r => new RefundTransactionData
+            // {
+            //     TransactionId = r.Transaction_Id.ToString(),
+            //     ProductName = r.Product?.Product_Name ?? "Unknown",
+            //     EmployeeName = r.Employee?.First_Name + " " + r.Employee?.Last_Name,
+            //     RefundDate = r.Refund_DateTime,
+            //     RefundAmount = r.Refund_Amount
+            // }).ToList(),
+            // DepartmentSales = departments.Select(d => new DepartmentSalesData
+            // {
+            //     DepartmentName = d.Department_Name,
+            //     TotalSales = salesItems.Where(si => si.Product?.Department_Id == d.Department_Id).Sum(si => si.Total_Price),
+            //     TransactionCount = salesItems.Where(si => si.Product?.Department_Id == d.Department_Id).Select(si => si.Transaction_Id).Distinct().Count(),
+            //     ItemsSold = salesItems.Where(si => si.Product?.Department_Id == d.Department_Id).Sum(si => si.Quantity),
+            //     Percentage = 0 // Calculate after getting total
+            // }).Where(d => d.TotalSales > 0).ToList()
+        };
+    }
+
+    private async Task StartNewShift()
+    {
+        try
+        {
+            var currentUser = UserSessionService.CurrentUser;
+            if (currentUser == null)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Please log in to start a shift.");
+                return;
+            }
+
+            var newShift = new Shift
+            {
+                PosUser_Id = currentUser.User_ID,
+                Shift_Start_DateTime = DateTime.Now,
+                Created_By_Id = currentUser.User_ID,
+                Date_Created = DateTime.Now
+            };
+
+            await ShiftService.AddAsync(newShift);
+            await LoadShiftData();
+            await JSRuntime.InvokeVoidAsync("alert", "New shift started successfully!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error starting shift: {ex.Message}");
+        }
+    }
+
+    private async Task EndCurrentShift()
+    {
+        if (CurrentShift == null) return;
+
+        try
+        {
+            CurrentShift.Shift_End_DateTime = DateTime.Now;
+            CurrentShift.Last_Modified = DateTime.Now;
+            CurrentShift.Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID;
+
+            await ShiftService.UpdateAsync(CurrentShift);
+            await LoadShiftData();
+            await JSRuntime.InvokeVoidAsync("alert", "Shift ended successfully!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error ending shift: {ex.Message}");
+        }
+    }
+
+    private async Task PrintShiftReport()
+    {
+        try
+        {
+            // Implement shift report printing logic
+            await JSRuntime.InvokeVoidAsync("alert", "Shift report printing functionality to be implemented.");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error printing report: {ex.Message}");
+        }
+    }
+
+    private void NavigateToBackoffice()
+    {
+        NavigationManager.NavigateTo("/backoffice");
+    }
+
+    private string GetDepartmentColor(int index)
+    {
+        var colors = new[] { "#3498db", "#e74c3c", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#34495e", "#e67e22" };
+        return colors[index % colors.Length];
+    }
+
+    // Data models for shift analytics
+    public class ShiftSalesData
+    {
+        public decimal TotalSales { get; set; }
+        public decimal NetSales { get; set; }
+        public decimal OtherServices { get; set; }
+        public decimal TotalRefunds { get; set; }
+        public int RefundCount { get; set; }
+        public decimal TotalPayouts { get; set; }
+        public decimal VoidedSales { get; set; }
+        public int VoidCount { get; set; }
+        public decimal CashPayments { get; set; }
+        public decimal CardPayments { get; set; }
+        public decimal ChangePayments { get; set; }
+        public int CashTransactionCount { get; set; }
+        public int CardTransactionCount { get; set; }
+        public int ChangeTransactionCount { get; set; }
+        public int TotalTransactions { get; set; }
+        public decimal AverageTransaction { get; set; }
+        public int ItemsSold { get; set; }
+        public List<RefundTransactionData> RefundTransactions { get; set; } = new();
+        public List<DepartmentSalesData> DepartmentSales { get; set; } = new();
+    }
+
+    public class RefundTransactionData
+    {
+        public string TransactionId { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public string EmployeeName { get; set; } = string.Empty;
+        public DateTime RefundDate { get; set; }
+        public decimal RefundAmount { get; set; }
+    }
+
+    public class DepartmentSalesData
+    {
+        public string DepartmentName { get; set; } = string.Empty;
+        public decimal TotalSales { get; set; }
+        public int TransactionCount { get; set; }
+        public int ItemsSold { get; set; }
+        public decimal Percentage { get; set; }
+    }
+}

@@ -1,9 +1,15 @@
 ﻿@page "/business-management"
 @using EposDataHandler.Models
 @using EposRetail.Components.Pages.Shared.Modal
+@using DataHandlerLibrary.Services
+@using EposRetail.Components.Pages.Shared.Modal
+@using EposRetail.Services
 @inject IJSRuntime JSRuntime
 @inject UserManagementServices UserManagementServices
 @inject TillServices TillServices
+@inject ReceiptPrinterServices ReceiptPrinterServices
+@inject UserSessionService UserSessionService
+@inject NavigationManager NavigationManager
 
 <PageTitle>Business Management</PageTitle>
 
@@ -12,7 +18,7 @@
         <div class="col-12">
             <!-- Navigation Tabs -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <ul class="nav nav-tabs card-header-tabs" id="managementTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link @(activeTab == "users" ? "active" : "")"
@@ -43,6 +49,16 @@
                             </button>
                         </li>
                     </ul>
+                    
+                    <!-- Navigation Buttons -->
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" @onclick="NavigateToBackOffice">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Backoffice
+                        </button>
+                        <button class="btn btn-outline-primary" @onclick="NavigateToCheckout">
+                            <i class="fas fa-cash-register me-1"></i>Go to Checkout
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Tab Content -->
@@ -100,96 +116,96 @@
                             </div>
 
                             <!-- Users Table -->
-            <div class="table-container">
-                <div class="modern-table users-table">
-                    <!-- Table Header -->
-                    <div class="table-row table-header-row">
-                        <div class="table-cell">Name</div>
-                        <div class="table-cell">Role</div>
-                        <div class="table-cell">Primary Site</div>
-                        <div class="table-cell">Additional Sites</div>
-                        <div class="table-cell">Status</div>
-                        <div class="table-cell">Actions</div>
-                    </div>
+                            <div class="table-container">
+                                <div class="modern-table users-table">
+                                    <!-- Table Header -->
+                                    <div class="table-row table-header-row">
+                                        <div class="table-cell">Name</div>
+                                        <div class="table-cell">Role</div>
+                                        <div class="table-cell">Primary Site</div>
+                                        <div class="table-cell">Additional Sites</div>
+                                        <div class="table-cell">Status</div>
+                                        <div class="table-cell">Actions</div>
+                                    </div>
 
-                    <!-- Table Body -->
-                    @if (filteredUsers != null && filteredUsers.Any())
-                    {
-                        @foreach (var user in filteredUsers)
-                        {
-                            <div class="table-row">
-                                <div class="table-cell">
-                                    <div class="user-info">
-                                        <div class="user-name">@($"{user.First_Name} {user.Last_Name}")</div>
-                                    </div>
-                                </div>
-                                <div class="table-cell">
-                                    <span class="role-badge">@user.User_Type</span>
-                                </div>
-                                <div class="table-cell">
-                                    <div class="site-info">
-                                        <div class="site-name">@user.PrimarySite?.Site_BusinessName</div>
-                                        <div class="site-address">@user.PrimarySite?.Site_AddressLine1</div>
-                                    </div>
-                                </div>
-                                <div class="table-cell">
-                                    @if (user.SiteAccesses?.Any(sa => sa.Is_Active && sa.Site_Id != user.Primary_Site_Id) == true)
+                                    <!-- Table Body -->
+                                    @if (filteredUsers != null && filteredUsers.Any())
                                     {
-                                        <span class="count-badge">@user.SiteAccesses.Count(sa => sa.Is_Active && sa.Site_Id != user.Primary_Site_Id)</span>
+                                        @foreach (var user in filteredUsers)
+                                        {
+                                            <div class="table-row">
+                                                <div class="table-cell">
+                                                    <div class="user-info">
+                                                        <div class="user-name">@($"{user.First_Name} {user.Last_Name}")</div>
+                                                    </div>
+                                                </div>
+                                                <div class="table-cell">
+                                                    <span class="role-badge">@user.User_Type</span>
+                                                </div>
+                                                <div class="table-cell">
+                                                    <div class="site-info">
+                                                        <div class="site-name">@user.PrimarySite?.Site_BusinessName</div>
+                                                        <div class="site-address">@user.PrimarySite?.Site_AddressLine1</div>
+                                                    </div>
+                                                </div>
+                                                <div class="table-cell">
+                                                    @if (user.SiteAccesses?.Any(sa => sa.Is_Active && sa.Site_Id != user.Primary_Site_Id) == true)
+                                                    {
+                                                        <span class="count-badge">@user.SiteAccesses.Count(sa => sa.Is_Active && sa.Site_Id != user.Primary_Site_Id)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">None</span>
+                                                    }
+                                                </div>
+                                                <div class="table-cell">
+                                                    @if (user.Is_Activated && !user.Is_Deleted)
+                                                    {
+                                                        <span class="status-badge badge-active">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="status-badge badge-inactive">Inactive</span>
+                                                    }
+                                                </div>
+                                                <div class="table-cell">
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewUserDetails(user)">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning" @onclick="() => EditUser(user)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-info" @onclick="() => ManageSiteAccess(user)">
+                                                            <i class="fas fa-building"></i>
+                                                        </button>
+                                                        @if (user.Is_Activated)
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateUser(user)">
+                                                                <i class="fas fa-user-slash"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ReactivateUser(user)">
+                                                                <i class="fas fa-user-check"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     }
                                     else
                                     {
-                                        <span class="text-muted">None</span>
+                                        <div class="table-row">
+                                            <div class="table-cell" style="grid-column: 1 / -1; text-align: center; color: #6c757d; padding: 40px;">
+                                                No users found
+                                            </div>
+                                        </div>
                                     }
-                                </div>
-                                <div class="table-cell">
-                                    @if (user.Is_Activated && !user.Is_Deleted)
-                                    {
-                                        <span class="status-badge badge-active">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge badge-inactive">Inactive</span>
-                                    }
-                                </div>
-                                <div class="table-cell">
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewUserDetails(user)">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning" @onclick="() => EditUser(user)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info" @onclick="() => ManageSiteAccess(user)">
-                                            <i class="fas fa-building"></i>
-                                        </button>
-                                        @if (user.Is_Activated)
-                                        {
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateUser(user)">
-                                                <i class="fas fa-user-slash"></i>
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ReactivateUser(user)">
-                                                <i class="fas fa-user-check"></i>
-                                            </button>
-                                        }
-                                    </div>
                                 </div>
                             </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="table-row">
-                            <div class="table-cell" style="grid-column: 1 / -1; text-align: center; color: #6c757d; padding: 40px;">
-                                No users found
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
                         </div>
                     }
 
@@ -675,133 +691,15 @@
                          SelectedSite="selectedSiteForUserManagement"
                          OnModalClosed="CloseSiteUserManagementModal" />
 
-<!-- ReceiptPrinter Modal -->
-@if (showPrinterModal)
-{
-    <div class="modal-overlay" @onclick="ClosePrinterModal">
-        <div class="modal-content" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <h3>@(isViewMode ? "Printer Details" : (isEditingPrinter ? "Edit Printer" : "Add New Printer"))</h3>
-                <button class="modal-close" @onclick="ClosePrinterModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form @onsubmit="SavePrinter" @onsubmit:preventDefault="true">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="printerName">Printer Name *</label>
-                            <input type="text" id="printerName" @bind="currentPrinter.Printer_Name" 
-                                   class="form-control" required disabled="@isViewMode" />
-                        </div>
-                        <div class="form-group">
-                            <label for="paperWidth">Paper Width (mm) *</label>
-                            <input type="number" id="paperWidth" @bind="currentPrinter.Paper_Width" 
-                                   class="form-control" required disabled="@isViewMode" min="1" />
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="printerIP">IP Address</label>
-                            <input type="text" id="printerIP" @bind="currentPrinter.Printer_IP_Address" 
-                                   class="form-control" disabled="@isViewMode" placeholder="192.168.1.100" />
-                        </div>
-                        <div class="form-group">
-                            <label for="printerPort">Port Number</label>
-                            <input type="number" id="printerPort" @bind="currentPrinter.Printer_Port_Number" 
-                                   class="form-control" disabled="@isViewMode" placeholder="9100" min="1" max="65535" />
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="printerSite">Site *</label>
-                            <select id="printerSite" @bind="currentPrinter.Site_Id" class="form-control" required disabled="@isViewMode">
-                                <option value="">Select Site</option>
-                                @if (sites != null)
-                                {
-                                    @foreach (var site in sites.Where(s => s.Is_Active))
-                                    {
-                                        <option value="@site.Site_Id">@site.Site_BusinessName</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="printerTill">Associated Till</label>
-                            <select id="printerTill" @bind="currentPrinter.Till_Id" class="form-control" disabled="@isViewMode">
-                                <option value="">No Till Association</option>
-                                @if (tills != null && currentPrinter.Site_Id.HasValue)
-                                {
-                                    @foreach (var till in tills.Where(t => t.Site_Id == currentPrinter.Site_Id && t.Is_Active))
-                                    {
-                                        <option value="@till.Till_Id">@till.Till_Name</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="printerPassword">Printer Password</label>
-                            <input type="password" id="printerPassword" @bind="currentPrinter.Printer_Password" 
-                                   class="form-control" disabled="@isViewMode" placeholder="Optional" />
-                        </div>
-                        <div class="form-group checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" @bind="currentPrinter.Is_Primary" disabled="@isViewMode" />
-                                <span class="checkmark"></span>
-                                Set as Primary Printer
-                            </label>
-                        </div>
-                    </div>
-                    
-                    @if (!isViewMode)
-                    {
-                        <div class="form-row">
-                            <div class="form-group checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" @bind="currentPrinter.Is_Active" />
-                                    <span class="checkmark"></span>
-                                    Active
-                                </label>
-                            </div>
-                        </div>
-                    }
-                    
-                    @if (isViewMode)
-                    {
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Created</label>
-                                <p class="form-text">@currentPrinter.Date_Created.ToString("dd/MM/yyyy HH:mm")</p>
-                            </div>
-                            <div class="form-group">
-                                <label>Last Modified</label>
-                                <p class="form-text">@currentPrinter.Last_Modified.ToString("dd/MM/yyyy HH:mm")</p>
-                            </div>
-                        </div>
-                    }
-                </form>
-            </div>
-            <div class="modal-footer">
-                @if (isViewMode)
-                {
-                    <button type="button" class="btn btn-secondary" @onclick="ClosePrinterModal">Close</button>
-                    <button type="button" class="btn btn-primary" @onclick="() => { isViewMode = false; StateHasChanged(); }">Edit</button>
-                    <button type="button" class="btn btn-info" @onclick="() => TestPrinterConnection(currentPrinter)">Test Connection</button>
-                }
-                else
-                {
-                    <button type="button" class="btn btn-secondary" @onclick="ClosePrinterModal">Cancel</button>
-                    <button type="button" class="btn btn-primary" @onclick="SavePrinter">@(isEditingPrinter ? "Update" : "Create")</button>
-                }
-            </div>
-        </div>
-    </div>
-}
+<PrinterModal IsVisible="@showPrinterModal"
+              IsVisibleChanged="@((bool visible) => showPrinterModal = visible)"
+              PrinterToEdit="@currentPrinter"
+              IsViewMode="@isViewMode"
+              OnPrinterSaved="@OnPrinterSaved"
+              OnPrinterUpdated="@OnPrinterUpdated"
+              OnClosePrinterModal="@(() => { showPrinterModal = false; currentPrinter = null; })"
+              Sites="@sites"
+              Tills="@tills" />
 
 @code {
     private void SetUsersTab()
@@ -1085,39 +983,7 @@
     {
         try
         {
-            // TODO: Replace with actual printer service call
-            // printers = (await PrinterServices.GetAllAsync()).ToList();
-            // For now, using mock data with ReceiptPrinter structure
-            printers = new List<ReceiptPrinter>
-            {
-                new ReceiptPrinter
-                {
-                    Printer_Id = 1,
-                    Printer_Name = "Main Receipt Printer",
-                    Printer_IP_Address = "192.168.1.100",
-                    Printer_Port_Number = 9100,
-                    Paper_Width = 80,
-                    Is_Active = true,
-                    Is_Primary = true,
-                    Site_Id = 1,
-                    Till_Id = 1,
-                    Date_Created = DateTime.Now.AddDays(-30),
-                    Last_Modified = DateTime.Now.AddDays(-5)
-                },
-                new ReceiptPrinter
-                {
-                    Printer_Id = 2,
-                    Printer_Name = "Kitchen Printer",
-                    Printer_IP_Address = "192.168.1.101",
-                    Printer_Port_Number = 9100,
-                    Paper_Width = 58,
-                    Is_Active = true,
-                    Is_Primary = false,
-                    Site_Id = 1,
-                    Date_Created = DateTime.Now.AddDays(-20),
-                    Last_Modified = DateTime.Now.AddDays(-2)
-                }
-            };
+            printers = (await ReceiptPrinterServices.GetAllAsync(true)).ToList();
             FilterPrinters();
         }
         catch (Exception ex)
@@ -1128,9 +994,9 @@
 
     private void ShowCreatePrinterModal()
     {
-        currentPrinter = new ReceiptPrinter 
-        { 
-            Is_Active = true, 
+        currentPrinter = new ReceiptPrinter
+        {
+            Is_Active = true,
             Paper_Width = 80,
             Printer_Port_Number = 9100,
             Date_Created = DateTime.UtcNow,
@@ -1179,8 +1045,15 @@
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Test print sent to {printer.Printer_Name}");
-            // TODO: Implement actual test print functionality using IPrinterService
+            bool connectionSuccessful = await ReceiptPrinterServices.TestPrinterConnectionAsync(printer.Printer_Id);
+            if (connectionSuccessful)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Test print sent to {printer.Printer_Name}");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Failed to connect to {printer.Printer_Name}");
+            }
         }
         catch (Exception ex)
         {
@@ -1192,8 +1065,15 @@
     {
         try
         {
-            // TODO: Implement actual connection test
-            await JSRuntime.InvokeVoidAsync("alert", $"Connection test successful for {printer.Printer_Name}");
+            bool connectionSuccessful = await ReceiptPrinterServices.TestPrinterConnectionAsync(printer.Printer_Id);
+            if (connectionSuccessful)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Connection test successful for {printer.Printer_Name}");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Connection test failed for {printer.Printer_Name}");
+            }
         }
         catch (Exception ex)
         {
@@ -1201,52 +1081,16 @@
         }
     }
 
-    private async Task SavePrinter()
+    private async Task OnPrinterSaved(ReceiptPrinter printer)
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(currentPrinter.Printer_Name))
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Printer name is required.");
-                return;
-            }
+        await LoadPrinters();
+        await JSRuntime.InvokeVoidAsync("alert", "Printer created successfully!");
+    }
 
-            if (!currentPrinter.Site_Id.HasValue)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Please select a site.");
-                return;
-            }
-
-            currentPrinter.Last_Modified = DateTime.UtcNow;
-            
-            if (isEditingPrinter)
-            {
-                // TODO: Update via service
-                // await PrinterServices.UpdateAsync(currentPrinter);
-                var existingIndex = printers.FindIndex(p => p.Printer_Id == currentPrinter.Printer_Id);
-                if (existingIndex >= 0)
-                {
-                    printers[existingIndex] = currentPrinter;
-                }
-                await JSRuntime.InvokeVoidAsync("alert", "Printer updated successfully!");
-            }
-            else
-            {
-                // TODO: Create via service
-                // currentPrinter = await PrinterServices.CreateAsync(currentPrinter);
-                currentPrinter.Printer_Id = printers.Count + 1;
-                currentPrinter.Date_Created = DateTime.UtcNow;
-                printers.Add(currentPrinter);
-                await JSRuntime.InvokeVoidAsync("alert", "Printer created successfully!");
-            }
-
-            FilterPrinters();
-            ClosePrinterModal();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error saving printer: {ex.Message}");
-        }
+    private async Task OnPrinterUpdated(ReceiptPrinter printer)
+    {
+        await LoadPrinters();
+        await JSRuntime.InvokeVoidAsync("alert", "Printer updated successfully!");
     }
 
     private async Task ActivatePrinter(int printerId)
@@ -1261,10 +1105,8 @@
                 if (confirmed)
                 {
                     printer.Is_Active = true;
-                    printer.Last_Modified = DateTime.UtcNow;
-                    // TODO: Update via service
-                    // await PrinterServices.UpdateAsync(printer);
-                    FilterPrinters();
+                    await ReceiptPrinterServices.UpdateAsync(printer);
+                    await LoadPrinters(); // Reload the printers list
                     await JSRuntime.InvokeVoidAsync("alert", "Printer activated successfully!");
                 }
             }
@@ -1288,10 +1130,8 @@
                 if (confirmed)
                 {
                     printer.Is_Active = false;
-                    printer.Last_Modified = DateTime.UtcNow;
-                    // TODO: Update via service
-                    // await PrinterServices.UpdateAsync(printer);
-                    FilterPrinters();
+                    await ReceiptPrinterServices.UpdateAsync(printer);
+                    await LoadPrinters(); // Reload the printers list
                     await JSRuntime.InvokeVoidAsync("alert", "Printer deactivated successfully!");
                 }
             }
@@ -1334,7 +1174,7 @@
     private void ClosePrinterModal()
     {
         showPrinterModal = false;
-        currentPrinter = new ReceiptPrinter();
+        currentPrinter = null;
         isEditingPrinter = false;
         isViewMode = false;
         StateHasChanged();
@@ -1413,6 +1253,12 @@
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
+            {
+                // Only allow Directors and Admins to view user details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to view user details.");
+                return;
+            }
             // Get full user details including all relationships
             var userDetails = await UserManagementServices.GetUserWithFullDetailsAsync(user.User_ID);
 
@@ -1431,10 +1277,16 @@
         }
     }
 
-    private void EditUser(PosUser user)
+    private async void EditUser(PosUser user)
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
+            {
+                // Only allow Directors and Admins to view user details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to amend user details.");
+                return;
+            }
             // Set the current user for editing
             currentUser = user;
             isEditMode = true;
@@ -1451,6 +1303,12 @@
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+            {
+                // Only allow Directors and Admins to view user details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to amend site details.");
+                return;
+            }
             selectedUserForSiteAccess = user;
             showSiteAccessModal = true;
             StateHasChanged();
@@ -1465,6 +1323,12 @@
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
+            {
+                // Only allow Directors and Admins to view user details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to amend user details.");
+                return;
+            }
             // Show confirmation dialog
             var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
                 $"Are you sure you want to deactivate {user.First_Name} {user.Last_Name}? This will revoke all site access.");
@@ -1499,6 +1363,12 @@
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
+            {
+                // Only allow Directors and Admins to view user details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to amend user details.");
+                return;
+            }
             // Show confirmation dialog
             var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
                 $"Are you sure you want to reactivate {user.First_Name} {user.Last_Name}?");
@@ -1533,17 +1403,21 @@
     {
         try
         {
-            if (currentUser.User_Type == PosUserType.Staff || currentUser.User_Type == PosUserType.Trainee)
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
             {
                 // Only allow Directors and Admins to create new users
                 await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to create new users.");
                 return;
             }
-            // Reset for new user creation
-            currentUser = new PosUser();
-            isEditMode = true;
-            showUserModal = true;
-            StateHasChanged();
+            else
+            {
+                // Reset for new user creation
+                currentUser = new PosUser();
+                isEditMode = true;
+                showUserModal = true;
+                StateHasChanged();
+            }
+
         }
         catch (Exception ex)
         {
@@ -1587,6 +1461,12 @@
 
     private void ViewSiteDetails(Site site)
     {
+        if(UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+        {
+            // Only allow Directors and Admins to view site details
+            JSRuntime.InvokeVoidAsync("alert", "You do not have permission to view site details.");
+            return;
+        }
         currentSite = site;
         isViewMode = true;
         showSiteModal = true;
@@ -1595,6 +1475,12 @@
 
     private void ManageSiteUsers(Site site)
     {
+        if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+        {
+            // Only allow Directors and Admins to view site details
+            JSRuntime.InvokeVoidAsync("alert", "You do not have permission to manage site users.");
+            return;
+        }
         selectedSiteForUserManagement = site;
         showSiteUserManagementModal = true;
         StateHasChanged();
@@ -1663,6 +1549,12 @@
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+            {
+                // Only allow Directors and Admins to view site details
+                JSRuntime.InvokeVoidAsync("alert", "You do not have permission to activate sites.");
+                return;
+            }
             await UserManagementServices.ActivateSiteAsync(siteId);
             await LoadSites();
             FilterSites();
@@ -1678,6 +1570,12 @@
     {
         try
         {
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+            {
+                // Only allow Directors and Admins to view site details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to deactivate sites.");
+                return;
+            }
             await UserManagementServices.DeactivateSiteAsync(siteId);
             await LoadSites();
             FilterSites();
@@ -1744,8 +1642,14 @@
         StateHasChanged();
     }
 
-    private void EditSite(Site site)
+    private async void EditSite(Site site)
     {
+        if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+        {
+            // Only allow Directors and Admins to view site details
+            await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to edit sites.");
+            return;
+        }
         currentSite = new Site
         {
             Site_Id = site.Site_Id,
@@ -1784,6 +1688,13 @@
     {
         try
         {
+
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
+            {
+                // Only allow Directors and Admins to view site details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to activate users.");
+                return;
+            }
             var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
                 $"Are you sure you want to activate {user.First_Name} {user.Last_Name}?");
 
@@ -1813,6 +1724,13 @@
     {
         try
         {
+
+            if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Users == false)
+            {
+                // Only allow Directors and Admins to view site details
+                await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to manage user site access.");
+                return;
+            }
             selectedUserForSiteAccess = user;
             showSiteAccessModal = true;
             StateHasChanged();
@@ -1823,10 +1741,42 @@
         }
     }
 
+    private async Task SetPrimaryPrinter(int printerId)
+    {
+        try
+        {
+            var printer = printers.FirstOrDefault(p => p.Printer_Id == printerId);
+            if (printer != null && printer.Site_Id.HasValue)
+            {
+                var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+                    $"Are you sure you want to set {printer.Printer_Name} as the primary printer?");
+                if (confirmed)
+                {
+                    await ReceiptPrinterServices.SetPrimaryPrinterAsync(printerId, printer.Site_Id.Value);
+                    await LoadPrinters(); // Reload the printers list
+                    await JSRuntime.InvokeVoidAsync("alert", "Primary printer set successfully!");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error setting primary printer: {ex.Message}");
+        }
+    }
 
+    // Navigation methods
+    private void NavigateToBackOffice()
+    {
+        NavigationManager.NavigateTo("/backoffice");
+    }
+
+    private void NavigateToCheckout()
+    {
+        NavigationManager.NavigateTo("/checkout");
+    }
 
 }
-                    
+
 
 
 

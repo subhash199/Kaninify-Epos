@@ -1,3 +1,4 @@
+using DataHandlerLibrary.Models;
 using DataHandlerLibrary.Services;
 using EntityFrameworkDatabaseLibrary.Models;
 using EposRetail.Models;
@@ -116,13 +117,14 @@ public class CheckoutService
         return grandTotal - totalPaid;
     }
 
-    public async Task AddProductToBasketAsync(SalesBasket basket, Product product, bool isGeneric, int? payoutId)
+    public async Task AddProductToBasketAsync(SalesBasket basket, Product product, SalesItemTransactionType transactionType, int? payoutId)
     {
         basket.SalesItemsList ??= new List<SalesItemTransaction>();
 
-        var existingItem = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == product.Product_ID);
+        var existingItem = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == product.Product_ID && x.SalesItemTransactionType == transactionType);
 
-        if (existingItem != null && !isGeneric)
+        if (existingItem != null && transactionType != SalesItemTransactionType.Misc 
+            && transactionType != SalesItemTransactionType.Service && transactionType != SalesItemTransactionType.Payout)
         {
             existingItem.Product_QTY += 1;
         }
@@ -133,25 +135,17 @@ public class CheckoutService
                 Product_ID = product.Product_ID,
                 Product = product,
                 Product_QTY = 1,
-                Product_Amount = product.Product_Selling_Price,
-                Product_Total_Amount = product.Product_Selling_Price,
-                Product_Total_Amount_Before_Discount = product.Product_Selling_Price,
-                SalesPayout_ID= payoutId                
+                Product_Amount = transactionType == SalesItemTransactionType.Refund ? -(product.Product_Selling_Price) : product.Product_Selling_Price,
+                Product_Total_Amount = transactionType == SalesItemTransactionType.Refund ? -(product.Product_Selling_Price) : product.Product_Selling_Price,
+                Product_Total_Amount_Before_Discount = transactionType == SalesItemTransactionType.Refund ? -(product.Product_Selling_Price) : product.Product_Selling_Price,
+                SalesPayout_ID = payoutId,
+                SalesItemTransactionType = transactionType
+
             });
         }
 
         // Apply promotions to the entire basket
         await ApplyPromotionsToBasketAsync(basket);
-
-        // Handle refund scenario
-        if (basket.Transaction.Is_Refund)
-        {
-            foreach (var item in basket.SalesItemsList)
-            {
-                item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
-                item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount);
-            }
-        }
 
         basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
     }
@@ -166,9 +160,11 @@ public class CheckoutService
         // Reset all items to original prices before applying promotions
         foreach (var item in basket.SalesItemsList)
         {
-            item.Product_Total_Amount_Before_Discount = item.Product_QTY * item.Product?.Product_Selling_Price ?? 0;
+            item.Product_Total_Amount_Before_Discount = item.Product_QTY *
+                (item.SalesItemTransactionType == SalesItemTransactionType.Refund ? -(item.Product?.Product_Selling_Price) : item.Product?.Product_Selling_Price) ?? 0;
             item.Product_Total_Amount = item.Product_Total_Amount_Before_Discount;
-            item.Product_Amount = item.Product?.Product_Selling_Price ?? 0;
+            item.Product_Amount = (item.SalesItemTransactionType == SalesItemTransactionType.Refund ? -(item.Product?.Product_Selling_Price) :
+                item.Product?.Product_Selling_Price) ?? 0;
         }
 
         // Apply promotions directly from products in the basket

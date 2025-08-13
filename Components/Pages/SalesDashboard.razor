@@ -278,7 +278,7 @@
                         <i class="fas fa-exchange-alt"></i>
                     </div>
                     <div class="metric-content">
-                        <div class="metric-value">@SalesData.StockAdjustmentsCount</div>
+                        <div class="metric-value">@SalesData.StockTransactions</div>
                         <div class="metric-label">Stock Adjustments</div>
                         <div class="metric-detail">Total adjustments made</div>
                     </div>
@@ -885,12 +885,12 @@
             var itemsSold = salesItemTransactions.Where(item => !item.SalesTransaction.Is_Refund).Sum(item => item.Product_QTY);
 
             // Calculate refunds
-            var refundTransactions = salesTransactions.Where(t => t.Is_Refund).ToList();
-            var totalRefunds = refundTransactions.Sum(t => t.SaleTransaction_Total_Amount);
-            var refundCount = refundTransactions.Count;
+            var refundItems = salesItemTransactions.Where(t => t.SalesItemTransactionType == SalesItemTransactionType.Refund).ToList();
+            var totalRefunds = refundItems.Sum(t => t.Product_Total_Amount);
+            var refundCount = refundItems.Count;
 
             // Calculate payouts
-            var payoutItems = salesItemTransactions.Where(item => item.SalesPayout_ID != null).ToList();
+            var payoutItems = salesItemTransactions.Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Payout).ToList();
             var totalPayouts = payoutItems.Sum(item => item.Product_Total_Amount);
 
             // Get voided products using VoidedProductServices
@@ -1012,12 +1012,10 @@
                 })
                 .ToList();
 
-            // Get refund transaction details
-            var refundTransactionIds = refundTransactions.Select(t => t.SaleTransaction_ID).ToList();
+           
 
             // Replace the problematic block with the following correct LINQ query
-            var refundTransactionDetails = salesItemTransactions
-                .Where(item => refundTransactionIds.Contains(item.SaleTransaction_ID))
+            var refundTransactionDetails = refundItems               
                 .Select(item => new RefundTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,
@@ -1066,7 +1064,8 @@
 
             // Calculate department sales
             var departmentSales = salesItemTransactions
-                .Where(item => !refundTransactionIds.Contains(item.SaleTransaction_ID) && item.Product?.Department_ID != null)
+                .Where(item => item.SalesItemTransactionType != SalesItemTransactionType.Refund && 
+                    item.SalesItemTransactionType != SalesItemTransactionType.Payout && item.Product?.Department_ID != null)
                 .GroupBy(item => item.Product?.Department_ID)
                 .Select(group => new DepartmentSalesData
                 {
@@ -1100,9 +1099,7 @@
 
             // Get Other Services transaction details
             var otherServicesTransactionDetails = salesItemTransactions
-                .Where(item => item.Product?.Department_ID != null &&
-                              separateSalesDepartmentIds.Contains(item.Product.Department_ID) &&
-                              item.SalesPayout_ID == null) // Exclude payout transactions
+                .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Service)
                 .Select(item => new OtherServicesTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,

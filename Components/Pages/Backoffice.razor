@@ -25,7 +25,21 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToShiftDashboard()">
+                    <div class="thumb">
+                        <img src="images/icons/svg/schedule_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Shift Sales" />
+                    </div>
+                    <div class="Content">
+                        <h4 class="title">
+                            <a href="#">Shift Sales</a>
+                        </h4>
+                        <p>View current shift sales and analytics</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
                 <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToInventoryManagement()">
                     <div class="thumb">
                         <img src="images/icons/svg/inventory_2_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Inventory Management" />
@@ -157,6 +171,11 @@
     private void NavigateToTodaysSales()
     {
         NavigationManager.NavigateTo("/salesdashboard?filter=today");
+    }
+
+    private void NavigateToShiftDashboard()
+    {
+        NavigationManager.NavigateTo("/shift-dashboard");
     }
 
     private void NavigateToInventoryManagement()

@@ -118,29 +118,37 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedVoidLine" class="form-label">Void Line</label>
-                                        <InputCheckbox id="allowedVoidLine" class="form-check-input" @bind-Value="CurrentUser.Allowed_Void_Line" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedVoidLine" class="form-check-input" @bind-Value="CurrentUser.Allowed_Void_Line" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedVoidLine">Void Line</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedVoidSale" class="form-label">Void Sale</label>
-                                        <InputCheckbox id="allowedVoidSale" class="form-check-input" @bind-Value="CurrentUser.Allowed_Void_Sale" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedVoidSale" class="form-check-input" @bind-Value="CurrentUser.Allowed_Void_Sale" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedVoidSale">Void Sale</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedNoSale" class="form-label">No Sale</label>
-                                        <InputCheckbox id="allowedNoSale" class="form-check-input" @bind-Value="CurrentUser.Allowed_No_Sale" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedNoSale" class="form-check-input" @bind-Value="CurrentUser.Allowed_No_Sale" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedNoSale">No Sale</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedReturns" class="form-label">Returns</label>
-                                        <InputCheckbox id="allowedReturns" class="form-check-input" @bind-Value="CurrentUser.Allowed_Returns" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedReturns" class="form-check-input" @bind-Value="CurrentUser.Allowed_Returns" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedReturns">Returns</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -148,29 +156,37 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedPayout" class="form-label">Payout</label>
-                                        <InputCheckbox id="allowedPayout" class="form-check-input" @bind-Value="CurrentUser.Allowed_Payout" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedPayout" class="form-check-input" @bind-Value="CurrentUser.Allowed_Payout" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedPayout">Payout</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedRefund" class="form-label">Refund</label>
-                                        <InputCheckbox id="allowedRefund" class="form-check-input" @bind-Value="CurrentUser.Allowed_Refund" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedRefund" class="form-check-input" @bind-Value="CurrentUser.Allowed_Refund" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedRefund">Refund</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedChangePrice" class="form-label">Change Price</label>
-                                        <InputCheckbox id="allowedChangePrice" class="form-check-input" @bind-Value="CurrentUser.Allowed_Change_Price" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedChangePrice" class="form-check-input" @bind-Value="CurrentUser.Allowed_Change_Price" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedChangePrice">Change Price</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedDayEnd" class="form-label">Day End</label>
-                                        <InputCheckbox id="allowedDayEnd" class="form-check-input" @bind-Value="CurrentUser.Allowed_Day_End" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedDayEnd" class="form-check-input" @bind-Value="CurrentUser.Allowed_Day_End" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedDayEnd">Day End</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -184,59 +200,37 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageUsers" class="form-label">Users</label>
-                                        <InputCheckbox id="allowedManageUsers" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Users" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageUsers" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Users" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageUsers">Users</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageSites" class="form-label">Sites</label>
-                                        <InputCheckbox id="allowedManageSites" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Sites" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageSites" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Sites" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageSites">Sites</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageTills" class="form-label">Tills</label>
-                                        <InputCheckbox id="allowedManageTills" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Tills" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageTills" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Tills" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageTills">Tills</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageProducts" class="form-label">Products</label>
-                                        <InputCheckbox id="allowedManageProducts" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Products" disabled="@IsViewMode" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="allowedManageSuppliers" class="form-label">Suppliers</label>
-                                        <InputCheckbox id="allowedManageSuppliers" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Suppliers" disabled="@IsViewMode" />
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="allowedManageStockTransfer" class="form-label">Stock Transfer</label>
-                                        <InputCheckbox id="allowedManageStockTransfer" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_StockTransfer" disabled="@IsViewMode" />
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="allowedManageVat" class="form-label">VAT</label>
-                                        <InputCheckbox id="allowedManageVat" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Vat" disabled="@IsViewMode" />
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="allowedManageDepartments" class="form-label">Departments</label>
-                                        <InputCheckbox id="allowedManageDepartments" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Departments" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageProducts" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Products" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageProducts">Products</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -244,29 +238,37 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageOrders" class="form-label">Orders</label>
-                                        <InputCheckbox id="allowedManageOrders" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Orders" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageSuppliers" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Suppliers" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageSuppliers">Suppliers</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageReports" class="form-label">Reports</label>
-                                        <InputCheckbox id="allowedManageReports" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Reports" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageStockTransfer" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_StockTransfer" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageStockTransfer">Stock Transfer</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageSettings" class="form-label">Settings</label>
-                                        <InputCheckbox id="allowedManageSettings" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Settings" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageVat" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Vat" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageVat">VAT</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageTaxRates" class="form-label">Tax Rates</label>
-                                        <InputCheckbox id="allowedManageTaxRates" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Tax_Rates" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageDepartments" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Departments" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageDepartments">Departments</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -274,15 +276,57 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManagePromotions" class="form-label">Promotions</label>
-                                        <InputCheckbox id="allowedManagePromotions" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Promotions" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageOrders" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Orders" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageOrders">Orders</label>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3">
                                     <div class="mb-3">
-                                        <label for="allowedManageVoidedProducts" class="form-label">Voided Products</label>
-                                        <InputCheckbox id="allowedManageVoidedProducts" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_VoidedProducts" disabled="@IsViewMode" />
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageReports" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Reports" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageReports">Reports</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageSettings" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Settings" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageSettings">Settings</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageTaxRates" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Tax_Rates" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageTaxRates">Tax Rates</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManagePromotions" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_Promotions" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManagePromotions">Promotions</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <InputCheckbox id="allowedManageVoidedProducts" class="form-check-input" @bind-Value="CurrentUser.Allowed_Manage_VoidedProducts" disabled="@IsViewMode" />
+                                            <label class="form-check-label" for="allowedManageVoidedProducts">Voided Products</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -366,7 +410,10 @@
                             }
                         </button>
                     }
-
+                    @if (IsViewMode)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="() => { IsViewMode = false; StateHasChanged(); }">Edit</button>
+                    }
                 </div>
             </EditForm>
         </div>
