@@ -53,14 +53,13 @@ public class CheckoutService
                 salesItem.Product = null; // Detach product to avoid circular reference issues
                 salesItem.SalesPayout = null; // Detach payout to avoid circular reference issues
                 salesItem.Promotion = null; // Detach promotion to avoid circular reference issues
-                salesItem.OverrideAuthorizedBy = null; // Detach override authorized by to avoid circular reference issues
             }
 
             // Save all sales items in a single bulk operation
             await _salesItemTransactionServices.AddRangeAsync(salesItems);
 
             // Update product quantities based on the transaction
-            await UpdateProductQuantitiesAsync(salesItems, transaction.Is_Refund);
+            await UpdateProductQuantitiesAsync(salesItems);
         }
     }
 
@@ -70,7 +69,7 @@ public class CheckoutService
     /// </summary>
     /// <param name="salesItems">List of sales item transactions</param>
     /// <param name="isRefund">True if this is a refund transaction, false for regular sale</param>
-    public async Task UpdateProductQuantitiesAsync(List<SalesItemTransaction> salesItems, bool isRefund = false)
+    public async Task UpdateProductQuantitiesAsync(List<SalesItemTransaction> salesItems)
     {
         if (salesItems?.Any() != true) return;
 
@@ -83,7 +82,7 @@ public class CheckoutService
 
             int quantityChange = salesItem.Product_QTY;
 
-            if (isRefund)
+            if (salesItem.SalesItemTransactionType == SalesItemTransactionType.Refund)
             {
                 product.ShelfQuantity += quantityChange;
             }
@@ -123,7 +122,7 @@ public class CheckoutService
 
         var existingItem = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == product.Product_ID && x.SalesItemTransactionType == transactionType);
 
-        if (existingItem != null && transactionType != SalesItemTransactionType.Misc 
+        if (existingItem != null && transactionType != SalesItemTransactionType.Misc
             && transactionType != SalesItemTransactionType.Service && transactionType != SalesItemTransactionType.Payout)
         {
             existingItem.Product_QTY += 1;
@@ -478,14 +477,15 @@ public class CheckoutService
         // Reapply promotions to the entire basket
         await ApplyPromotionsToBasketAsync(basket);
 
-        // Handle refund scenario
-        if (basket.Transaction.Is_Refund)
+
+        foreach (var item in basket.SalesItemsList)
         {
-            foreach (var item in basket.SalesItemsList)
+            if (item.SalesItemTransactionType == SalesItemTransactionType.Refund)
             {
                 item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
                 item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount);
             }
+
         }
 
         basket.Transaction.SaleTransaction_Total_Amount = basket.SalesItemsList.Sum(s => s.Product_Total_Amount);
@@ -500,10 +500,10 @@ public class CheckoutService
 
         await ApplyPromotionsToBasketAsync(basket);
 
-        // Handle refund scenario
-        if (basket.Transaction.Is_Refund)
+
+        foreach (var item in basket.SalesItemsList)
         {
-            foreach (var item in basket.SalesItemsList)
+            if (item.SalesItemTransactionType == SalesItemTransactionType.Refund)
             {
                 item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
                 item.Product_Total_Amount_Before_Discount = -Math.Abs(item.Product_Total_Amount_Before_Discount);

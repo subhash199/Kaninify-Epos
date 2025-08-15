@@ -278,7 +278,7 @@
                         <i class="fas fa-exchange-alt"></i>
                     </div>
                     <div class="metric-content">
-                        <div class="metric-value">@SalesData.StockTransactions</div>
+                        <div class="metric-value">@SalesData.StockAdjustmentsCount</div>
                         <div class="metric-label">Stock Adjustments</div>
                         <div class="metric-detail">Total adjustments made</div>
                     </div>
@@ -861,11 +861,11 @@
             var allDepartments = await DepartmentService.GetAllAsync(false);
 
             //Calculate Financial Metrics
-            var cashpayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Cash);
+            var cashpayment = salesTransactions.Sum(t => t.SaleTransaction_Cash);
 
             var cashPaymentCount = salesTransactions.Where(t => t.SaleTransaction_Cash > 0).Count();
 
-            var cardPayment = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Card);
+            var cardPayment = salesTransactions.Sum(t => t.SaleTransaction_Card);
 
             var cardPaymentCount = salesTransactions.Where(t => t.SaleTransaction_Card > 0).Count();
 
@@ -879,10 +879,10 @@
                 item => salesTransactionIds.Contains(item.SaleTransaction_ID), true);
 
             // Calculate basic metrics
-            var totalSales = salesTransactions.Where(t => !t.Is_Refund).Sum(t => t.SaleTransaction_Total_Amount);
-            var totalTransactions = salesTransactions.Count(t => !t.Is_Refund);
+            var totalSales = salesItemTransactions.Where(i => i.SalesItemTransactionType != SalesItemTransactionType.Payout && i.SalesItemTransactionType != SalesItemTransactionType.Refund).Sum(t => t.Product_Total_Amount); ;
+            var totalTransactions = salesTransactions.Count();
             var averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
-            var itemsSold = salesItemTransactions.Where(item => !item.SalesTransaction.Is_Refund).Sum(item => item.Product_QTY);
+            var itemsSold = salesItemTransactions.Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale).Sum(item => item.Product_QTY);
 
             // Calculate refunds
             var refundItems = salesItemTransactions.Where(t => t.SalesItemTransactionType == SalesItemTransactionType.Refund).ToList();
@@ -946,7 +946,7 @@
 
             // Calculate employee performance
             var employeePerformance = salesTransactions
-                .Where(t => !t.Is_Refund && t?.Created_By_Id != null)
+                .Where(t => t?.Created_By_Id != null)
                 .GroupBy(t => t.Created_By_Id)
                 .Select(g => new EmployeePerformanceData
                 {
@@ -966,7 +966,7 @@
 
             // Calculate top products
             var topProducts = salesItemTransactions
-                .Where(item => !item.SalesTransaction.Is_Refund && item.Product != null)
+                .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale)
                 .GroupBy(item => item.Product)
                 .Select(g => new ProductSalesData
                 {
@@ -980,7 +980,7 @@
 
             // Calculate least popular products (products with low sales)
             var leastPopularProducts = salesItemTransactions
-                .Where(item => !item.SalesTransaction.Is_Refund && item.Product != null)
+                .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale)
                 .GroupBy(item => item.Product)
                 .Select(g => new ProductSalesData
                 {
@@ -995,7 +995,7 @@
             // Calculate stock transaction counts
             var expiredProductsCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Expired);
             var theftCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Theft);
-            var stockAdjustmentsCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Adjustment);
+            var stockAdjustmentsCount = stockTransactions.Count(st => st.StockTransactionType != StockTransferType.Expired && st.StockTransactionType != StockTransferType.Theft);
 
             // Get recent stock transactions
             var recentStockTransactions = stockTransactions

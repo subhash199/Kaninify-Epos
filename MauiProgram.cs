@@ -66,7 +66,8 @@ public static class MauiProgram
 		builder.Services.AddScoped<SupplierItemsServices>(); // Ensure DbContext is scoped
         builder.Services.AddScoped<ReceiptPrinterServices>();
 
-        builder.Services.AddSingleton<UserSessionService>();
+        // Register enhanced UserSessionService
+        builder.Services.AddScoped<UserSessionService>();
         builder.Services.AddSingleton<ReceiptPrinter>();
 		builder.Services.AddSingleton<PosUser>();
         builder

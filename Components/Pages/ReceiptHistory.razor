@@ -110,10 +110,10 @@
                                 <div class="transaction-details">
                                     <span class="transaction-time">@TimeZoneInfo.ConvertTimeFromUtc(@transaction.Sale_Date, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm:ss")</span>
                                     <span class="transaction-items">@transaction.SaleTransaction_Total_QTY items</span>
-                                    @if (transaction.Is_Refund)
+                                   @*  @if (transaction.Is_Refund)
                                     {
                                         <span class="refund-badge">REFUND</span>
-                                    }
+                                    } *@
                                 </div>
                                 <div class="transaction-payment">
                                     @if (transaction.SaleTransaction_Cash > 0)

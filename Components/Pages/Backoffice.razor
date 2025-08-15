@@ -7,154 +7,214 @@
 @inject DataHandlerLibrary.Services.TillServices TillService
 @using DataHandlerLibrary.Models
 
-
-<div class="row m-4 justify-content-center">
-    <div class="col-md-12">
-        <div class="d-flex gap-2 mb-2">
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToDayLogSales()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/calendar_month_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Current DayLog Sales" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Today's Sales</a>
-                        </h4>
-                        <p>View Today's sales, x-read, Day End</p>
-                    </div>
-                </div>
+<!-- Modern Header Section -->
+<div class="bg-primary text-white py-4 mb-4 shadow-sm">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0 fw-bold">
+                    <i class="bi bi-building me-3"></i>
+                    Backoffice
+                </h1>
+                <p class="mb-0 opacity-75">Manage your business operations and analytics</p>
             </div>
-
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToShiftDashboard()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/schedule_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Shift Sales" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Shift Sales</a>
-                        </h4>
-                        <p>View current shift sales and analytics</p>
-                    </div>
-                </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-checkout btn-lg px-5 py-3 fw-bold shadow-sm" @onclick="NavigateToCheckout">
+                    <i class="bi bi-cart3 me-2"></i>
+                    Go to Checkout
+                    <i class="bi bi-arrow-right ms-2"></i>
+                </button>
             </div>
+        </div>
+    </div>
+</div>
 
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToInventoryManagement()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/inventory_2_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Inventory Management" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Inventory Management</a>
-                        </h4>
-                        <p>View, manage and order stocks</p>
-                    </div>
+<!-- Main Content -->
+<div class="container-fluid px-4">
+    <!-- Sales & Analytics Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-4 text-muted fw-semibold">
+                <i class="bi bi-graph-up me-2"></i>
+                Sales & Analytics
+            </h3>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToDayLogSales">
+                <div class="card-icon bg-primary">
+                    <i class="bi bi-calendar-day text-white">
+                        <img src="images/icons/svg/bar_chart_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    </i>
                 </div>
-            </div>
-            
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToDepartmentManagement()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/category_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Department Management" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Department Management</a>
-                        </h4>
-                        <p>Manage departments and products</p>
+                <div class="card-content">
+                    <h5 class="card-title">Today's Sales</h5>
+                    <p class="card-description">View today's sales, x-read, and day end reports</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="col-md-12">
-        <div class="d-flex gap-2 mb-2">
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="OpenDrawer">
-                    <div class="thumb">
-                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Open Drawer" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Open Drawer</a>
-                        </h4>
-                        <p>Till drawer opens</p>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToShiftDashboard">
+                <div class="card-icon bg-success">
+                    <i class="bi bi-clock text-white">
+                        <img src="images/icons/svg/user_attributes_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    </i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Shift Sales</h5>
+                    <p class="card-description">View current shift sales and analytics</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
             </div>
-
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToHistory()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="History" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">History</a>
-                        </h4>
-                        <p>View and manage: receipts, day end reports</p>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToHistory">
+                <div class="card-icon bg-info">
+                    <i class="bi bi-clock-history text-white">
+                        <img src="images/icons/svg/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    </i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">History</h5>
+                    <p class="card-description">View and manage receipts, day end reports</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
             </div>
-
-            <div class="col-md-3">
-                <div class="Card-box">
-                    <div class="thumb">
-                        <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Promotion" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Promotion</a>
-                        </h4>
-                        <p>View manage promotions</p>
-                    </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="OpenDrawer">
+                <div class="card-icon bg-warning">
+                    <img src="images/icons/svg/arrow_menu_open_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-cash-stack text-white"></i>
                 </div>
-            </div>
-            
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToExpiryManagement()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/schedule_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Expiry Management" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Expiry Products</a>
-                        </h4>
-                        <p>Manage expiring and expired products</p>
+                <div class="card-content">
+                    <h5 class="card-title">Open Drawer</h5>
+                    <p class="card-description">Open the till drawer for cash management</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-12">
-        <div class="d-flex gap-2 mb-2">
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToStockRefill()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Stock Refill" />
-                    </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Stock Refill</a>
-                        </h4>
-                        <p>Manage products needing refill</p>
+    <!-- Inventory & Products Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-4 text-muted fw-semibold">
+                <i class="bi bi-boxes me-2"></i>
+                Inventory & Products
+            </h3>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToInventoryManagement">
+                <div class="card-icon bg-purple">
+                    <img src="images/icons/svg/markdown_paste_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-box-seam text-white"></i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Inventory Management</h5>
+                    <p class="card-description">View, manage and order stocks</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
             </div>
-            
-            <div class="col-md-3">
-                <div class="Card-box" style="cursor: pointer;" @onclick="() => NavigateToBusinessManagement()">
-                    <div class="thumb">
-                        <img src="images/icons/svg/business_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Business Management" />
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToDepartmentManagement">
+                <div class="card-icon bg-secondary">
+                    <img src="images/icons/svg/category_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-grid-3x3-gap text-white"></i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Department Management</h5>
+                    <p class="card-description">Manage departments and products</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
-                    <div class="Content">
-                        <h4 class="title">
-                            <a href="#">Business Management</a>
-                        </h4>
-                        <p>Manage sites, users, and settings</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToStockRefill">
+                <div class="card-icon bg-danger">
+                    <img src="images/icons/svg/inventory_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-arrow-repeat text-white"></i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Stock Refill</h5>
+                    <p class="card-description">Manage products needing refill</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToExpiryManagement">
+                <div class="card-icon bg-orange">
+                    <img src="images/icons/svg/timer_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-exclamation-triangle text-white"></i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Expiry Products</h5>
+                    <p class="card-description">Manage expiring and expired products</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Business Management Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-4 text-muted fw-semibold">
+                <i class="bi bi-gear me-2"></i>
+                Business Management
+            </h3>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100" @onclick="NavigateToBusinessManagement">
+                <div class="card-icon bg-white">
+                    <img src="images/icons/svg/manage_accounts_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-building text-white"></i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Business Management</h5>
+                    <p class="card-description">Manage sites, users, and settings</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="modern-card h-100">
+                <div class="card-icon bg-gradient">
+                    <img src="images/icons/svg/campaign_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <i class="bi bi-percent text-white"></i>
+                </div>
+                <div class="card-content">
+                    <h5 class="card-title">Promotions</h5>
+                    <p class="card-description">View and manage promotions</p>
+                    <div class="card-arrow">
+                        <i class="bi bi-arrow-right"></i>
                     </div>
                 </div>
             </div>
@@ -163,6 +223,11 @@
 </div>
 
 @code {
+    private void NavigateToCheckout()
+    {
+        NavigationManager.NavigateTo("/checkout");
+    }
+    
     private void NavigateToSalesDashboard()
     {
         NavigationManager.NavigateTo("/salesdashboard");
@@ -175,7 +240,7 @@
 
     private void NavigateToShiftDashboard()
     {
-        NavigationManager.NavigateTo("/shift-dashboard");
+        NavigationManager.NavigateTo("/shift-log?isShiftLog=true");
     }
 
     private void NavigateToInventoryManagement()

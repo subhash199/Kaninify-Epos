@@ -36,12 +36,12 @@
                            @bind-value:event="oninput" @onkeydown="SearchKeyDownAsync"
                            class="form-control" placeholder="Search for products or enter amount..." />
                 </div>
-                
+
                 <!-- CheckoutTable takes remaining space -->
                 <div class="flex-grow-1 checkout-table-container">
                     <CheckoutTable State="_state" OnItemSelected="SelectItem"></CheckoutTable>
                 </div>
-                
+
                 <!-- Bottom aligned elements -->
                 <div class="mt-auto">
                     <CheckoutButtons State="_state" OnVoidLineClicked="HandleVoidLineButtonClicked"
@@ -367,22 +367,8 @@
 
     private async Task InitializeSalesTransactionAsync()
     {
-        // Ensure we have a valid DayLog before initializing a transaction
-        if (UserSession.CurrentDayLog == null)
-        {
-            var dayLog = await DayLogServices.GetLastDayLog();
-
-            if (dayLog != null && dayLog.DayLog_End_DateTime == null)
-            {
-                // Last daylog is still active, use it
-                UserSession.SetDayLog(dayLog);
-            }
-            else
-            {
-                // No active daylog exists, create a new one
-                await CreateDayLog();
-            }
-        }
+        // Ensure we have a complete session before initializing a transaction
+        await UserSession.EnsureCompleteSessionAsync();
 
         if (!(_state.SalesBaskets != null && _state.SalesBaskets.Count > _state.HoldBasketIndex && _state.HoldBasketIndex >= 0))
         {
@@ -391,9 +377,9 @@
 
         _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
         {
-            DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
-            Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-            Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+            DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
+            Created_By_Id = UserSession.GetValidUserIdAsync(),
+            Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
             SaleTransaction_Total_Amount = 0,
             SaleTransaction_Cash = 0,
             SaleTransaction_Card = 0,
@@ -458,61 +444,10 @@
         // await MigrateDataServices.InsertDepartmentsFromCsvAsync(departmentsCsvPath, null, null, null);
         // await MigrateDataServices.InsertProductsFromCsvAsync(productsCsvPath, null, null, null);
         // var transactions = await salesTransactionServices.GetAllAsync();
-
-        bool newDayLogCreated = false;
-
-        // Check if CurrentDayLog is null, if so fetch the last daylog
-        if (UserSession.CurrentDayLog == null)
-        {
-            var dayLog = await DayLogServices.GetLastDayLog();
-
-            if (dayLog != null)
-            {
-                if (dayLog.DayLog_End_DateTime != null)
-                {
-                    // Last daylog has ended, create a new one
-                    await CreateDayLog();
-                    newDayLogCreated = true;
-                }
-                else
-                {
-                    // Last daylog is still active, use it
-                    UserSession.SetDayLog(dayLog);
-                }
-            }
-            else
-            {
-                // No daylog exists, create a new one
-                await CreateDayLog();
-                newDayLogCreated = true;
-            }
-        }
-        else if (UserSession.CurrentDayLog.DayLog_End_DateTime != null)
-        {
-            // Current daylog has ended, create a new one
-            await CreateDayLog();
-            newDayLogCreated = true;
-        }
-
-        // Check for active shift or create new one
-        await CheckShiftStatusAsync(newDayLogCreated);
+        await UserSession.EnsureCompleteSessionAsync();
     }
 
-    private async Task CreateDayLog()
-    {
-        var dayLog = new DayLog
-        {
-            DayLog_Start_DateTime = DateTime.UtcNow,
-            Date_Created = DateTime.UtcNow,
-            Last_Modified = DateTime.UtcNow,
-            Created_By_Id = UserSession.CurrentUser?.User_ID,
-            Last_Modified_By_Id = UserSession.CurrentUser?.User_ID,
-            Site_Id = UserSession.CurrentSite?.Site_Id,
-            Till_Id = UserSession.CurrentTill?.Till_Id
-        };
-        await DayLogServices.AddAsync(dayLog);
-        UserSession.SetDayLog(dayLog);
-    }
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -711,29 +646,13 @@
 
     private async Task ClearCurrentTransactionAsync()
     {
-        // Ensure we have a valid DayLog before initializing a transaction
-        if (UserSession.CurrentDayLog == null)
-        {
-            var dayLog = await DayLogServices.GetLastDayLog();
-
-            if (dayLog != null && dayLog.DayLog_End_DateTime == null)
-            {
-                // Last daylog is still active, use it
-                UserSession.SetDayLog(dayLog);
-            }
-            else
-            {
-                // No active daylog exists, create a new one
-                await CreateDayLog();
-            }
-        }
-
+        await UserSession.EnsureCompleteSessionAsync();
         var currentBasket = _state.SalesBaskets[_state.HoldBasketIndex];
         currentBasket.Transaction = new SalesTransaction
         {
-            DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
-            Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-            Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+            DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
+            Created_By_Id = UserSession.GetValidUserIdAsync(),
+            Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
             Date_Created = DateTime.UtcNow,
             Sale_Start_Date = DateTime.UtcNow
         };
@@ -794,15 +713,20 @@
             transaction.SaleTransaction_Total_QTY = transaction.SalesItemTransactions?.Count ?? 0;
             transaction.SaleTransaction_Total_Amount = transaction.SalesItemTransactions?.Where(s => s.SalesPayout_ID == null).Sum(s => s.Product_Total_Amount) ?? 0;
             transaction.SaleTransaction_Total_Paid = transaction.SaleTransaction_Cash + transaction.SaleTransaction_Card;
+            transaction.SaleTransaction_Refund = transaction.SalesItemTransactions?.Where(i => i.SalesItemTransactionType == SalesItemTransactionType.Refund).Sum(i => i.Product_Total_Amount) ?? 0m;
+            transaction.SaleTransaction_Discount = (transaction.SalesItemTransactions?.Sum(i => i.Product_Total_Amount_Before_Discount) ?? 0m) - (transaction.SalesItemTransactions?.Sum(i => i.Product_Total_Amount) ?? 0m);
+            transaction.SaleTransaction_Promotion = transaction.SalesItemTransactions?.Sum(i => i.Promotional_Discount_Amount) ?? 0m;
+            transaction.SaleTransaction_Change = transaction.SaleTransaction_Total_Paid - transaction.SaleTransaction_Total_Amount;
             transaction.SaleTransaction_Payout = transaction.SalesItemTransactions?.Where(i => i.SalesPayout_ID != null).Sum(i => i.Product_Total_Amount) ?? 0;
-            // Sum the total promotion amount from all items with a Promotion_ID
-            transaction.SaleTransaction_Promotion = (transaction.SalesItemTransactions?
-                .Where(s => s.Promotion_ID != null)
-                .Sum(s => s.Product_Total_Amount) ?? 0) - (transaction.SalesItemTransactions?
-                    .Where(s => s.Promotion_ID != null).Sum(x => x.Product_Total_Amount_Before_Discount) ?? 0);
+
+            // Use enhanced UserSession methods instead of fallback values
+            transaction.DayLog_Id = await UserSession.GetValidDayLogIdAsync();
             transaction.Sale_Date = DateTime.UtcNow;
+            transaction.Shift_ID = await UserSession.GetValidShiftIdAsync();
+            transaction.Site_Id = await UserSession.GetValidSiteIdAsync();
+            transaction.Till_Id = await UserSession.GetValidTillIdAsync();
             transaction.Last_Modified = DateTime.UtcNow;
-            transaction.Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1;
+            transaction.Last_Modified_By_Id = UserSession.GetValidUserIdAsync();
 
             await CheckoutService.SaveTransactionAsync(transaction);
         }
@@ -1019,29 +943,14 @@
                 await TrackVoidedItemAsync(currentBasket.SalesItemsList);
             }
 
-            // Ensure we have a valid DayLog before initializing a transaction
-            if (UserSession.CurrentDayLog == null)
-            {
-                var dayLog = await DayLogServices.GetLastDayLog();
 
-                if (dayLog != null && dayLog.DayLog_End_DateTime == null)
-                {
-                    // Last daylog is still active, use it
-                    UserSession.SetDayLog(dayLog);
-                }
-                else
-                {
-                    // No active daylog exists, create a new one
-                    await CreateDayLog();
-                }
-            }
 
             _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
             _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
             {
-                DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
-                Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-                Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
+                Created_By_Id =  UserSession.GetValidUserIdAsync(),
+                Last_Modified_By_Id =  UserSession.GetValidUserIdAsync(),
                 SaleTransaction_Total_Amount = 0,
                 SaleTransaction_Cash = 0,
                 SaleTransaction_Card = 0,
@@ -1090,31 +999,15 @@
             // Only hold if current basket has items
             if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
             {
-                // Ensure we have a valid DayLog before initializing a transaction
-                if (UserSession.CurrentDayLog == null)
-                {
-                    var dayLog = await DayLogServices.GetLastDayLog();
-
-                    if (dayLog != null && dayLog.DayLog_End_DateTime == null)
-                    {
-                        // Last daylog is still active, use it
-                        UserSession.SetDayLog(dayLog);
-                    }
-                    else
-                    {
-                        // No active daylog exists, create a new one
-                        await CreateDayLog();
-                    }
-                }
-
+                await UserSession.EnsureCompleteSessionAsync();
                 // Add a new empty basket and switch to it
                 _state.SalesBaskets.Add(new SalesBasket
                 {
                     Transaction = new SalesTransaction
                     {
-                        DayLog_Id = UserSession.CurrentDayLog?.DayLog_Id ?? 1,
-                        Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-                        Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                        DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
+                        Created_By_Id = UserSession.GetValidUserIdAsync(),
+                        Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
                         SaleTransaction_Total_Amount = 0,
                         SaleTransaction_Cash = 0,
                         SaleTransaction_Card = 0,
@@ -1514,6 +1407,9 @@
             {
                 var discountAmount = item.Product_Total_Amount_Before_Discount * (discountPercentage / 100);
                 item.Product_Total_Amount = item.Product_Total_Amount_Before_Discount - discountAmount;
+                item.Discount_Percent = discountPercentage;
+                item.Discount_Amount = discountAmount;
+                item.SalesItemTransactionType = SalesItemTransactionType.Discount;
             }
 
             // Recalculate basket total

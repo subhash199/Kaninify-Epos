@@ -426,7 +426,7 @@
         {
             IsLoading = true;
             // Get all sales transactions where Is_Refund is true
-            var refunds = await SalesTransactionService.GetByConditionAsync(st => st.Is_Refund == true, true);
+            var refunds = await SalesTransactionService.GetByConditionAsync(st => st.SaleTransaction_Refund < 0, true);
             AllRefunds = refunds.ToList();
         }
         catch (Exception ex)
@@ -565,7 +565,7 @@
             var products = refund.SalesItemTransactions?.Any() == true
                 ? string.Join(", ", refund.SalesItemTransactions.Select(i => i.Product?.Product_Name ?? "Unknown"))
                 : "No products";
-            
+
             var paymentMethod = "";
             if (refund.SaleTransaction_Cash > 0) paymentMethod += $"Cash: £{refund.SaleTransaction_Cash:F2} ";
             if (refund.SaleTransaction_Card > 0) paymentMethod += $"Card: £{refund.SaleTransaction_Card:F2}";
@@ -637,7 +637,7 @@
             {
                 html += $@"
                 <div class='product-item'>
-                    <strong>{item.Product?.Product_Name }</strong><br>
+                    <strong>{item.Product?.Product_Name}</strong><br>
                     Barcode: {item.Product?.Product_Barcode}<br>
                     Quantity: {item.Product_QTY}<br>
                     Amount: £{item.Product_Total_Amount:F2}
