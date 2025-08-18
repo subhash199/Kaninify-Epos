@@ -8,6 +8,8 @@ using NetTopologySuite.Index.HPRtree;
 
 public class CheckoutService
 {
+    private readonly StockRefillServices _stockRefillServices;
+    private readonly UserSessionService _userSessionService;
     private readonly ProductServices _productServices;
     private readonly SalesTransactionServices _salesTransactionServices;
     private readonly SalesItemTransactionServices _salesItemTransactionServices;
@@ -20,7 +22,9 @@ public class CheckoutService
                           GeneralServices generalServices,
                           SalesItemTransactionServices salesItemTransactionServices,
                           PromotionServices promotionServices,
-                          IServiceScopeFactory serviceScopeFactory)
+                          IServiceScopeFactory serviceScopeFactory,
+                          StockRefillServices stockRefillServices,
+                          UserSessionService userSessionService)
     {
         _productServices = productServices;
         _salesTransactionServices = salesTransactionServices;
@@ -28,6 +32,8 @@ public class CheckoutService
         _salesItemTransactionServices = salesItemTransactionServices;
         _promotionServices = promotionServices;
         ServiceScopeFactory = serviceScopeFactory;
+        _stockRefillServices = stockRefillServices;
+        _userSessionService = userSessionService;
     }
 
     public async Task<Product?> GetProductByBarcodeAsync(string barcode)
@@ -57,6 +63,9 @@ public class CheckoutService
 
             // Save all sales items in a single bulk operation
             await _salesItemTransactionServices.AddRangeAsync(salesItems);
+
+            // Create StockRefill objects for each sales item transaction
+            await CreateStockRefillRecordsAsync(salesItems, transaction);
 
             // Update product quantities based on the transaction
             await UpdateProductQuantitiesAsync(salesItems);
@@ -562,6 +571,47 @@ public class CheckoutService
                promotion.Start_Date <= now &&
                promotion.End_Date >= now;
     }
+    /// <summary>
+    /// Creates StockRefill records for sales item transactions that require refilling
+    /// </summary>
+    /// <param name="salesItems">List of sales item transactions</param>
+    /// <param name="transaction">The parent sales transaction</param>
+    private async Task CreateStockRefillRecordsAsync(List<SalesItemTransaction> salesItems, SalesTransaction transaction)
+    {
+        if (salesItems?.Any() != true) return;
+
+        var stockRefillsToCreate = new List<StockRefill>();
+        var currentUserId = transaction.Created_By_Id; // Use the transaction creator as the refill user
+
+        foreach (var salesItem in salesItems)
+        {
+            // Only create refill records for items that actually reduce stock (positive quantities)
+            if (salesItem.Product_QTY > 0)
+            {
+                var stockRefill = new StockRefill
+                {
+                    SaleTransaction_Item_ID = salesItem.SaleTransaction_Item_ID,
+                    Refilled_By = currentUserId,
+                    Refilled_Date = DateTime.Now,
+                    Refill_Quantity = salesItem.Product_QTY, // Quantity that needs to be refilled
+                    Quantity_Refilled = 0, // Initially no quantity has been refilled
+                    Stock_Refilled = false, // Initially not refilled
+                    Date_Created = DateTime.Now,
+                    Last_Modified = DateTime.Now,
+                    Created_By_ID = currentUserId,
+                    Last_Modified_By_ID = currentUserId
+                };
+
+                stockRefillsToCreate.Add(stockRefill);
+            }
+        }
+
+        // Save all stock refill records in bulk
+        if (stockRefillsToCreate.Any())
+        {
+            await _stockRefillServices.AddRangeAsync(stockRefillsToCreate);
+        }
+    }
 }
 
 /// <summary>
@@ -574,3 +624,5 @@ public class AppliedPromotionInfo
     public decimal DiscountAmount { get; set; }
     public List<string> AffectedProducts { get; set; } = new List<string>();
 }
+
+
