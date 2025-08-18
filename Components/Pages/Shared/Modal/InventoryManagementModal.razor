@@ -7,6 +7,7 @@
 @inject SalesItemTransactionServices SalesItemTransactionService
 @inject DayLogServices DayLogService
 @inject IServiceScopeFactory ServiceScopeFactory
+@inject StockRefillServices StockRefillService  
 @implements IDisposable
 
 <!-- Modal -->
@@ -218,7 +219,7 @@
     [Parameter] public EventCallback<InventoryManagementType> OnDataChanged { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    List<SalesItemTransaction> salesItems = new List<SalesItemTransaction>();
+    List<StockRefill> stockRefillItems = new List<StockRefill>();
     List<StockTransaction> expiredStockTransactions = new List<StockTransaction>();
     List<Product> expiredProducts = new List<Product>();
 
@@ -305,17 +306,19 @@
 
     private async Task<List<ProductRefillDTO>> GetRefillProductsAsync()
     {
-        salesItems = (await SalesItemTransactionService.GetByConditionAsync(
-           s => s.Stock_Refilled == false, true)).ToList();
+        // Get pending stock refills using StockRefillServices
+        var pendingRefills = (await StockRefillService.GetPendingRefillsAsync()).ToList();
 
-        // Group sales items by product and sum the quantities
-        var refillData = salesItems
-            .Where(s => s.Product != null && s.Product.Is_activated == true)
-            .GroupBy(s => s.Product_ID)
+        // Group refills by product and sum the quantities
+        var refillData = pendingRefills
+            .Where(sr => sr.SalesItemTransaction?.Product != null && 
+                         sr.SalesItemTransaction.Product.Is_activated == true)
+            .GroupBy(sr => sr.SalesItemTransaction.Product_ID)
             .Select(g => new
             {
-                Product = g.First().Product,
-                TotalRefillQty = g.Sum(s => s.Product_QTY)
+                Product = g.First().SalesItemTransaction.Product,
+                TotalRefillQty = g.Sum(sr => sr.Remaining_Quantity), // Use remaining quantity from StockRefill
+                StockRefills = g.ToList() // Keep reference to stock refill records
             })
             .Where(r => r.TotalRefillQty > 0)
             .ToList();
@@ -330,8 +333,6 @@
                 Product = item.Product,
                 Is_Refill = false
             };
-            // Store the refill quantity in a custom property or use existing logic
-            // For now, we'll add all products that need refilling
             refillProducts.Add(refillProduct);
         }
 
@@ -637,16 +638,16 @@
         var refilledItems = AllRefillProducts?.Where(s => s.Is_Refill == true && s.Product != null && s.Product.Is_activated == true).ToList();
         if (refilledItems?.Count > 0)
         {
-            foreach (var item in salesItems)
+            foreach (var item in stockRefillItems)
             {
-                if (refilledItems.Any(r => r.Product.Product_ID == item.Product_ID && r.Is_Refill))
+                if (refilledItems.Any(r => r.Product.Product_ID == item.SalesItemTransaction.Product_ID && r.Is_Refill))
                 {
                     item.Stock_Refilled = true;
                 }
             }
-            await SalesItemTransactionService.UpdateRangeAsync(salesItems);
+            await StockRefillService.UpdateRangeAsync(stockRefillItems);
             IsDataChanged = false;
-            salesItems.Clear();
+            stockRefillItems.Clear();
 
         }
 

@@ -6,7 +6,7 @@
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
-
+@inject StockRefillServices StockRefillServices
 <PageTitle>Stock Refill Management</PageTitle>
 
 <div class="stock-refill-container">
@@ -238,7 +238,7 @@
     private List<ProductRefillDTO>? AllRefillProducts;
     private List<ProductRefillDTO>? FilteredRefillProducts;
     private List<Department>? AllDepartments;
-    private List<SalesItemTransaction>? SalesItems;
+    private List<EntityFrameworkDatabaseLibrary.Models.StockRefill>? StockRefillItems;
 
     // UI State
     private bool IsLoading = true;
@@ -293,19 +293,19 @@
     private async Task<List<ProductRefillDTO>> GetRefillProductsAsync(SalesItemTransactionServices salesItemService)
     {
         // Get sales items that haven't been refilled within date range
-        SalesItems = (await salesItemService.GetByConditionAsync(
+        StockRefillItems = (await StockRefillServices.GetByConditionAsync(
             s => s.Stock_Refilled == false && 
                  s.Date_Created >= FromDate.ToUniversalTime() && 
                  s.Date_Created <= ToDate.AddDays(1).ToUniversalTime(), true)).ToList();
 
         // Group sales items by product and sum the quantities
-        var refillData = SalesItems
-            .Where(s => s.Product != null && s.Product.Is_activated == true)
-            .GroupBy(s => s.Product_ID)
+        var refillData = StockRefillItems
+            .Where(s => s.SalesItemTransaction?.Product_ID != null && s.SalesItemTransaction?.Product.Is_activated == true)
+            .GroupBy(s => s.SalesItemTransaction.Product_ID)
             .Select(g => new
             {
-                Product = g.First().Product,
-                TotalRefillQty = g.Sum(s => s.Product_QTY)
+                Product = g.First().SalesItemTransaction.Product,
+                TotalRefillQty = g.Sum(s => s.SalesItemTransaction.Product_QTY)
             })
             .Where(r => r.TotalRefillQty > 0)
             .ToList();
@@ -415,14 +415,14 @@
             var salesItemService = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
 
             // Update sales items for this product to mark as refilled
-            var itemsToUpdate = SalesItems?.Where(s => s.Product_ID == refillProduct.Product.Product_ID).ToList();
+            var itemsToUpdate = StockRefillItems?.Where(s => s.SalesItemTransaction.Product_ID == refillProduct.Product.Product_ID).ToList();
             if (itemsToUpdate?.Any() == true)
             {
                 foreach (var item in itemsToUpdate)
                 {
                     item.Stock_Refilled = true;
                 }
-                await salesItemService.UpdateRangeAsync(itemsToUpdate);
+                await StockRefillServices.UpdateRangeAsync(itemsToUpdate);
 
                 // Update local state
                 refillProduct.Is_Refill = true;

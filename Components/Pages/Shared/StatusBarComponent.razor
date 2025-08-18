@@ -7,6 +7,7 @@
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
 @implements IDisposable
+@inject UserSessionService UserSessionService
 
 <div class="col-md-12 mb-2">
     <div class="d-flex gap-2 mb-2">
@@ -207,19 +208,12 @@
         try
         {
             using var scope = ServiceScopeFactory.CreateScope();
-            var dayLogServices = scope.ServiceProvider.GetRequiredService<DayLogServices>();
-            var salesItemTransactionServices = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
-            var productServices = scope.ServiceProvider.GetRequiredService<ProductServices>();
+            var stockRefillServices = scope.ServiceProvider.GetRequiredService<StockRefillServices>();
 
-            // var currentDayLog = await dayLogServices.GetLastDayLog();
-            // if (currentDayLog == null) return 0;
-
-            // Get sales item transactions for current day log
-            var salesItems = await salesItemTransactionServices.GetByConditionAsync(
-                s => s.Stock_Refilled == false,
-                false);
-
-            return salesItems.Sum(s => s.Product_QTY);
+            var StockRefillItems = await stockRefillServices.GetByConditionAsync(
+               s => s.Stock_Refilled == false && s.Shift_ID == UserSessionService.GetCurrentShiftId(), false);
+           
+            return StockRefillItems.Count();
         }
         catch (Exception)
         {

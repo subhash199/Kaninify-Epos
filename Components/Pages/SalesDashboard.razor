@@ -1,15 +1,18 @@
-@page "/salesdashboard"
-@page "/sales-dashboard/{DayLogId:int}"
+@page "/sales-dashboard"
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
 @using System.Web
+@using EposRetail.Components.Pages.Shared
+@using EposRetail.Models
+@using EposRetail.Models.Enum
+@inject DayLogServices DayLogService
 @inject SalesTransactionServices SalesService
 @inject SalesItemTransactionServices SalesItemService
 @inject ProductServices ProductService
 @inject StockTransactionServices StockService
 @inject PosUserServices UserService
 @inject NavigationManager NavigationManager
-@inject DayLogServices DayLogService
+@inject ShiftServices ShiftServices
 @inject DepartmentServices DepartmentService
 @inject VoidedProductServices VoidedProductService
 @inject PosUserServices PosUserService
@@ -24,11 +27,11 @@
     <div class="dashboard-header">
         <div class="header-content">
             <div class="header-left">
-                <h1 class="dashboard-title">Sales Dashboard</h1>
+                <h1 class="dashboard-title">Shift Dashboard</h1>
                 <p class="dashboard-subtitle">Real-time insights and analytics</p>
             </div>
             <div class="header-right">
-                @if (!isDayLog)
+                @if (!isShiftLog && !isDayLog)
                 {
                     <div class="filter-buttons">
                         <button class="filter-btn active" @onclick="SetToday">Today</button>
@@ -62,13 +65,13 @@
             <div class="date-inputs">
                 <div class="input-group">
                     <label class="input-label">From</label>
-                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" readonly="@isDayLog" />
+                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" readonly="@isShiftLog" />
                 </div>
                 <div class="input-group">
                     <label class="input-label">To</label>
-                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" readonly="@isDayLog" />
+                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" readonly="@isShiftLog" />
                 </div>
-                @if (!isDayLog)
+                @if (!isShiftLog)
                 {
                     <div class="quick-filters">
                         <button class="filter-chip" @onclick="SetToday">Today</button>
@@ -84,7 +87,7 @@
                 {
                     <div class="daylog-info">
                         <span class="daylog-label">Day Log Report</span>
-                        <span class="daylog-period">@(DayLog?.DayLog_Start_DateTime.ToString("dd/MM/yyyy HH:mm")) - @(DayLog?.DayLog_End_DateTime?.ToString("dd/MM/yyyy HH:mm"))</span>
+                        <span class="daylog-period">@(ShiftLog?.Shift_Start_DateTime.ToString("dd/MM/yyyy HH:mm")) - @(ShiftLog?.Shift_End_DateTime?.ToString("dd/MM/yyyy HH:mm"))</span>
                     </div>
                 }
             </div>
@@ -111,7 +114,7 @@
                 <div class="metric-content">
                     <h3 class="metric-value">@SalesData.TotalSales.ToString("C")</h3>
                     <p class="metric-label">Total Sales</p>
-                   @*  <div class="metric-trend positive">
+                    @*  <div class="metric-trend positive">
                         <i class="fas fa-arrow-up"></i>
                         <span>+12.5%</span>
                     </div> *@
@@ -142,7 +145,7 @@
                     <div class="metric-detail">Separate sales departments</div>
                 </div>
             </div>
-            
+
             <div class="metric-card refunds">
                 <div class="metric-icon">
                     <i class="fas fa-undo"></i>
@@ -160,7 +163,7 @@
                 <div class="metric-content">
                     <h3 class="metric-value">@SalesData.TotalPayouts.ToString("C")</h3>
                     <p class="metric-label">Payouts</p>
-                   @*  <div class="metric-trend negative">
+                    @*  <div class="metric-trend negative">
                         <i class="fas fa-arrow-down"></i>
                         <span>-2.1%</span>
                     </div> *@
@@ -246,7 +249,7 @@
                     </div> *@
                 </div>
             </div>
-           
+
 
         </div>
         <!-- Stock Transaction Reports -->
@@ -350,12 +353,12 @@
                 </div>
                 <div class="modern-table">
                     <div class="table-row table-header-row">
-                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Department</div>
-                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Total Sales</div>
-                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Transactions</div>
-                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Items Sold</div>
-                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Percentage</div>
-                        </div>
+                        <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Department</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Total Sales</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Transactions</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Items Sold</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Percentage</div>
+                    </div>
                     @foreach (var dept in SalesData.DepartmentSales)
                     {
                         <div class="table-row">
@@ -384,10 +387,11 @@
             @if (SalesData.RefundTransactions?.Any() == true)
             {
                 <div class="table-container">
-                    <div class="table-header">                        
+                    <div class="table-header">
                         <h3 class="table-title">
                             <i class="fas fa-arrow-rotate-left"></i>
-                            Refund Transactions</h3>
+                            Refund Transactions
+                        </h3>
                         <div class="table-controls">
                             <span class="status-badge refund">@SalesData.RefundTransactions.Count() Refunds</span>
                             <span class="status-badge amount">@SalesData.TotalRefunds.ToString("C")</span>
@@ -395,23 +399,25 @@
                     </div>
                     <div class="modern-table">
                         <div class="table-row table-header-row">
-                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Transaction</div>
-                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Product</div>
-                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Quantity</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Employee</div>
                             <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
                             <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Amount</div>
                         </div>
                         @foreach (var refund in SalesData.RefundTransactions)
                         {
                             <div class="table-row">
-                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">
                                     <div class="campaign-info">
                                         <div class="campaign-icon">@refund.TransactionId.Substring(0, 2)</div>
                                         <span>@refund.TransactionId</span>
                                     </div>
                                 </div>
-                                <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">@refund.ProductName</div>
-                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@refund.EmployeeName</div>
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@refund.ProductName</div>
+                                <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@refund.Quantity</div>
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@refund.EmployeeName</div>
                                 <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@refund.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
                                 <div class="table-cell amount" style="width: 10%; word-wrap: break-word; word-break: break-word;">-@refund.Amount.ToString("C")</div>
                             </div>
@@ -424,10 +430,11 @@
             {
                 <div class="table-container">
                     <div class="table-header">
-                      
+
                         <h3 class="table-title">
                             <i class="fas fa-xmark"></i>
-                            Voided Sales</h3>
+                            Voided Sales
+                        </h3>
                         <div class="table-controls">
                             <span class="status-badge voided">@SalesData.VoidedTransactions.Count() Voids</span>
                             <span class="status-badge amount">@SalesData.VoidedSales.ToString("C")</span>
@@ -435,23 +442,25 @@
                     </div>
                     <div class="modern-table">
                         <div class="table-row table-header-row">
-                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Transaction</div>
-                            <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">Product</div>
-                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Transaction</div>
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Product</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Quantity</div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Employee</div>
                             <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
                             <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">Amount</div>
                         </div>
                         @foreach (var voided in SalesData.VoidedTransactions)
                         {
                             <div class="table-row">
-                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">
                                     <div class="campaign-info">
                                         <div class="campaign-icon voided">@voided.TransactionId.Substring(0, 2)</div>
                                         <span>@voided.TransactionId</span>
                                     </div>
                                 </div>
-                                <div class="table-cell" style="width: 30%; word-wrap: break-word; word-break: break-word;">@voided.ProductName</div>
-                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@voided.EmployeeName</div>
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@voided.ProductName</div>
+                                <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@voided.Quantity</div>
+                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@voided.EmployeeName</div>
                                 <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@voided.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
                                 <div class="table-cell amount" style="width: 10%; word-wrap: break-word; word-break: break-word;">@voided.Amount.ToString("C")</div>
                             </div>
@@ -466,7 +475,8 @@
                     <div class="table-header">
                         <h3 class="table-title">
                             <i class="fas fa-money-bill"></i>
-                            Payouts</h3>
+                            Payouts
+                        </h3>
                         <div class="table-controls">
                             <span class="status-badge payout">@SalesData.PayoutTransactions.Count() Payouts</span>
                             <span class="status-badge amount">@SalesData.TotalPayouts.ToString("C")</span>
@@ -507,7 +517,7 @@
                     <i class="fas fa-cogs"></i>
                     Other Services
                 </h3>
-               @*  <div class="table-controls">
+                @*  <div class="table-controls">
                     <button class="action-btn primary">Export</button>
                     <button class="action-btn secondary">View All</button>
                 </div> *@
@@ -550,7 +560,7 @@
                     <i class="fas fa-users"></i>
                     Employee Performance
                 </h3>
-              @*   <div class="table-controls">
+                @*   <div class="table-controls">
                     <button class="action-btn primary">Export</button>
                     <button class="action-btn secondary">View All</button>
                 </div> *@
@@ -598,7 +608,7 @@
                             <i class="fas fa-trophy"></i>
                             Top 10 Popular Products
                         </h3>
-                       @*  <div class="table-controls">
+                        @*  <div class="table-controls">
                             <button class="action-btn primary">View All</button>
                         </div> *@
                     </div>
@@ -641,7 +651,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                             Least Popular Products
                         </h3>
-                      @*   <div class="table-controls">
+                        @*   <div class="table-controls">
                             <button class="action-btn secondary">Analyze</button>
                         </div> *@
                     </div>
@@ -679,7 +689,7 @@
             </div>
         </div>
 
-        
+
     }
 
     <!-- Drawer Log Table -->
@@ -690,7 +700,7 @@
                 Drawer Log
             </h3>
         </div>
-        
+
         @if (DrawerLogs != null && DrawerLogs.Any())
         {
             <div class="modern-table-container">
@@ -703,7 +713,7 @@
                         <div class="table-cell" style="width: 20%;">Created By</div>
                         <div class="table-cell" style="width: 15%;">Status</div>
                     </div>
-                    
+
                     @foreach (var drawerLog in DrawerLogs.Take(10))
                     {
                         <div class="table-row">
@@ -740,29 +750,59 @@
     </div>
 
     <!-- Day End Button -->
-    <div class="mt-4 text-center">
-        <button class="modern-dayend-btn" @onclick="HandleDayEnd">
-            <div class="btn-content">
-                <i class="fas fa-calendar-check"></i>
-                <span>Day End</span>
-            </div>
-        </button>
-    </div>
+    @if (isShiftLog || isDayLog)
+    {
+        <div class="mt-4 text-center">
+            <button class="modern-dayend-btn" @onclick="HandleDayEnd">
+                <div class="btn-content">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>@(isDayLog ? "Day End" : "Shift End")</span>
+                </div>
+            </button>
+        </div>
+    }
+
 </div>
 
 
-@inject DayLogServices DayLogService
+<GenericMessageModal IsVisible="modalState.ShowConfirmModal"
+                     Title="@modalState.Title"
+                     Message="@modalState.Message"
+                     PrimaryButtonText="Yes"
+                     SecondaryButtonText="No"
+                     PrimaryAction="HandleConfirmAction"
+                     SecondaryAction="CloseModal"
+                     OnClose="CloseModal" />
+
+<GenericMessageModal IsVisible="modalState.ShowPrintModal"
+                     Title="@modalState.Title"
+                     Message="@modalState.Message"
+                     PrimaryButtonText="Yes"
+                     SecondaryButtonText="No"
+                     PrimaryAction="HandlePrintAction"
+                     SecondaryAction="HandleNoPrintAction"
+                     OnClose="CloseModal" />
 
 @code {
+    [Parameter] public bool isShiftLog { get; set; }
+    [Parameter] public int? ShiftLogId { get; set; }
+    [Parameter] public int? ShiftId { get; set; }
+
     [Parameter] public bool isDayLog { get; set; }
     [Parameter] public int? DayLogId { get; set; }
 
     private DayLog DayLog { get; set; } = new();
+    private Shift ShiftLog { get; set; } = new();
     private SalesDashboardData SalesData = new();
     private List<DrawerLog> DrawerLogs = new();
     private DateTime StartDate = DateTime.Today;
     private DateTime EndDate = DateTime.Today;
     private bool IsLoading = false;
+
+    // Modal state variables
+    private ModalState modalState = new ModalState();
+   
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -770,18 +810,16 @@
         var uri = NavigationManager.Uri;
         var queryParameters = System.Web.HttpUtility.ParseQueryString(new Uri(uri).Query);
 
+        // Check for isShiftLog parameter
+        if (queryParameters["isShiftLog"] != null && bool.TryParse(queryParameters["isShiftLog"], out bool ShiftLogParam))
+        {
+            isShiftLog = ShiftLogParam;
+        }
+
         // Check for isDayLog parameter
         if (queryParameters["isDayLog"] != null && bool.TryParse(queryParameters["isDayLog"], out bool dayLogParam))
         {
             isDayLog = dayLogParam;
-        }
-
-        // Check for filter parameter
-        var filter = queryParameters["filter"];
-        if (filter == "today")
-        {
-            await SetToday();
-            return;
         }
 
         // Handle specific DayLogId parameter
@@ -824,6 +862,55 @@
             EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
         }
 
+        // Check for filter parameter
+        var filter = queryParameters["filter"];
+        if (filter == "today")
+        {
+            await SetToday();
+            return;
+        }
+
+        // Handle specific ShiftLogId parameter
+        if (ShiftLogId.HasValue)
+        {
+            isShiftLog = true;
+            ShiftLog = await ShiftServices.GetByIdAsync(ShiftLogId.Value);
+            if (ShiftLog != null)
+            {
+                StartDate = ShiftLog.Shift_Start_DateTime.Date.ToUniversalTime();
+                EndDate = ShiftLog.Shift_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
+            }
+            else
+            {
+                // Fallback if ShiftLog not found
+                StartDate = DateTime.Today.ToUniversalTime();
+                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
+            }
+        }
+        else if (isShiftLog)
+        {
+            // Get the last ShiftLog and set dates based on it
+            ShiftLog = await ShiftServices.GetLastShiftLog();
+            if (ShiftLog != null)
+            {
+                StartDate = ShiftLog.Shift_Start_DateTime.Date.ToUniversalTime();
+                EndDate = ShiftLog.Shift_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
+            }
+            else
+            {
+                // Fallback if no ShiftLog found
+                StartDate = DateTime.Today.ToUniversalTime();
+                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
+            }
+
+        }
+        else
+        {
+            // Set start and end date as today
+            StartDate = DateTime.Today.ToUniversalTime();
+            EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
+        }
+
         await LoadReportData();
     }
 
@@ -836,9 +923,19 @@
 
         try
         {
-            // Get DayLog ID for filtering if isDayLog is true
+            // Get ShiftLog ID for filtering if isShiftLog is true
+            int? ShiftLogId = null;
             int? dayLogId = null;
-            if (isDayLog && DayLog != null)
+            if (isShiftLog && ShiftLog != null)
+            {
+                ShiftLogId = ShiftLog.Shift_Id;
+                salesTransactions = await SalesService.GetByConditionAsync(t => t.Shift_ID == ShiftLogId, true);
+
+                stockTransactions = await StockService.GetByConditionAsync(
+                    st => st.Shift_Id == ShiftLogId
+                          , true);
+            }
+            else if (isDayLog && DayLog != null)
             {
                 dayLogId = DayLog.DayLog_Id;
                 salesTransactions = await SalesService.GetByConditionAsync(t => t.DayLog_Id == dayLogId, true);
@@ -879,10 +976,10 @@
                 item => salesTransactionIds.Contains(item.SaleTransaction_ID), true);
 
             // Calculate basic metrics
-            var totalSales = salesItemTransactions.Where(i => i.SalesItemTransactionType != SalesItemTransactionType.Payout && i.SalesItemTransactionType != SalesItemTransactionType.Refund).Sum(t => t.Product_Total_Amount); ;
+            var totalSales = salesItemTransactions.Where(i => i.SalesItemTransactionType != SalesItemTransactionType.Payout && i.SalesItemTransactionType != SalesItemTransactionType.Refund).Sum(t => t.Product_Total_Amount);
             var totalTransactions = salesTransactions.Count();
             var averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
-            var itemsSold = salesItemTransactions.Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale).Sum(item => item.Product_QTY);
+            var itemsSold = salesItemTransactions.Where(item => item.SalesItemTransactionType != SalesItemTransactionType.Refund).Sum(item => item.Product_QTY);
 
             // Calculate refunds
             var refundItems = salesItemTransactions.Where(t => t.SalesItemTransactionType == SalesItemTransactionType.Refund).ToList();
@@ -895,12 +992,12 @@
 
             // Get voided products using VoidedProductServices
             IEnumerable<VoidedProduct> voidedProducts = Enumerable.Empty<VoidedProduct>();
-            if (isDayLog && DayLog != null)
+            if (isShiftLog && ShiftLog != null)
             {
-                // Use daylog filtering for voided products
+                // Use ShiftLog filtering for voided products
                 voidedProducts = await VoidedProductService.GetByConditionAsync(
-                    vp => vp.Void_Date >= DayLog.DayLog_Start_DateTime &&
-                          vp.Void_Date <= (DayLog.DayLog_End_DateTime ?? DateTime.Now.ToUniversalTime()), true);
+                    vp => vp.Void_Date >= ShiftLog.Shift_Start_DateTime &&
+                          vp.Void_Date <= (ShiftLog.Shift_End_DateTime ?? DateTime.Now.ToUniversalTime()), true);
             }
             else
             {
@@ -913,12 +1010,12 @@
             var voidCount = voidedProducts.Count();
 
             // Load drawer logs
-            if (isDayLog && DayLog != null)
+            if (isShiftLog && ShiftLog != null)
             {
-                // Use daylog filtering for drawer logs
+                // Use ShiftLog filtering for drawer logs
                 DrawerLogs = (await DrawerLogService.GetByConditionAsync(
-                    dl => dl.DrawerOpenDateTime >= DayLog.DayLog_Start_DateTime &&
-                          dl.DrawerOpenDateTime <= (DayLog.DayLog_End_DateTime ?? DateTime.Now.ToUniversalTime()), true))
+                    dl => dl.DrawerOpenDateTime >= ShiftLog.Shift_Start_DateTime &&
+                          dl.DrawerOpenDateTime <= (ShiftLog.Shift_End_DateTime ?? DateTime.Now.ToUniversalTime()), true))
                     .OrderByDescending(dl => dl.DrawerOpenDateTime)
                     .ToList();
             }
@@ -1012,10 +1109,10 @@
                 })
                 .ToList();
 
-           
+
 
             // Replace the problematic block with the following correct LINQ query
-            var refundTransactionDetails = refundItems               
+            var refundTransactionDetails = refundItems
                 .Select(item => new RefundTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,
@@ -1055,7 +1152,7 @@
                     Amount = item.Product_Total_Amount,
                     Description = item.SalesPayout?.Payout_Description ?? "Payout",
                     Recipient = "Till", // You might want to add recipient information to your model
-                    EmployeeName = salesTransactions.FirstOrDefault(t=>t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
+                    EmployeeName = salesTransactions.FirstOrDefault(t => t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
                     Status = "Completed"
                 })
                 .OrderByDescending(p => p.TransactionDate)
@@ -1064,7 +1161,7 @@
 
             // Calculate department sales
             var departmentSales = salesItemTransactions
-                .Where(item => item.SalesItemTransactionType != SalesItemTransactionType.Refund && 
+                .Where(item => item.SalesItemTransactionType != SalesItemTransactionType.Refund &&
                     item.SalesItemTransactionType != SalesItemTransactionType.Payout && item.Product?.Department_ID != null)
                 .GroupBy(item => item.Product?.Department_ID)
                 .Select(group => new DepartmentSalesData
@@ -1289,49 +1386,120 @@
         NavigationManager.NavigateTo("/checkout");
     }
 
-    private async Task HandleDayEnd()
+    private void HandleDayEnd()
     {
-        try
+        if (isDayLog)
         {
-            if (SalesData == null)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Please load sales data first before ending the day.");
-                return;
-            }
-
-            // Confirm day end action
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to end the day? This will print the day-end report and close the current day.");
-            if (!confirmed)
-                return;
-
-            // Print day-end report using pre-calculated data
-            if (PrinterService.IsInitialized)
-            {
-                PrinterService.PrintDayEndReport(SalesData);
-                await JSRuntime.InvokeVoidAsync("alert", "Day-end report printed successfully!");
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Printer service not available. Day-end report could not be printed.");
-            }
-
-            // TODO: Add actual day end logic here:
-            // - Create a new day log entry
-            // - Finalize current day transactions
-            // - Reset daily counters
-            // - Archive current day data
-            
-            await JSRuntime.InvokeVoidAsync("alert", "Day End process completed. A new day has been started.");
-            
-            // Optionally navigate to a day-end summary page
-            // NavigationManager.NavigateTo("/dayend-summary");
+            modalState.ShowConfirmation(
+                "End Day",
+                "Are you sure you want to end the day? This action cannot be undone.",
+                ActionType.DayEnd
+            );
         }
-        catch (Exception ex)
+        else if (isShiftLog)
         {
-            Console.WriteLine($"Error during day end: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Error during day end: {ex.Message}");
+            modalState.ShowConfirmation(
+                "End Shift",
+                "Are you sure you want to end the shift?",
+                ActionType.ShiftEnd
+            );
         }
+        StateHasChanged();
+    }
+
+    private void HandleConfirmAction()
+    {
+        modalState.ShowConfirmModal = false;
+        string title = "Print Report";
+        string message = $"Would you like to print the {(modalState.ActionType == ActionType.DayEnd ? "day end" : "shift")} report?";
+        modalState.ShowPrintDialog(title, message, modalState.ActionType);
+        StateHasChanged();
+    }
+
+
+
+    private void HandlePrintAction()
+    {
+        switch (modalState.ActionType)
+        {
+            case ActionType.DayEnd:
+                PrintDayEndReport();
+                break;
+            case ActionType.ShiftEnd:
+                PrintShiftReport();
+                break;
+        }
+        modalState.CloseAll();
+        StateHasChanged();
+    }
+
+    private void HandleNoPrintAction()
+    {
+        switch (modalState.ActionType)
+        {
+            case ActionType.DayEnd:
+                // Backup database, clear session, navigate to login
+                BackupDatabase();
+                ClearSessionMemory();
+                NavigationManager.NavigateTo("/login");
+                break;
+            case ActionType.ShiftEnd:
+                // Handle shift end without printing
+                CompleteShiftEnd();
+                break;
+        }
+        modalState.CloseAll();
+        StateHasChanged();
+    }
+
+    // Helper methods for different actions
+    private void PrintDayEndReport()
+    {
+        // Print day end report logic
+        if (PrinterService.IsInitialized)
+        {
+            PrinterService.PrintDayEndReport(SalesData);
+        }
+        // After printing, backup and navigate
+        BackupDatabase();
+        ClearSessionMemory();
+        NavigationManager.NavigateTo("/login");
+    }
+
+    private void PrintShiftReport()
+    {
+        // Print shift report logic
+        if (PrinterService.IsInitialized)
+        {
+            // TODO: Add shift report printing
+            // PrinterService.PrintShiftReport(SalesData);
+        }
+        CompleteShiftEnd();
+    }
+
+    private void CompleteShiftEnd()
+    {
+        // Complete shift end logic
+    }
+
+    private void BackupDatabase()
+    {
+        // TODO: Database backup logic
+    }
+
+    private void ClearSessionMemory()
+    {
+        // TODO: Clear session memory logic
+    }
+
+    private void CloseModal()
+    {
+        modalState.CloseAll();
+        StateHasChanged();
     }
 
 
 }
+
+
+
