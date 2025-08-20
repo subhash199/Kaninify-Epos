@@ -462,9 +462,10 @@
 
     private void ViewShiftDetails(Shift shift)
     {
-        SelectedShift = shift;
-        ShowModal = true;
-        StateHasChanged();
+        NavigationManager.NavigateTo($"/sales-dashboard/shift/{shift.Shift_Id}");
+        // SelectedShift = shift;
+        // ShowModal = true;
+        // StateHasChanged();
     }
 
     private void CloseModal()
