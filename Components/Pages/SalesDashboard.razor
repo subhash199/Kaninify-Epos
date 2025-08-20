@@ -1,3 +1,4 @@
+@implements IDisposable
 @page "/sales-dashboard"
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
@@ -5,6 +6,7 @@
 @using EposRetail.Components.Pages.Shared
 @using EposRetail.Models
 @using EposRetail.Models.Enum
+@using EposRetail.Services
 @inject DayLogServices DayLogService
 @inject SalesTransactionServices SalesService
 @inject SalesItemTransactionServices SalesItemService
@@ -18,7 +20,9 @@
 @inject PosUserServices PosUserService
 @inject DrawerLogServices DrawerLogService
 @inject DataHandlerLibrary.Interfaces.IPrinterService PrinterService
+@inject StockRefillServices StockRefillService
 @inject IJSRuntime JSRuntime
+@inject UserSessionService UserSessionService
 
 <PageTitle>Sales Dashboard</PageTitle>
 
@@ -27,7 +31,7 @@
     <div class="dashboard-header">
         <div class="header-content">
             <div class="header-left">
-                <h1 class="dashboard-title">Shift Dashboard</h1>
+                <h1 class="dashboard-title">@DashboardTitle</h1>
                 <p class="dashboard-subtitle">Real-time insights and analytics</p>
             </div>
             <div class="header-right">
@@ -45,6 +49,12 @@
                         <div class="btn-content">
                             <i class="fas fa-arrow-left"></i>
                             <span>Back to Checkout</span>
+                        </div>
+                    </button>
+                    <button class="modern-nav-btn" @onclick="NavigateToBackoffice">
+                        <div class="btn-content">
+                            <i class="fas fa-cog"></i>
+                            <span>BackOffice</span>
                         </div>
                     </button>
                     <button class="modern-print-btn" @onclick="PrintReport">
@@ -65,13 +75,13 @@
             <div class="date-inputs">
                 <div class="input-group">
                     <label class="input-label">From</label>
-                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" readonly="@isShiftLog" />
+                    <input type="date" class="modern-input" @bind="StartDate" @bind:event="oninput" readonly="@(isDayLog || isShiftLog ? true : false)" />
                 </div>
                 <div class="input-group">
                     <label class="input-label">To</label>
-                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" readonly="@isShiftLog" />
+                    <input type="date" class="modern-input" @bind="EndDate" @bind:event="oninput" readonly="@(isDayLog || isShiftLog ? true : false)" />
                 </div>
-                @if (!isShiftLog)
+                @if (!isShiftLog && !isDayLog)
                 {
                     <div class="quick-filters">
                         <button class="filter-chip" @onclick="SetToday">Today</button>
@@ -86,10 +96,16 @@
                 else
                 {
                     <div class="daylog-info">
-                        <span class="daylog-label">Day Log Report</span>
-                        <span class="daylog-period">@(ShiftLog?.Shift_Start_DateTime.ToString("dd/MM/yyyy HH:mm")) - @(ShiftLog?.Shift_End_DateTime?.ToString("dd/MM/yyyy HH:mm"))</span>
-                    </div>
-                }
+                        <span class="daylog-label">@(isDayLog ? "Day Log Report" : "Shift Log Report")</span>
+                        <span class="daylog-period">
+                            @(
+                                                    isDayLog
+                                                    ? $"{DayLog?.DayLog_Start_DateTime.ToString("dd/MM/yyyy HH:mm")} - {DayLog?.DayLog_End_DateTime?.ToString("dd/MM/yyyy HH:mm")}"
+                                                    : $"{ShiftLog?.Shift_Start_DateTime.ToString("dd/MM/yyyy HH:mm")} - {ShiftLog?.Shift_End_DateTime?.ToString("dd/MM/yyyy HH:mm")}"
+                                                    )
+                    </span>
+                </div>
+                                }
             </div>
         </div>
     </div>
@@ -286,7 +302,81 @@
                         <div class="metric-detail">Total adjustments made</div>
                     </div>
                 </div>
+                <div class="metric-card success">
+                    <div class="metric-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">@SalesData.StockRefillCount</div>
+                        <div class="metric-label">Stock Refills</div>
+                        <div class="metric-detail">Products needing refill</div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Stock Refill Table -->
+            @if (SalesData.StockRefillProducts != null && SalesData.StockRefillProducts.Any())
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-boxes"></i>
+                            Stock Refill Requirements
+                        </h3>
+                        <div class="table-controls">
+                <span class="status-badge warning">@SalesData.StockRefillCount Products</span>
+                <span class="status-badge amount">@SalesData.StockRefillProducts.Sum(r => r.Price * r.RefillQuantity).ToString("C")</span>
+            </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 22%; word-wrap: break-word; word-break: break-word;">Product Name</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Price</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Refill Qty</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Shelf Qty</div>
+                            <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">Stock Room Qty</div>
+                            <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">Expiry Date</div>
+                            <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">Action</div>
+                        </div>
+                        @foreach (var refill in SalesData.StockRefillProducts)
+                        {
+                            <div class="table-row">
+                                <div class="table-cell" style="width: 22%; word-wrap: break-word; word-break: break-word;">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon">
+                                            <i class="fas fa-box"></i>
+                                        </div>
+                                        <span>@refill.ProductName</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">£@refill.Price.ToString("F2")</div>
+                                <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">
+                                    <span class="status-badge warning">@refill.RefillQuantity</span>
+                                </div>
+                                <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@refill.ShelfQuantity</div>
+                                <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">@refill.StockRoomQuantity</div>
+                                <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">
+                                    @refill.ExpiryDate.ToString("dd/MM/yyyy")
+                                </div>
+                                <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">
+                                    @if (!refill.IsRefilled)
+                                    {
+                                        <button class="btn btn-success btn-sm px-3 py-2 fw-bold" @onclick="() => MarkAsRefilled(refill)" style="border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s ease;">
+                                            <i class="fas fa-check me-1"></i>Mark Refilled
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-success btn-sm px-3 py-2 fw-bold" disabled style="border-radius: 8px; opacity: 0.7;">
+                                            <i class="fas fa-check-circle me-1"></i>Completed
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
 
             <!-- Stock Transactions Table -->
             @if (SalesData.StockTransactions != null && SalesData.StockTransactions.Any())
@@ -298,8 +388,8 @@
                             Stock Transaction Reports
                         </h3>
                         <div class="table-controls">
-                            <button class="action-btn primary">Export</button>
-                            <button class="action-btn secondary">Filter</button>
+                            <span class="status-badge info">@SalesData.StockTransactions.Count() Transactions</span>
+                            <span class="status-badge amount">@SalesData.StockTransactions.Sum(s => s.ValueImpact).ToString("C")</span>
                         </div>
                     </div>
                     <div class="modern-table">
@@ -347,8 +437,8 @@
                         Department Sales
                     </h3>
                     <div class="table-controls">
-                        <button class="action-btn primary">Export</button>
-                        <button class="action-btn secondary">View All</button>
+                        <span class="status-badge success">@SalesData.DepartmentSales.Count() Departments</span>
+                        <span class="status-badge amount">@SalesData.DepartmentSales.Sum(d => d.TotalSales).ToString("C")</span>
                     </div>
                 </div>
                 <div class="modern-table">
@@ -801,117 +891,106 @@
 
     // Modal state variables
     private ModalState modalState = new ModalState();
-   
+    private List<int> MarkedRefillProductIds = new List<int>();
+    private bool HasPendingRefillUpdates = false;
+
+    // Computed property for dynamic dashboard title
+    private string DashboardTitle
+    {
+        get
+        {
+            if (isDayLog)
+                return "Today's Sales Dashboard";
+            else if (isShiftLog)
+                return "Shift Dashboard";
+            else
+                return "Sales Report Dashboard";
+        }
+    }
 
 
     protected override async Task OnInitializedAsync()
     {
-        // Parse query parameters
+        // Add navigation event listener
+        NavigationManager.LocationChanged += OnLocationChanged;
+
+        // Parse query parameters once
         var uri = NavigationManager.Uri;
         var queryParameters = System.Web.HttpUtility.ParseQueryString(new Uri(uri).Query);
 
-        // Check for isShiftLog parameter
-        if (queryParameters["isShiftLog"] != null && bool.TryParse(queryParameters["isShiftLog"], out bool ShiftLogParam))
-        {
-            isShiftLog = ShiftLogParam;
-        }
+        // Parse boolean parameters - assign directly since parameters can't be passed by ref
+        isShiftLog = ParseBooleanParameter(queryParameters, "isShiftLog") ?? isShiftLog;
+        isDayLog = ParseBooleanParameter(queryParameters, "isDayLog") ?? isDayLog;
 
-        // Check for isDayLog parameter
-        if (queryParameters["isDayLog"] != null && bool.TryParse(queryParameters["isDayLog"], out bool dayLogParam))
-        {
-            isDayLog = dayLogParam;
-        }
-
-        // Handle specific DayLogId parameter
-        if (DayLogId.HasValue)
-        {
-            isDayLog = true;
-            DayLog = await DayLogService.GetByIdAsync(DayLogId.Value);
-            if (DayLog != null)
-            {
-                StartDate = DayLog.DayLog_Start_DateTime.Date.ToUniversalTime();
-                EndDate = DayLog.DayLog_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
-            }
-            else
-            {
-                // Fallback if daylog not found
-                StartDate = DateTime.Today.ToUniversalTime();
-                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
-            }
-        }
-        else if (isDayLog)
-        {
-            // Get the last daylog and set dates based on it
-            DayLog = await DayLogService.GetLastDayLog();
-            if (DayLog != null)
-            {
-                StartDate = DayLog.DayLog_Start_DateTime.Date.ToUniversalTime();
-                EndDate = DayLog.DayLog_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
-            }
-            else
-            {
-                // Fallback if no daylog found
-                StartDate = DateTime.Today.ToUniversalTime();
-                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
-            }
-        }
-        else
-        {
-            // Set start and end date as today
-            StartDate = DateTime.Today.ToUniversalTime();
-            EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
-        }
-
-        // Check for filter parameter
-        var filter = queryParameters["filter"];
-        if (filter == "today")
+        // Handle filter parameter early return
+        if (queryParameters["filter"] == "today")
         {
             await SetToday();
             return;
         }
 
-        // Handle specific ShiftLogId parameter
-        if (ShiftLogId.HasValue)
-        {
-            isShiftLog = true;
-            ShiftLog = await ShiftServices.GetByIdAsync(ShiftLogId.Value);
-            if (ShiftLog != null)
-            {
-                StartDate = ShiftLog.Shift_Start_DateTime.Date.ToUniversalTime();
-                EndDate = ShiftLog.Shift_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
-            }
-            else
-            {
-                // Fallback if ShiftLog not found
-                StartDate = DateTime.Today.ToUniversalTime();
-                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
-            }
-        }
-        else if (isShiftLog)
-        {
-            // Get the last ShiftLog and set dates based on it
-            ShiftLog = await ShiftServices.GetLastShiftLog();
-            if (ShiftLog != null)
-            {
-                StartDate = ShiftLog.Shift_Start_DateTime.Date.ToUniversalTime();
-                EndDate = ShiftLog.Shift_End_DateTime?.Date.ToUniversalTime() ?? DateTime.Today.ToUniversalTime();
-            }
-            else
-            {
-                // Fallback if no ShiftLog found
-                StartDate = DateTime.Today.ToUniversalTime();
-                EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
-            }
+        // Initialize dates with default values
+        SetDefaultDates();
 
-        }
-        else
-        {
-            // Set start and end date as today
-            StartDate = DateTime.Today.ToUniversalTime();
-            EndDate = DateTime.Today.AddDays(1).ToUniversalTime();
-        }
+        // Handle specific log scenarios
+        await HandleLogScenarios();
 
         await LoadReportData();
+    }
+
+    // Helper method to parse boolean parameters - returns nullable bool
+    private bool? ParseBooleanParameter(System.Collections.Specialized.NameValueCollection queryParameters, string paramName)
+    {
+        if (queryParameters[paramName] != null && bool.TryParse(queryParameters[paramName], out bool parsedValue))
+        {
+            return parsedValue;
+        }
+        return null;
+    }
+
+    // Helper method to set default dates
+    private void SetDefaultDates()
+    {
+        StartDate = DateTime.Today;
+        EndDate = DateTime.Today.AddDays(1);
+    }
+
+    // Helper method to handle log scenarios
+    private async Task HandleLogScenarios()
+    {
+        // Handle DayLog scenarios
+        if (DayLogId.HasValue || isDayLog)
+        {
+            isDayLog = true;
+            DayLog = DayLogId.HasValue
+                ? await DayLogService.GetByIdAsync(DayLogId.Value)
+                : await DayLogService.GetLastDayLog();
+
+            SetDatesFromLog(DayLog?.DayLog_Start_DateTime, DayLog?.DayLog_End_DateTime);
+            return; // Exit early to avoid ShiftLog processing
+        }
+
+        // Handle ShiftLog scenarios
+        if (ShiftLogId.HasValue || isShiftLog)
+        {
+            isShiftLog = true;
+            ShiftLog = ShiftLogId.HasValue
+                ? await ShiftServices.GetByIdAsync(ShiftLogId.Value)
+                : await ShiftServices.GetLastShiftLog();
+
+            SetDatesFromLog(ShiftLog?.Shift_Start_DateTime, ShiftLog?.Shift_End_DateTime);
+        }
+    }
+
+    // Helper method to set dates from log objects
+    private void SetDatesFromLog(DateTime? startDateTime, DateTime? endDateTime)
+    {
+        if (startDateTime.HasValue)
+        {
+            StartDate = startDateTime.Value.Date;
+            EndDate = endDateTime?.Date ?? DateTime.Today;
+        }
+        // If log is null, default dates are already set
     }
 
     private async Task LoadReportData()
@@ -947,10 +1026,10 @@
             else
             {
                 salesTransactions = await SalesService.GetByConditionAsync(
-                    t => t.Sale_Date >= StartDate && t.Sale_Date <= EndDate, false);
+                    t => t.Sale_Date >= StartDate.ToUniversalTime() && t.Sale_Date <= EndDate.ToUniversalTime(), false);
                 // Load stock transactions for the date range
                 stockTransactions = await StockService.GetByConditionAsync(
-                   st => st.TransactionDate >= StartDate && st.TransactionDate <= EndDate
+                   st => st.TransactionDate >= StartDate.ToUniversalTime() && st.TransactionDate <= EndDate.ToUniversalTime()
                          , true);
             }
 
@@ -1003,7 +1082,7 @@
             {
                 // Use date range filtering for voided products
                 voidedProducts = await VoidedProductService.GetByConditionAsync(
-                    vp => vp.Void_Date >= StartDate && vp.Void_Date <= EndDate, true);
+                    vp => vp.Void_Date >= StartDate.ToUniversalTime() && vp.Void_Date <= EndDate.ToUniversalTime(), true);
             }
 
             var voidedSales = voidedProducts.Sum(vp => vp.Voided_Amount);
@@ -1023,7 +1102,7 @@
             {
                 // Use date range filtering for drawer logs
                 DrawerLogs = (await DrawerLogService.GetByConditionAsync(
-                    dl => dl.DrawerOpenDateTime >= StartDate && dl.DrawerOpenDateTime <= EndDate, true))
+                    dl => dl.DrawerOpenDateTime >= StartDate.ToUniversalTime() && dl.DrawerOpenDateTime <= EndDate.ToUniversalTime(), true))
                     .OrderByDescending(dl => dl.DrawerOpenDateTime)
                     .ToList();
             }
@@ -1093,6 +1172,50 @@
             var expiredProductsCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Expired);
             var theftCount = stockTransactions.Count(st => st.StockTransactionType == DataHandlerLibrary.Models.StockTransferType.Theft);
             var stockAdjustmentsCount = stockTransactions.Count(st => st.StockTransactionType != StockTransferType.Expired && st.StockTransactionType != StockTransferType.Theft);
+
+            // Calculate stock refill data using similar logic to InventoryManagementModal
+            var pendingRefills = (await StockRefillService.GetPendingRefillsAsync()).ToList();
+            var stockRefillCount = 0;
+            var stockRefillProducts = new List<StockRefillData>();
+
+            if (pendingRefills.Count > 0)
+            {
+                // Group refills by product and sum the quantities (same logic as InventoryManagementModal)
+                var refillData = pendingRefills
+                    .Where(sr => sr.SalesItemTransaction?.Product != null &&
+                                 sr.SalesItemTransaction?.Product.Is_activated == true &&
+                                 sr.SalesItemTransaction?.Product?.Department?.Stock_Refill_Print == true &&
+                                 sr.Stock_Refilled == false
+                    )
+                    .GroupBy(sr => sr.SalesItemTransaction.Product_ID)
+                    .Select(g => new
+                    {
+                        Product = g.First().SalesItemTransaction.Product,
+                        TotalRefillQty = g.Sum(sr => sr.Remaining_Quantity), // Use remaining quantity from StockRefill
+                        StockRefills = g.ToList() // Keep reference to stock refill records
+                    })
+                    .Where(r => r.TotalRefillQty > 0)
+                    .ToList();
+
+                stockRefillCount = refillData.Count;
+
+                // Create stock refill data for dashboard display
+                stockRefillProducts = refillData
+                    .Select(item => new StockRefillData
+                    {
+                        ProductId = item.Product.Product_ID,
+                        ProductName = item.Product.Product_Name,
+                        Price = item.Product.Product_Selling_Price,
+                        RefillQuantity = item.TotalRefillQty,
+                        ShelfQuantity = item.Product.ShelfQuantity,
+                        StockRoomQuantity = item.Product.StockroomQuantity,
+                        ExpiryDate = item.Product.Expiry_Date,
+                        IsRefilled = false, // Based on InventoryManagementModal logic
+                        Status = "Pending"
+                    })
+                    .OrderBy(p => p.ProductName)
+                    .ToList();
+            }
 
             // Get recent stock transactions
             var recentStockTransactions = stockTransactions
@@ -1277,6 +1400,8 @@
                 ExpiredProductsCount = expiredProductsCount,
                 TheftCount = theftCount,
                 StockAdjustmentsCount = stockAdjustmentsCount,
+                StockRefillCount = stockRefillCount,
+                StockRefillProducts = stockRefillProducts,
                 StockTransactions = recentStockTransactions,
 
                 // Transaction Details
@@ -1384,6 +1509,11 @@
     private void NavigateToCheckout()
     {
         NavigationManager.NavigateTo("/checkout");
+    }
+
+    private void NavigateToBackoffice()
+    {
+        NavigationManager.NavigateTo("/backoffice");
     }
 
     private void HandleDayEnd()
@@ -1498,6 +1628,76 @@
         StateHasChanged();
     }
 
+    private async Task MarkAsRefilled(StockRefillData refillProduct)
+    {
+        try
+        {
+            if (!MarkedRefillProductIds.Contains(refillProduct.ProductId))
+            {
+                MarkedRefillProductIds.Add(refillProduct.ProductId);
+                refillProduct.IsRefilled = true;
+                refillProduct.Status = "Refilled";
+                HasPendingRefillUpdates = true;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error marking product as refilled: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateMarkedRefillsInDatabase()
+    {
+        if (!HasPendingRefillUpdates || !MarkedRefillProductIds.Any())
+            return;
+
+        try
+        {
+            // Get all pending refills
+            var pendingRefills = await StockRefillService.GetPendingRefillsAsync();
+
+            // Find refills for marked products
+            var refillsToUpdate = pendingRefills
+                .Where(sr => MarkedRefillProductIds.Contains(sr.SalesItemTransaction.Product_ID))
+                .ToList();
+
+            if (refillsToUpdate.Any())
+            {
+                // Update each refill record
+                foreach (var refill in refillsToUpdate)
+                {
+                    refill.Stock_Refilled = true;
+                    refill.Refilled_By = UserSessionService.GetCurrentUserId();
+                    refill.Refilled_Date = DateTime.UtcNow;
+                    refill.Quantity_Refilled = refill.Remaining_Quantity;
+                }
+
+                // Save to database
+                await StockRefillService.UpdateRangeAsync(refillsToUpdate);
+
+                // Clear tracking lists
+                MarkedRefillProductIds.Clear();
+                HasPendingRefillUpdates = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating refilled products in database: {ex.Message}");
+        }
+    }
+
+    private async void OnLocationChanged(object sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Update database before navigating away
+        await UpdateMarkedRefillsInDatabase();
+    }
+
+    public void Dispose()
+    {
+        // Clean up navigation event listener
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 
 }
 

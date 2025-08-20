@@ -7,7 +7,8 @@
 @inject SalesItemTransactionServices SalesItemTransactionService
 @inject DayLogServices DayLogService
 @inject IServiceScopeFactory ServiceScopeFactory
-@inject StockRefillServices StockRefillService  
+@inject StockRefillServices StockRefillService
+@inject UserSessionService UserSessionService
 @implements IDisposable
 
 <!-- Modal -->
@@ -71,9 +72,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (AllRefillProducts?.Any() == true)
+                                    @if (FilteredRefillProducts?.Any() == true)
                                     {
-                                        @foreach (var product in AllRefillProducts)
+                                        @foreach (var product in FilteredRefillProducts)
                                         {
                                             <tr @ondblclick="() => OpenProductModal(product.Product)" style="cursor: pointer;">
                                                 <td>@product.Product.Product_Name</td>
@@ -203,7 +204,7 @@
 </div>
 
 <!-- Product Modal -->
-@if(IsProductModalVisible)
+@if (IsProductModalVisible)
 {
     <ProductModal IsVisible="@IsProductModalVisible"
                   Title="Edit Product"
@@ -220,6 +221,8 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     List<StockRefill> stockRefillItems = new List<StockRefill>();
+
+
     List<StockTransaction> expiredStockTransactions = new List<StockTransaction>();
     List<Product> expiredProducts = new List<Product>();
 
@@ -304,14 +307,21 @@
         }
     }
 
+
     private async Task<List<ProductRefillDTO>> GetRefillProductsAsync()
     {
         // Get pending stock refills using StockRefillServices
         var pendingRefills = (await StockRefillService.GetPendingRefillsAsync()).ToList();
+        if (pendingRefills.Count == 0)
+        {
+            return new List<ProductRefillDTO>();
+        }
+
+        stockRefillItems.AddRange(pendingRefills);
 
         // Group refills by product and sum the quantities
         var refillData = pendingRefills
-            .Where(sr => sr.SalesItemTransaction?.Product != null && 
+            .Where(sr => sr.SalesItemTransaction?.Product != null &&
                          sr.SalesItemTransaction.Product.Is_activated == true)
             .GroupBy(sr => sr.SalesItemTransaction.Product_ID)
             .Select(g => new
@@ -387,27 +397,59 @@
 
     private async Task FilterProductsAsync()
     {
-        if (AllProducts == null)
+        switch (ModalType)
         {
-            FilteredProducts = new List<Product>();
-            return;
+            case InventoryManagementType.Refill:
+                if (SelectedDepartmentId > 0)
+                {
+                    FilteredRefillProducts = AllRefillProducts?
+                    .Where(p => p.Product.Is_activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true) && p.Product?.Department_ID == SelectedDepartmentId)
+                    .OrderBy(p => p.Product.Product_Name)
+                    .ToList() ?? new List<ProductRefillDTO>();
+                }
+                else if (!string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    FilteredRefillProducts = AllRefillProducts?
+                    .Where(p => p.Product.Is_activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true) && (p.Product?.Product_Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .OrderBy(p => p.Product.Product_Name)
+                    .ToList() ?? new List<ProductRefillDTO>();
+                }
+                else
+                {
+                    FilteredRefillProducts = AllRefillProducts?
+                    .Where(p => p.Product.Is_activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true))
+                    .OrderBy(p => p.Product.Product_Name)
+                    .ToList() ?? new List<ProductRefillDTO>();
+                }
+                break;
+
+            case InventoryManagementType.Expiry:
+            case InventoryManagementType.Shortage:
+                // Ensure AllProducts is not null before filtering
+                if (AllProducts == null)
+                {
+                    FilteredProducts = new List<Product>();
+                    return;
+                }
+
+                var filtered = AllProducts.AsEnumerable();
+
+                // Filter by department
+                if (SelectedDepartmentId > 0)
+                {
+                    filtered = filtered.Where(p => p.Department_ID == SelectedDepartmentId);
+                }
+
+                // Filter by search term
+                if (!string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    filtered = filtered.Where(p => p.Product_Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+                }
+
+                FilteredProducts = filtered.ToList();
+                break;
         }
-
-        var filtered = AllProducts.AsEnumerable();
-
-        // Filter by department
-        if (SelectedDepartmentId > 0)
-        {
-            filtered = filtered.Where(p => p.Department_ID == SelectedDepartmentId);
-        }
-
-        // Filter by search term
-        if (!string.IsNullOrWhiteSpace(SearchTerm))
-        {
-            filtered = filtered.Where(p => p.Product_Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
-        }
-
-        FilteredProducts = filtered.ToList();
+       
     }
 
     private async Task OnDepartmentFilterChanged(ChangeEventArgs e)
@@ -643,6 +685,9 @@
                 if (refilledItems.Any(r => r.Product.Product_ID == item.SalesItemTransaction.Product_ID && r.Is_Refill))
                 {
                     item.Stock_Refilled = true;
+                    item.Refilled_By = UserSessionService.GetCurrentUserId();
+                    item.Refilled_Date = DateTime.UtcNow;
+                    item.Quantity_Refilled = item.Refill_Quantity;
                 }
             }
             await StockRefillService.UpdateRangeAsync(stockRefillItems);
@@ -685,7 +730,7 @@
             // Handle error appropriately - you might want to show a message to the user
             Console.WriteLine($"Error updating expired products: {ex.Message}");
         }
-     }
+    }
 
     private async Task OpenProductModal(Product product)
     {
@@ -724,7 +769,7 @@
             Site_Id = product.Site_Id,
             Till_Id = product.Till_Id
         };
-        
+
         IsProductModalVisible = true;
         StateHasChanged();
     }
@@ -735,10 +780,10 @@
         {
             // Update the product in existing collections instead of refetching all data
             UpdateProductInCollections(savedProduct);
-            
+
             // Re-filter products to reflect any changes that might affect filtering
             await FilterProductsAsync();
-            
+
             IsDataChanged = true;
             CloseProductModal();
         }

@@ -51,6 +51,7 @@ public class CheckoutService
         //Save all sales item transactions in bulk if they exist
         if (salesItems?.Any() == true)
         {
+
             // Set the transaction ID for all sales items
             foreach (var salesItem in salesItems)
             {
@@ -586,24 +587,26 @@ public class CheckoutService
         foreach (var salesItem in salesItems)
         {
             // Only create refill records for items that actually reduce stock (positive quantities)
-            if (salesItem.Product_QTY > 0)
+
+            if (salesItem.Product_QTY > 0 && salesItem.SalesItemTransactionType == SalesItemTransactionType.Sale)
             {
                 var stockRefill = new StockRefill
                 {
                     SaleTransaction_Item_ID = salesItem.SaleTransaction_Item_ID,
-                    Refilled_By = currentUserId,
-                    Refilled_Date = DateTime.Now,
+                    Shift_ID = _userSessionService.GetCurrentShiftId(),
+                    DayLog_ID = _userSessionService.GetCurrentDayLogId(),
                     Refill_Quantity = salesItem.Product_QTY, // Quantity that needs to be refilled
                     Quantity_Refilled = 0, // Initially no quantity has been refilled
                     Stock_Refilled = false, // Initially not refilled
-                    Date_Created = DateTime.Now,
-                    Last_Modified = DateTime.Now,
+                    Date_Created = DateTime.Now.ToUniversalTime(),
+                    Last_Modified = DateTime.Now.ToUniversalTime(),
                     Created_By_ID = currentUserId,
                     Last_Modified_By_ID = currentUserId
                 };
 
                 stockRefillsToCreate.Add(stockRefill);
             }
+
         }
 
         // Save all stock refill records in bulk

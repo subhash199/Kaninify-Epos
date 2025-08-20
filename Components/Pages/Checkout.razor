@@ -52,7 +52,7 @@
                                      OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
                                      OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"></CheckoutButtons>
 
-                    <StatusBarComponent />
+                    <StatusBarComponent @ref="statusBarComponent" />
                 </div>
             </div>
         </div>
@@ -180,6 +180,7 @@
 @code {
     ElementReference searchBox;
     CheckoutState _state = new CheckoutState();
+    StatusBarComponent statusBarComponent; // Add this reference
 
     // Payout-related properties
     private bool showPayoutModal = false;
@@ -729,6 +730,12 @@
             transaction.Last_Modified_By_Id = UserSession.GetValidUserIdAsync();
 
             await CheckoutService.SaveTransactionAsync(transaction);
+            
+            // Trigger refill count recalculation after successful transaction save
+            if (statusBarComponent != null)
+            {
+                await statusBarComponent.RefreshRefillCountAsync();
+            }
         }
         catch (Exception ex)
         {

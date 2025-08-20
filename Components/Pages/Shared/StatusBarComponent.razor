@@ -123,6 +123,14 @@
         }
     }
 
+    // Add this public method to StatusBarComponent
+    public async Task RefreshRefillCountAsync()
+    {
+        _isRefillLoading = true;
+        await InvokeAsync(StateHasChanged);
+        await LoadRefillCountAsync();
+    }
+    
     private async Task LoadRefillCountAsync()
     {
         try
@@ -211,9 +219,9 @@
             var stockRefillServices = scope.ServiceProvider.GetRequiredService<StockRefillServices>();
 
             var StockRefillItems = await stockRefillServices.GetByConditionAsync(
-               s => s.Stock_Refilled == false && s.Shift_ID == UserSessionService.GetCurrentShiftId(), false);
+               s => s.Stock_Refilled == false && s.DayLog_ID == UserSessionService.GetCurrentDayLogId(), false);
            
-            return StockRefillItems.Count();
+            return StockRefillItems.Sum(x => x.Remaining_Quantity);
         }
         catch (Exception)
         {
