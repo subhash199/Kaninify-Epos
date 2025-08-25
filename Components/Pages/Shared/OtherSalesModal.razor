@@ -75,6 +75,7 @@
     [Parameter] public bool IsVisible { get; set; } = false;
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
     [Parameter] public EventCallback<(string department, decimal amount)> OnDepartmentWithAmountSelected { get; set; }
+    [Parameter] public EventCallback<(PayoutType payoutType, decimal amount)> OnPayoutWithAmount { get; set; }
     [Parameter] public EventCallback OnModalClosed { get; set; }
     [Parameter] public CheckoutState State { get; set; } = new();
     
@@ -191,7 +192,19 @@
     
     private async Task HandlePayoutClick(PayoutActionModel payout)
     {
-        // Handle payout if needed
+        if (decimal.TryParse(Amount, out decimal payoutAmount) && payoutAmount > 0)
+        {
+            await OnPayoutWithAmount.InvokeAsync((payout.PayoutType, payoutAmount));
+            await CloseModal();
+        }
+        else
+        {
+            // Show validation error
+            validationTitle = "Invalid Amount";
+            validationMessage = "Please enter a valid amount greater than 0.";
+            showValidationModal = true;
+            StateHasChanged();
+        }
     }
     
     private async Task HandleKeyPress(KeyboardEventArgs e)

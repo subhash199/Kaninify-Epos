@@ -162,12 +162,12 @@
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
         var barcode = query["barcode"];
         var backUrl = query["backurl"];
-        
+
         if (!string.IsNullOrEmpty(backUrl))
         {
             BackUrl = backUrl;
         }
-        
+
         if (!string.IsNullOrEmpty(barcode))
         {
             SearchText = barcode;

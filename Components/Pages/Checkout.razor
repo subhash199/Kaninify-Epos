@@ -50,7 +50,8 @@
                                      OnQtyClicked="QtyButtonClick" OnHoldClicked="HandleHoldButtonClicked"
                                      OnRefundClicked="HandleRefundClick"
                                      OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
-                                     OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"></CheckoutButtons>
+                                     OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"
+                                     OnPayoutWithAmountSelected="HandlePayoutWithAmountFromModal"></CheckoutButtons>
 
                     <StatusBarComponent @ref="statusBarComponent" />
                 </div>
@@ -715,7 +716,7 @@
             transaction.SaleTransaction_Total_Amount = transaction.SalesItemTransactions?.Where(s => s.SalesPayout_ID == null).Sum(s => s.Product_Total_Amount) ?? 0;
             transaction.SaleTransaction_Total_Paid = transaction.SaleTransaction_Cash + transaction.SaleTransaction_Card;
             transaction.SaleTransaction_Refund = transaction.SalesItemTransactions?.Where(i => i.SalesItemTransactionType == SalesItemTransactionType.Refund).Sum(i => i.Product_Total_Amount) ?? 0m;
-            transaction.SaleTransaction_Discount = (transaction.SalesItemTransactions?.Sum(i => i.Product_Total_Amount_Before_Discount) ?? 0m) - (transaction.SalesItemTransactions?.Sum(i => i.Product_Total_Amount) ?? 0m);
+            transaction.SaleTransaction_Discount = (transaction.SalesItemTransactions?.Sum(i => i.Discount_Amount) ?? 0m);
             transaction.SaleTransaction_Promotion = transaction.SalesItemTransactions?.Sum(i => i.Promotional_Discount_Amount) ?? 0m;
             transaction.SaleTransaction_Change = transaction.SaleTransaction_Total_Paid - transaction.SaleTransaction_Total_Amount;
             transaction.SaleTransaction_Payout = transaction.SalesItemTransactions?.Where(i => i.SalesPayout_ID != null).Sum(i => i.Product_Total_Amount) ?? 0;
@@ -730,7 +731,7 @@
             transaction.Last_Modified_By_Id = UserSession.GetValidUserIdAsync();
 
             await CheckoutService.SaveTransactionAsync(transaction);
-            
+
             // Trigger refill count recalculation after successful transaction save
             if (statusBarComponent != null)
             {
@@ -953,22 +954,12 @@
 
 
             _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
-            _state.SalesBaskets[_state.HoldBasketIndex].Transaction = new SalesTransaction
-            {
-                DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
-                Created_By_Id =  UserSession.GetValidUserIdAsync(),
-                Last_Modified_By_Id =  UserSession.GetValidUserIdAsync(),
-                SaleTransaction_Total_Amount = 0,
-                SaleTransaction_Cash = 0,
-                SaleTransaction_Card = 0,
-                SaleTransaction_Change = 0,
-                Date_Created = DateTime.UtcNow,
-                Sale_Start_Date = DateTime.UtcNow
-            };
-            _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList = new List<SalesItemTransaction>();
+            _state.SalesBaskets[_state.HoldBasketIndex].Transaction = null;
+            _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList = null;
             _state.SelectedItemIndex = -1;
             UpdateCashSuggestions(0);
             _state.SearchText = "";
+            await SetFocusOnSearchBoxAsync();
             StateHasChanged();
         }
     }
@@ -1082,6 +1073,7 @@
     private async Task HandleRefundClick()
     {
         await HandleRefundMode();
+        await SetFocusOnSearchBoxAsync();
         StateHasChanged();
     }
 
@@ -1119,7 +1111,7 @@
             else
             {
                 // Handle specific payout types (Lottery, ScratchCard)
-                await ProcessDirectPayout(payoutAction.PayoutType.ToString());
+                await ProcessDirectPayout(payoutAction.PayoutType.ToString(), payoutAmount);
             }
         }
         catch (Exception ex)
@@ -1138,7 +1130,7 @@
             isCreatingNewPayout = false;
 
             // Load available payouts
-            availablePayouts = (await PayoutServices.GetActivePayoutsAsync()).ToList();
+            availablePayouts = (await PayoutServices.GetActivePayoutsAsync()).OrderBy(p => p.Payout_Description).ToList();
 
             showPayoutModal = true;
             StateHasChanged();
@@ -1149,7 +1141,7 @@
         }
     }
 
-    private async Task ProcessDirectPayout(string payoutType)
+    private async Task ProcessDirectPayout(string payoutType, decimal payoutAmount)
     {
         try
         {
@@ -1166,7 +1158,7 @@
                 );
             }
 
-            await ExecutePayout(payout);
+            await ExecutePayout(payout, payoutAmount);
         }
         catch (Exception ex)
         {
@@ -1276,7 +1268,7 @@
                 return;
             }
 
-            await ExecutePayout(payoutToUse);
+            await ExecutePayout(payoutToUse, payoutAmount);
             ClosePayoutModal();
         }
         catch (Exception ex)
@@ -1286,7 +1278,7 @@
         }
     }
 
-    private async Task ExecutePayout(Payout payout)
+    private async Task ExecutePayout(Payout payout, decimal payoutAmount)
     {
         try
         {
@@ -1336,7 +1328,7 @@
     {
         var currentBasket = _state.SalesBaskets?.Count > _state.HoldBasketIndex ? _state.SalesBaskets[_state.HoldBasketIndex] : null;
 
-        if (currentBasket?.SalesItemsList?.Count == 0)
+        if (currentBasket?.SalesItemsList?.Count == 0 || currentBasket?.SalesItemsList == null)
         {
             await ShowErrorModalAsync("No Products", "There are no products in the basket to apply discount to.");
             return;
@@ -1461,5 +1453,34 @@
 
         // Call the existing department click handler
         HandleDepartmentClick(data.department);
+    }
+
+    private async Task HandlePayoutWithAmountFromModal((PayoutType payoutType, decimal amount) data)
+    {
+        try
+        {
+            currentPayoutType = data.payoutType;
+            payoutAmount = data.amount;
+            payoutAmountText = data.amount.ToString("F2");
+            _state.SearchText = data.amount.ToString("F2");
+
+            switch (data.payoutType)
+            {
+                case PayoutType.Other:
+                    await ShowPayoutSelectionModal();
+                    break;
+                default:
+                    // Process the payout using existing logic
+                    await ProcessDirectPayout(data.payoutType.ToString(), data.amount);
+                    break;
+            }
+
+
+
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Payout Error", $"Error processing payout: {ex.Message}");
+        }
     }
 }

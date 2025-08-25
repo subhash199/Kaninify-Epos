@@ -205,7 +205,7 @@
         </div>
         
         <div class="col-lg-3 col-md-6 mb-4">
-            <div class="modern-card h-100">
+            <div class="modern-card h-100" @onclick="NavigateToPromotionalDashboard">
                 <div class="card-icon bg-gradient">
                     <img src="images/icons/svg/campaign_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                     <i class="bi bi-percent text-white"></i>
@@ -227,7 +227,7 @@
     {
         NavigationManager.NavigateTo("/checkout");
     }
-    
+
     private void NavigateToSalesDashboard()
     {
         NavigationManager.NavigateTo("/salesdashboard");
@@ -257,7 +257,7 @@
     {
         NavigationManager.NavigateTo("/history");
     }
-    
+
     private void NavigateToDepartmentManagement()
     {
         NavigationManager.NavigateTo("/department-management");
@@ -311,5 +311,9 @@
             // Handle any errors (you might want to show a toast or alert)
             Console.WriteLine($"Error opening drawer: {ex.Message}");
         }
+    }
+    private void NavigateToPromotionalDashboard(MouseEventArgs args)
+    {
+        NavigationManager.NavigateTo("/promotional-dashboard");
     }
 }

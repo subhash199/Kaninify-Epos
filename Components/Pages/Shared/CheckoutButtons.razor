@@ -1,7 +1,12 @@
 @using EposRetail.Models
 @using EposRetail.Constants
-
+@using EposRetail.Services
+@using EntityFrameworkDatabaseLibrary.Models
+@inject SalesTransactionServices SalesTransactionServices
+@inject SalesItemTransactionServices SalesItemTransactionServices
+@inject PrinterManagementService PrinterManagementService
 @inject NavigationManager NavigationManager
+@inject UserSessionService UserSessionService
 <div class="col-md-12 mb-2">
     <div class="d-flex gap-2 mb-2">
         <button class="btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
@@ -67,7 +72,8 @@
                     <img src="images/icons/svg/loyalty_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                     <span class="fw-bold">Discount</span>
                 </button>
-                <button class="btn btn-light d-flex flex-column align-items-center flex-fill">
+                <button class="btn btn-light d-flex flex-column align-items-center flex-fill"
+                        @onclick=HandleReceiptClick>
                     <img src="images/icons/svg/receipt_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                     <span class="fw-bold">Receipt</span>
                 </button>
@@ -82,11 +88,11 @@
 
 </div>
 
-<!-- Amount Entry Modal -->
-<OtherSalesModal @bind-IsVisible="showAmountModal"
-                 State="@State"
-                 OnDepartmentWithAmountSelected="HandleDepartmentWithAmount"
-                 OnModalClosed="HandleModalClosed" />
+<!-- Receipt History Modal -->
+<ReceiptHistoryModal IsVisible="@showReceiptHistoryModal"
+                     Transactions="@recentTransactions"
+                     LastTransaction="@lastTransaction"
+                     OnClose="CloseReceiptHistoryModal" />
 
 @code {
 
@@ -150,6 +156,15 @@
     // Add this parameter to the component
     [Parameter] public EventCallback<(string department, decimal amount)> OnDepartmentWithAmountSelected { get; set; }
 
+    // Add this parameter
+    [Parameter] public EventCallback<(PayoutType payoutType, decimal amount)> OnPayoutWithAmountSelected { get; set; }
+
+    // Add this handler method
+    private async Task HandlePayoutWithAmount((PayoutType payoutType, decimal amount) data)
+    {
+        await OnPayoutWithAmountSelected.InvokeAsync(data);
+    }
+
     private async Task HandleModalClosed()
     {
         showAmountModal = false;
@@ -160,5 +175,60 @@
     {
         RefundMode = !RefundMode;
         await OnRefundClicked.InvokeAsync();
+    }
+    private async void HandleReceiptClick(MouseEventArgs args)
+    {
+        
+    }
+    
+    // Add new fields for receipt history
+    private bool showReceiptHistoryModal = false;
+    private List<SalesTransaction>? recentTransactions;
+    private SalesTransaction? lastTransaction;
+    private bool isLoadingTransactions = false;
+
+    private async Task HandleReceiptClick()
+    {
+        await LoadLast10Transactions();
+        showReceiptHistoryModal = true;
+        StateHasChanged();
+    }
+    
+    private async Task LoadLast10Transactions()
+    {
+        try
+        {
+            isLoadingTransactions = true;
+            
+            // Get the last 10 transactions ordered by most recent first
+            var allTransactions = await SalesTransactionServices.GetByConditionAsync(
+                t => t.DayLog_Id == UserSessionService.GetCurrentDayLogId(), // Get all transactions
+                false // Don't include related data for performance
+            );
+            
+            recentTransactions = allTransactions
+                .OrderByDescending(t => t.Sale_Date)
+                .Take(10)
+                .ToList();
+            
+            // Get the most recent transaction as the "last transaction"
+            lastTransaction = recentTransactions?.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading recent transactions: {ex.Message}");
+            recentTransactions = new List<SalesTransaction>();
+            lastTransaction = null;
+        }
+        finally
+        {
+            isLoadingTransactions = false;
+        }
+    }
+    
+    private async Task CloseReceiptHistoryModal()
+    {
+        showReceiptHistoryModal = false;
+        StateHasChanged();
     }
 }
