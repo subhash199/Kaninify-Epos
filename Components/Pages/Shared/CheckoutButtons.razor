@@ -56,7 +56,7 @@
                         @onclick="() => OnVoidBasketClicked.InvokeAsync()">
                     <img src="images/icons/svg/money_off_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                     <span class="fw-bold">Void Basket</span>
-                </button>               
+                </button>
                 <button class="btn background-colour-light-green d-flex flex-column align-items-center flex-fill"
                         @onclick="() => OnEnquiryClicked.InvokeAsync()">
                     <img src="images/icons/svg/search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
@@ -93,6 +93,13 @@
                      Transactions="@recentTransactions"
                      LastTransaction="@lastTransaction"
                      OnClose="CloseReceiptHistoryModal" />
+
+<!-- Amount Entry Modal -->
+<OtherSalesModal @bind-IsVisible="showAmountModal"
+                 State="@State"
+                 OnDepartmentWithAmountSelected="HandleDepartmentWithAmount"
+                 OnPayoutWithAmount="HandlePayoutWithAmount"
+                 OnModalClosed="HandleModalClosed" />
 
 @code {
 
@@ -178,9 +185,9 @@
     }
     private async void HandleReceiptClick(MouseEventArgs args)
     {
-        
+
     }
-    
+
     // Add new fields for receipt history
     private bool showReceiptHistoryModal = false;
     private List<SalesTransaction>? recentTransactions;
@@ -193,24 +200,24 @@
         showReceiptHistoryModal = true;
         StateHasChanged();
     }
-    
+
     private async Task LoadLast10Transactions()
     {
         try
         {
             isLoadingTransactions = true;
-            
+
             // Get the last 10 transactions ordered by most recent first
             var allTransactions = await SalesTransactionServices.GetByConditionAsync(
                 t => t.DayLog_Id == UserSessionService.GetCurrentDayLogId(), // Get all transactions
                 false // Don't include related data for performance
             );
-            
+
             recentTransactions = allTransactions
                 .OrderByDescending(t => t.Sale_Date)
                 .Take(10)
                 .ToList();
-            
+
             // Get the most recent transaction as the "last transaction"
             lastTransaction = recentTransactions?.FirstOrDefault();
         }
@@ -225,7 +232,7 @@
             isLoadingTransactions = false;
         }
     }
-    
+
     private async Task CloseReceiptHistoryModal()
     {
         showReceiptHistoryModal = false;

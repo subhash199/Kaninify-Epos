@@ -413,7 +413,6 @@
 
         try
         {
-            await PrinterService.PrintDayEndReport(null);
             await JSRuntime.InvokeVoidAsync("alert", "Day end report printed successfully!");
         }
         catch (Exception ex)

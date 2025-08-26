@@ -1046,8 +1046,11 @@
                     Additional_Notes = "Item voided from basket",
                     Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
                     Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-                    Site_Id = UserSession.CurrentSite?.Site_Id,
-                    Till_Id = UserSession.CurrentTill?.Till_Id
+                    Site_Id = UserSession.GetCurrentSiteId(),
+                    Till_Id = UserSession.GetCurrentTillId(),
+                    Shift_Id = UserSession.GetCurrentShiftId(),
+                    Daylog_Id = UserSession.GetCurrentDayLogId()
+
                 };
                 voidedProducts.Add(voidedProduct);
             }

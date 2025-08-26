@@ -151,9 +151,17 @@ namespace EposRetail.Services
                 }
                 else
                 {
+                    // Ensure we have a valid DayLog before creating a shift
+                    var currentDayLog = await EnsureDayLogAsync();
+                    if (currentDayLog == null)
+                    {
+                        throw new InvalidOperationException("Cannot create shift without a valid DayLog");
+                    }
+
                     // No active shift exists or shift has ended, create a new one
                     var newShift = new Shift
                     {
+                        DayLog_Id = currentDayLog.DayLog_Id, // This was missing!
                         Shift_Start_DateTime = DateTime.UtcNow,
                         Date_Created = DateTime.UtcNow,
                         Last_Modified = DateTime.UtcNow,
