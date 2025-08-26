@@ -326,9 +326,9 @@
                             Stock Refill Requirements
                         </h3>
                         <div class="table-controls">
-                <span class="status-badge warning">@SalesData.StockRefillCount Products</span>
-                <span class="status-badge amount">@SalesData.StockRefillProducts.Sum(r => r.Price * r.RefillQuantity).ToString("C")</span>
-            </div>
+                            <span class="status-badge warning">@SalesData.StockRefillCount Products</span>
+                            <span class="status-badge amount">@SalesData.StockRefillProducts.Sum(r => r.Price * r.RefillQuantity).ToString("C")</span>
+                        </div>
                     </div>
                     <div class="modern-table">
                         <div class="table-row table-header-row">
@@ -875,6 +875,12 @@
                      SecondaryAction="HandleNoPrintAction"
                      OnClose="CloseModal" />
 
+<ClosingBalanceModal IsVisible="showClosingBalanceModal"
+                     Title="@closingBalanceModalTitle"
+                     OnConfirm="HandleClosingBalanceConfirm"
+                     OnCancel="CloseClosingBalanceModal"
+                     OnClose="CloseClosingBalanceModal" />
+
 @code {
     [Parameter] public bool isShiftLog { get; set; }
     [Parameter] public int? ShiftLogId { get; set; }
@@ -895,6 +901,11 @@
     private ModalState modalState = new ModalState();
     private List<int> MarkedRefillProductIds = new List<int>();
     private bool HasPendingRefillUpdates = false;
+    
+    // Closing balance modal state
+    private bool showClosingBalanceModal = false;
+    private string closingBalanceModalTitle = "Record Closing Balance";
+    private ActionType pendingActionType = ActionType.None;
 
     // Computed property for dynamic dashboard title
     private string DashboardTitle
@@ -1522,19 +1533,15 @@
     {
         if (isDayLog)
         {
-            modalState.ShowConfirmation(
-                "End Day",
-                "Are you sure you want to end the day? This action cannot be undone.",
-                ActionType.DayEnd
-            );
+            closingBalanceModalTitle = "Record Day End Closing Balance";
+            pendingActionType = ActionType.DayEnd;
+            showClosingBalanceModal = true;
         }
         else if (isShiftLog)
         {
-            modalState.ShowConfirmation(
-                "End Shift",
-                "Are you sure you want to end the shift?",
-                ActionType.ShiftEnd
-            );
+            closingBalanceModalTitle = "Record Shift End Closing Balance";
+            pendingActionType = ActionType.ShiftEnd;
+            showClosingBalanceModal = true;
         }
         StateHasChanged();
     }
@@ -1628,6 +1635,68 @@
     {
         modalState.CloseAll();
         StateHasChanged();
+    }
+    
+    private async Task HandleClosingBalanceConfirm(decimal closingBalance)
+    {
+        showClosingBalanceModal = false;
+        
+        try
+        {
+            // Update the record with closing balance and end datetime
+            if (pendingActionType == ActionType.DayEnd && DayLog != null)
+            {
+                await UpdateDayLogClosingBalance(closingBalance);
+            }
+            else if (pendingActionType == ActionType.ShiftEnd && ShiftLog != null)
+            {
+                await UpdateShiftClosingBalance(closingBalance);
+            }
+            
+            // Show confirmation modal
+            string entityName = pendingActionType == ActionType.DayEnd ? "day" : "shift";
+            modalState.ShowConfirmation(
+                $"End {entityName.Substring(0, 1).ToUpper() + entityName.Substring(1)}",
+                $"Are you sure you want to end the {entityName}? This action cannot be undone.",
+                pendingActionType
+            );
+        }
+        catch (Exception ex)
+        {
+            // Handle error - could show error modal
+            Console.WriteLine($"Error updating closing balance: {ex.Message}");
+        }
+        
+        StateHasChanged();
+    }
+    
+    private void CloseClosingBalanceModal()
+    {
+        showClosingBalanceModal = false;
+        pendingActionType = ActionType.None;
+        StateHasChanged();
+    }
+    
+    private async Task UpdateDayLogClosingBalance(decimal closingBalance)
+    {
+        if (DayLog != null)
+        {
+            DayLog.Closing_Cash_Amount = closingBalance;
+            DayLog.DayLog_End_DateTime = DateTime.Now.ToUniversalTime();
+            await DayLogService.UpdateAsync(DayLog);
+        }
+    }
+    
+    private async Task UpdateShiftClosingBalance(decimal closingBalance)
+    {
+        if (ShiftLog != null)
+        {
+            // Note: Assuming Shift model has similar properties
+            // You may need to adjust property names based on actual Shift model
+            ShiftLog.Closing_Cash_Amount = closingBalance;
+            ShiftLog.Shift_End_DateTime = DateTime.Now.ToUniversalTime();
+            await ShiftServices.UpdateAsync(ShiftLog);
+        }
     }
 
     private async Task MarkAsRefilled(StockRefillData refillProduct)

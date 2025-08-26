@@ -10,6 +10,5 @@ namespace EposRetail.Models
     {
         Cash,
         Card
-
     }
 }
