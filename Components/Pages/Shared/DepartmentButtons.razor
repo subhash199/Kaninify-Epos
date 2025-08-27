@@ -136,7 +136,7 @@
         }
         if (!string.IsNullOrEmpty(department))
         {
-            OnDepartmentClick.InvokeAsync(department);
+            await OnDepartmentClick.InvokeAsync(department);
         }
     }
 

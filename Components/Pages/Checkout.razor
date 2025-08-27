@@ -516,7 +516,6 @@
 
     private async Task ProcessCashOrCardPaymentAsync(PaymentType paymentType)
     {
-
         try
         {
             decimal paymentAmount = 0;
@@ -527,9 +526,14 @@
                 await ShowErrorModalAsync("Payment Error", "No items in basket to process payment.");
                 return;
             }
+
+            // Calculate remaining amount to be paid
+            decimal remainingAmount = currentBasket.Transaction.SaleTransaction_Total_Amount - 
+                (currentBasket.Transaction.SaleTransaction_Card + currentBasket.Transaction.SaleTransaction_Cash);
+
             if (string.IsNullOrEmpty(_state.SearchText))
             {
-                paymentAmount = currentBasket.Transaction.SaleTransaction_Total_Amount - (currentBasket.Transaction.SaleTransaction_Card + currentBasket.Transaction.SaleTransaction_Cash);
+                paymentAmount = remainingAmount;
             }
             else
             {
@@ -540,57 +544,69 @@
             {
                 if (paymentAmount < 0)
                 {
-                    // check if the total basket total is less than zero
-
+                    // Handle negative transactions (refunds)
                     if (currentBasket.Transaction.SaleTransaction_Total_Amount < 0)
                     {
                         currentBasket.Transaction.SaleTransaction_Cash += currentBasket.Transaction.SalesItemTransactions
-                        ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount) ?? 0;
+                            ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount) ?? 0;
                     }
                     else
                     {
                         currentBasket.Transaction.SaleTransaction_Cash += 0;
                     }
-
                 }
                 else
                 {
-                    currentBasket.Transaction.SaleTransaction_Cash += paymentAmount;
+                    // Calculate actual cash amount (limited to remaining transaction amount)
+                    decimal actualCashAmount = Math.Min(paymentAmount, Math.Max(0, remainingAmount));
+                    currentBasket.Transaction.SaleTransaction_Cash += actualCashAmount;
+                    
+                    // Calculate change if payment exceeds remaining amount
+                    if (paymentAmount > remainingAmount && remainingAmount > 0)
+                    {
+                        currentBasket.Transaction.SaleTransaction_Change = paymentAmount - remainingAmount;
+                    }
                 }
             }
-            else
+            else // Card payment
             {
                 if (paymentAmount < 0)
                 {
+                    // Handle negative transactions (refunds)
                     if (currentBasket.Transaction.SaleTransaction_Total_Amount < 0)
                     {
                         currentBasket.Transaction.SaleTransaction_Card += currentBasket.Transaction.SalesItemTransactions
-                        ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount) ?? 0;
+                            ?.Where(i => i.SalesPayout_ID == null).Sum(i => i.Product_Total_Amount) ?? 0;
                     }
                     else
                     {
                         currentBasket.Transaction.SaleTransaction_Card += 0;
                     }
-
                 }
                 else
                 {
-                    currentBasket.Transaction.SaleTransaction_Card += paymentAmount;
+                    // Calculate actual card amount (limited to remaining transaction amount)
+                    decimal actualCardAmount = Math.Min(paymentAmount, Math.Max(0, remainingAmount));
+                    currentBasket.Transaction.SaleTransaction_Card += actualCardAmount;
+                    
+                    // Note: Cards typically don't give change, but if needed:
+                    // if (paymentAmount > remainingAmount && remainingAmount > 0)
+                    // {
+                    //     currentBasket.Transaction.SaleTransaction_Change = paymentAmount - remainingAmount;
+                    // }
                 }
             }
 
-            currentBasket.Transaction.SaleTransaction_Total_Paid += paymentAmount;
+            // Update total paid amount
+            currentBasket.Transaction.SaleTransaction_Total_Paid = 
+                currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card;
+
+            // Check if transaction is complete
             if (currentBasket.Transaction.SaleTransaction_Total_Amount <= currentBasket.Transaction.SaleTransaction_Total_Paid)
             {
-                currentBasket.Transaction.SaleTransaction_Change =
-                (currentBasket.Transaction.SaleTransaction_Total_Amount -
-                (currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card));
-
-                if (currentBasket.Transaction.SaleTransaction_Change <= 0)
-                {
-                    await CompleteTransactionAsync(currentBasket);
-                }
+                await CompleteTransactionAsync(currentBasket);
             }
+            
             await SetFocusOnSearchBoxAsync();
         }
         catch (Exception ex)
@@ -813,7 +829,7 @@
     private async void HandleDepartmentClick(string departmentClickName)
     {
         decimal amount = generalServices.ConvertStringToDecimal(_state.SearchText);
-        if (amount < 1)
+        if (amount < 0)
             return;
 
         Product departmentProduct = await productServices.GetProductByBarcode(departmentClickName, false, false);
