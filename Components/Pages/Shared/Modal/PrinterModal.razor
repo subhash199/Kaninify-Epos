@@ -1,6 +1,8 @@
 @using EntityFrameworkDatabaseLibrary.Models
 @using DataHandlerLibrary.Services
+@using EposRetail.Services
 @inject IJSRuntime JSRuntime
+@inject UserSessionService UserSessionService
 
 <div class="modal fade @(IsVisible ? "show" : "")" id="printerModal" tabindex="-1" style="display: @(IsVisible ? "block" : "none")" aria-labelledby="printerModalLabel" aria-hidden="@(!IsVisible)">
     <div class="modal-dialog modal-xl">
@@ -183,12 +185,13 @@
     [Parameter] public List<Till>? Tills { get; set; }
 
     [Inject] public ReceiptPrinterServices PrinterService { get; set; } = default!;
-    
+    [Inject] public PrinterManagementService PrinterManagementService { get; set; } = default!;
+
     private ReceiptPrinter CurrentPrinter { get; set; } = new();
     private bool IsEditMode => PrinterToEdit?.Printer_Id != 0 && !IsViewMode;
     private bool IsLoading { get; set; }
     private string ErrorMessage { get; set; } = string.Empty;
-    
+
     protected override void OnParametersSet()
     {
         if (IsVisible)
@@ -225,15 +228,15 @@
                 };
             }
         }
-        
+
         ErrorMessage = string.Empty;
     }
-    
+
     private async Task HandleValidSubmit()
     {
         IsLoading = true;
         ErrorMessage = string.Empty;
-        
+
         try
         {
             // Validate the entity
@@ -243,7 +246,13 @@
                 ErrorMessage = validationResult;
                 return;
             }
-            
+
+            CurrentPrinter.Last_Modified = DateTime.UtcNow;
+            CurrentPrinter.Till_Id = CurrentPrinter.Till_Id ?? UserSessionService.GetCurrentTillId();
+            CurrentPrinter.Site_Id = CurrentPrinter.Site_Id ?? UserSessionService.GetCurrentSiteId();
+            CurrentPrinter.Created_By_Id = CurrentPrinter.Created_By_Id ?? UserSessionService.GetCurrentUserId();
+            CurrentPrinter.Last_Modified_By_Id = UserSessionService.GetCurrentUserId();
+           
             if (IsEditMode)
             {
                 CurrentPrinter.Last_Modified = DateTime.UtcNow;
@@ -260,7 +269,7 @@
             else
             {
                 CurrentPrinter.Date_Created = DateTime.UtcNow;
-                CurrentPrinter.Last_Modified = DateTime.UtcNow;
+                
                 await PrinterService.AddAsync(CurrentPrinter);
                 
                 // Handle primary printer logic for new printer
@@ -271,6 +280,9 @@
                 
                 await OnPrinterSaved.InvokeAsync(CurrentPrinter);
             }
+            
+            // Refresh the printer session to ensure the current printer is updated
+            await PrinterManagementService.RefreshPrinterAsync();
             
             await CloseModal();
         }
