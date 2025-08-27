@@ -1026,12 +1026,7 @@
 
                 await TrackVoidedItemAsync(currentBasket.SalesItemsList);
             }
-
-
-
-            _state.SalesBaskets[_state.HoldBasketIndex] = new SalesBasket();
-            _state.SalesBaskets[_state.HoldBasketIndex].Transaction = null;
-            _state.SalesBaskets[_state.HoldBasketIndex].SalesItemsList = null;
+            _state.SalesBaskets.RemoveAt(_state.HoldBasketIndex);
             _state.SelectedItemIndex = -1;
             UpdateCashSuggestions(0);
             _state.SearchText = "";

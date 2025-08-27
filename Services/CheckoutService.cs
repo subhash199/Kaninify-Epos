@@ -204,7 +204,8 @@ public class CheckoutService
     {
         // Get products in basket that have this promotion assigned
         var eligibleItems = basket.SalesItemsList
-            .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID)
+            .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID && item.SalesItemTransactionType == SalesItemTransactionType.Sale || item.SalesItemTransactionType
+            == SalesItemTransactionType.Refund)
             .ToList();
 
         if (!eligibleItems.Any()) return;
@@ -229,6 +230,15 @@ public class CheckoutService
 
             default:
                 break;
+        }
+
+        // Make promotion totals negative for refund items
+        foreach (var item in eligibleItems)
+        {
+            if (item.SalesItemTransactionType == SalesItemTransactionType.Refund)
+            {
+                item.Product_Total_Amount = -Math.Abs(item.Product_Total_Amount);
+            }
         }
     }
 
