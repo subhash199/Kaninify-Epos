@@ -650,6 +650,51 @@
                 </div>
             </div>
 
+            <!-- Misc Products -->
+            @if (SalesData?.MiscProducts?.Any() == true)
+            {
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            <i class="fas fa-shopping-basket"></i>
+                            Misc Products
+                        </h3>
+                        <div class="table-controls">
+                            <span class="status-badge misc">@SalesData.MiscProducts.Count() Products</span>
+                            <span class="status-badge amount">@SalesData.MiscProducts.Sum(m => m.Price * m.Quantity).ToString("C")</span>
+                        </div>
+                    </div>
+                    <div class="modern-table">
+                        <div class="table-row table-header-row">
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Product Name</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Price</div>
+                            <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">Quantity</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Total</div>
+                            <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">Employee</div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date</div>
+                        </div>
+                        @foreach (var misc in SalesData.MiscProducts)
+                        {
+                            <div class="table-row">
+                                <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">
+                                    <div class="campaign-info">
+                                        <div class="campaign-icon misc">
+                                            <i class="fas fa-shopping-basket"></i>
+                                        </div>
+                                        <span>@misc.ProductName</span>
+                                    </div>
+                                </div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@misc.Price.ToString("C")</div>
+                                <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@misc.Quantity</div>
+                                <div class="table-cell amount" style="width: 15%; word-wrap: break-word; word-break: break-word;">@((misc.Price * misc.Quantity).ToString("C"))</div>
+                                <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">@misc.EmployeeName</div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@misc.DateTime.ToString("dd-MM-yyyy HH:mm")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
             <!-- Employee Performance -->
             <div class="table-container employee-performance">
                 <div class="table-header">
@@ -1382,6 +1427,20 @@
                 dept.Percentage = totalDepartmentSales > 0 ? (dept.TotalSales / totalDepartmentSales) * 100 : 0;
             }
 
+            // Calculate misc products data
+            var miscProductsData = salesItemTransactions
+                .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Misc)
+                .Select(item => new MiscProductData
+                {
+                    ProductName = item.Product?.Product_Name ?? "Unknown Product",
+                    Price = item.Product_Total_Amount,
+                    Quantity = item.Product_QTY,
+                    DateTime = item.SalesTransaction?.Sale_Date ?? DateTime.Now,
+                    EmployeeName = salesTransactions.FirstOrDefault(t => t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown"
+                })
+                .OrderByDescending(m => m.DateTime)
+                .Take(10)
+                .ToList();
 
             var separateSalesDepartmentIds = allDepartments
                 .Where(d => d.Separate_Sales_In_Reports)
@@ -1489,7 +1548,10 @@
                 OtherServicesTransactions = otherServicesTransactionDetails,
 
                 // Department Sales
-                DepartmentSales = departmentSales
+                DepartmentSales = departmentSales,
+
+                // Misc Products
+                MiscProducts = miscProductsData
             };
         }
         catch (Exception ex)
@@ -1977,9 +2039,10 @@
         // Initialize printer service
         await printerManagementService.InitializePrinterAsync();
         printerServices = await printerManagementService.GetPrinterServicesAsync();
-
     }
 }
+
+
 
 
 

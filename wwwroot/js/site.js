@@ -3,7 +3,8 @@ window.productAddedAlert = function () {
 };
 
 window.scrollTableToBottom = function () {
-    var container = document.getElementById('checkoutTable');
+    // Target the actual scrollable container instead of the table
+    var container = document.querySelector('.checkout-table-container');
     if (container) {
         container.scrollTop = container.scrollHeight;
     }
@@ -13,6 +14,28 @@ window.focusElement = function (element) {
     element.focus();
 };
 
+// Print content function
+window.printContent = function (content) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+};
+
+// Download file function
+window.downloadFile = function (filename, content, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+};
 
 // QR Code generation function using QRCode.js library
 window.generateQRCode = (elementId, text) => {

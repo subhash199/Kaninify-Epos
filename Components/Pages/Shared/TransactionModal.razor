@@ -72,23 +72,14 @@
                             
                             <!-- Cash Suggestions (when Cash is selected) -->
                             <div class="flex-grow-1 d-flex align-items-start">
-                                @if (PaymentType == PaymentType.Cash)
-                                {
+                               
                                     <div class="w-100">
                                         <CashSuggestButtons ExactAmount="CheckoutAmount" 
                                                           RoundupCashSuggestion="@(Math.Ceiling(CheckoutAmount))"
                                                             SecondRoundupCashSuggestion="(Math.Ceiling(CheckoutAmount / 5) * 5)"
                                                             OnCashSuggestionClicked="HandleCashSuggestionClick" />
                                     </div>
-                                }
-                                else
-                                {
-                                    <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100 text-center text-muted">
-                                        <i class="fas fa-credit-card fa-3x mb-3"></i>
-                                        <p class="mb-0">Card payment selected</p>
-                                        <small class="text-muted">Use the number pad to enter the amount</small>
-                                    </div>
-                                }
+                              
                             </div>
                         </div>
                         
@@ -229,6 +220,11 @@
     private async Task ConfirmPayment()
     {
         if (Amount > 0 || (CheckoutAmount < 0 && Amount < 0))
+        {
             await OnConfirm.InvokeAsync((Amount, PaymentType));
+            // Reset the amount after confirmation
+            AmountText = "";
+            StateHasChanged();
+        }
     }
 }

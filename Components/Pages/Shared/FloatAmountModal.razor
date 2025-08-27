@@ -38,7 +38,7 @@
                             <label class="form-label fw-bold">Opening Float Amount *</label>
                             <div class="input-group">
                                 <span class="input-group-text">£</span>
-                                <InputNumber @bind-Value="floatModel.Amount" class="form-control" step="0.01" placeholder="0.00" />
+                                <input type="number" @ref=amountBox @bind-value="floatModel.Amount" @bind-value:event="oninput" class="form-control" step="0.01" placeholder="0.00" />
                             </div>
                             <ValidationMessage For="@(() => floatModel.Amount)" class="text-danger" />
                             <small class="form-text text-muted">Enter the amount of cash in the till at the start of the day</small>
@@ -79,6 +79,28 @@
     private bool isLoading = false;
     private string errorMessage = string.Empty;
 
+    ElementReference amountBox;
+
+    private async Task SetFocusOnAmountBoxAsync()
+    {
+        floatModel.Amount = 0.00M;
+        await amountBox.FocusAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsVisible)
+        {
+            try
+            {
+                await amountBox.FocusAsync();
+            }
+            catch
+            {
+                // Ignore focus errors if element not ready
+            }
+        }
+    }
     public class FloatAmountModel
     {
         [Required(ErrorMessage = "Float amount is required")]
@@ -93,33 +115,6 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            if (CurrentDayLog == null)
-            {
-                errorMessage = "No active day log found. Please contact support.";
-                return;
-            }
-
-
-
-
-            // Create a new shift with the float amount
-            var shift = new Shift
-            {
-                DayLog_Id = CurrentDayLog.DayLog_Id,
-                PosUser_Id = UserSession.CurrentUser?.User_ID ?? 1,
-                Shift_Start_DateTime = DateTime.UtcNow,
-                Opening_Cash_Amount = floatModel.Amount,
-                Is_Active = true,
-                Date_Created = DateTime.UtcNow,
-                Site_Id = UserSession.CurrentSite?.Site_Id,
-                Till_Id = UserSession.CurrentTill?.Till_Id,
-                Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-                Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1
-            };
-
-            await ShiftServices.AddAsync(shift);
-
-            UserSession.SetShift(shift);
             // Notify parent component
             await OnFloatSet.InvokeAsync(floatModel.Amount);
 
@@ -136,7 +131,7 @@
         }
     }
 
-    protected override void OnParametersSet()
+    protected async override void OnParametersSet()
     {
         if (IsVisible)
         {

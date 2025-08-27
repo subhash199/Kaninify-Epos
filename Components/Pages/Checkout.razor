@@ -209,10 +209,39 @@
     private async Task OnFloatAmountSet(decimal floatAmount)
     {
         showFloatModal = false;
-        StateHasChanged();
 
-        // Optional: Show a success message or perform additional actions
-        // The shift creation is handled within the FloatAmountModal
+        try
+        {
+            // Update the current day log with opening balance if needed
+            if (UserSession.CurrentDayLog != null &&
+                (UserSession.CurrentDayLog.Opening_Cash_Amount == 0))
+            {
+                UserSession.CurrentDayLog.Opening_Cash_Amount = floatAmount;
+                UserSession.CurrentDayLog.Last_Modified = DateTime.UtcNow;
+                UserSession.CurrentDayLog.Last_Modified_By_Id = UserSession.GetCurrentUserId();
+
+                await DayLogServices.UpdateAsync(UserSession.CurrentDayLog);
+            }
+
+            // Update the current shift with opening balance if needed
+            // Note: The FloatAmountModal already handles shift creation/update with opening balance
+            // but we ensure consistency here
+            if (UserSession.CurrentShift != null &&
+                (!UserSession.CurrentShift.Opening_Cash_Amount.HasValue || UserSession.CurrentShift.Opening_Cash_Amount.Value == 0))
+            {
+                UserSession.CurrentShift.Opening_Cash_Amount = floatAmount;
+                UserSession.CurrentShift.Last_Modified = DateTime.UtcNow;
+                UserSession.CurrentShift.Last_Modified_By_Id = UserSession.GetCurrentUserId();
+
+                await ShiftServices.UpdateAsync(UserSession.CurrentShift);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Update Error", $"Error updating opening balance: {ex.Message}");
+        }
+
+        StateHasChanged();
     }
 
     private async Task CheckShiftStatusAsync(bool newDayLogCreated)
@@ -455,7 +484,37 @@
     {
         if (firstRender)
         {
+            // Check day log and shift opening balance status
+            await CheckOpeningBalanceAsync();
             await SetFocusOnSearchBoxAsync();
+        }
+    }
+
+    private async Task CheckOpeningBalanceAsync()
+    {
+        try
+        {
+            // Ensure we have a complete session
+            await UserSession.EnsureCompleteSessionAsync();
+
+            // Check if current day log has opening balance
+            bool dayLogNeedsOpeningBalance = UserSession.CurrentDayLog != null &&
+                (UserSession.CurrentDayLog.Opening_Cash_Amount == 0);
+
+            // Check if current shift has opening balance
+            bool shiftNeedsOpeningBalance = UserSession.CurrentShift != null &&
+                (!UserSession.CurrentShift.Opening_Cash_Amount.HasValue || UserSession.CurrentShift.Opening_Cash_Amount.Value == 0);
+
+            // Show float modal if either day log or shift needs opening balance
+            if (dayLogNeedsOpeningBalance || shiftNeedsOpeningBalance)
+            {
+                showFloatModal = true;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorModalAsync("Session Error", $"Error checking opening balance: {ex.Message}");
         }
     }
 
@@ -604,6 +663,7 @@
             // Check if transaction is complete
             if (currentBasket.Transaction.SaleTransaction_Total_Amount <= currentBasket.Transaction.SaleTransaction_Total_Paid)
             {
+                _state.ModalSettings.ShowModal = false;
                 await CompleteTransactionAsync(currentBasket);
             }
 
@@ -792,6 +852,7 @@
             await VoidBasketConfirmed();
         }
         _state.ModalSettings.ShowModal = false;
+        await SetFocusOnSearchBoxAsync();
         StateHasChanged();
     }
 
@@ -799,6 +860,7 @@
     {
         // Handle modal close/cancel
         _state.ModalSettings.ShowModal = false;
+        await SetFocusOnSearchBoxAsync();
         StateHasChanged();
     }
 
@@ -808,14 +870,12 @@
         _state.ModalSettings.ShowModal = false;
         SalesItemTransactionType salesItemTransactionType = refundMode ? SalesItemTransactionType.Refund : SalesItemTransactionType.Sale;
         await AddProductToBasketAsync(product, salesItemTransactionType, null);
+        await SetFocusOnSearchBoxAsync();
         StateHasChanged();
     }
 
     private async Task OnTransactionConfirmAsync((decimal Amount, PaymentType PaymentType) transactionData)
     {
-        // Handle transaction confirmation from modal
-        _state.ModalSettings.ShowModal = false;
-
         // Set the amount in search text for processing
         _state.SearchText = transactionData.Amount.ToString("F2");
         _state.PaymentType = transactionData.PaymentType;
@@ -1038,7 +1098,7 @@
                 UpdateCashSuggestions(0);
             }
         }
-
+        await SetFocusOnSearchBoxAsync();
         StateHasChanged();
     }
 
@@ -1382,6 +1442,7 @@
     private async Task CloseDiscountConfirmationModal()
     {
         showDiscountConfirmationModal = false;
+        await SetFocusOnSearchBoxAsync();
         StateHasChanged();
     }
 
@@ -1390,6 +1451,8 @@
         showDiscountModal = false;
         selectedProductForDiscount = null;
         isApplyingDiscountToAllProducts = false;
+        await SetFocusOnSearchBoxAsync();
+
         StateHasChanged();
     }
 
@@ -1438,9 +1501,8 @@
             _state.SelectedItemIndex = -1;
 
             await ShowSuccessMessage($"Discount of {discountPercentage}% applied to {itemsToDiscount.Count} product(s).");
-
-            StateHasChanged();
             await SetFocusOnSearchBoxAsync();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
