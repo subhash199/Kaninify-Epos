@@ -528,7 +528,7 @@
             }
 
             // Calculate remaining amount to be paid
-            decimal remainingAmount = currentBasket.Transaction.SaleTransaction_Total_Amount - 
+            decimal remainingAmount = currentBasket.Transaction.SaleTransaction_Total_Amount -
                 (currentBasket.Transaction.SaleTransaction_Card + currentBasket.Transaction.SaleTransaction_Cash);
 
             if (string.IsNullOrEmpty(_state.SearchText))
@@ -560,7 +560,7 @@
                     // Calculate actual cash amount (limited to remaining transaction amount)
                     decimal actualCashAmount = Math.Min(paymentAmount, Math.Max(0, remainingAmount));
                     currentBasket.Transaction.SaleTransaction_Cash += actualCashAmount;
-                    
+
                     // Calculate change if payment exceeds remaining amount
                     if (paymentAmount > remainingAmount && remainingAmount > 0)
                     {
@@ -588,7 +588,7 @@
                     // Calculate actual card amount (limited to remaining transaction amount)
                     decimal actualCardAmount = Math.Min(paymentAmount, Math.Max(0, remainingAmount));
                     currentBasket.Transaction.SaleTransaction_Card += actualCardAmount;
-                    
+
                     // Note: Cards typically don't give change, but if needed:
                     // if (paymentAmount > remainingAmount && remainingAmount > 0)
                     // {
@@ -598,7 +598,7 @@
             }
 
             // Update total paid amount
-            currentBasket.Transaction.SaleTransaction_Total_Paid = 
+            currentBasket.Transaction.SaleTransaction_Total_Paid =
                 currentBasket.Transaction.SaleTransaction_Cash + currentBasket.Transaction.SaleTransaction_Card;
 
             // Check if transaction is complete
@@ -606,7 +606,7 @@
             {
                 await CompleteTransactionAsync(currentBasket);
             }
-            
+
             await SetFocusOnSearchBoxAsync();
         }
         catch (Exception ex)
@@ -856,10 +856,10 @@
             SalesItemTransactionType salesItemTransactionType = departmentClickName switch
             {
                 "Paypoint" => SalesItemTransactionType.Service,
-                "Payzone" => SalesItemTransactionType.Payout,
+                "Payzone" => SalesItemTransactionType.Service,
                 _ => SalesItemTransactionType.Misc
             };
-            salesItemTransactionType = refundMode ? SalesItemTransactionType.Refund : SalesItemTransactionType.Sale;
+            salesItemTransactionType = refundMode ? SalesItemTransactionType.Refund : salesItemTransactionType;
             await AddProductToBasketAsync(departmentProduct, salesItemTransactionType, null);
             await JS.InvokeVoidAsync("scrollTableToBottom");
         }

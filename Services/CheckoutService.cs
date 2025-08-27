@@ -590,6 +590,11 @@ public class CheckoutService
 
             if (salesItem.Product_QTY > 0 && salesItem.SalesItemTransactionType == SalesItemTransactionType.Sale)
             {
+                var product = await _productServices.GetByIdAsync(salesItem.Product_ID);
+                if (product.ShelfQuantity > 0 && product.StockroomQuantity == 0)
+                {
+                    continue;
+                }
                 var stockRefill = new StockRefill
                 {
                     SaleTransaction_Item_ID = salesItem.SaleTransaction_Item_ID,
