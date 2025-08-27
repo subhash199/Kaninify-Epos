@@ -1266,10 +1266,10 @@
             // Calculate top products
             var topProducts = salesItemTransactions
                 .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale)
-                .GroupBy(item => item.Product)
+                .GroupBy(item => item?.Product.Product_ID)
                 .Select(g => new ProductSalesData
                 {
-                    ProductName = g.Key.Product_Name,
+                    ProductName = g.First()?.Product?.Product_Name ?? "Unknown Product",
                     QuantitySold = g.Sum(item => item.Product_QTY),
                     Revenue = g.Sum(item => item.Product_Total_Amount)
                 })
@@ -1280,10 +1280,10 @@
             // Calculate least popular products (products with low sales)
             var leastPopularProducts = salesItemTransactions
                 .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale)
-                .GroupBy(item => item.Product)
+                .GroupBy(item => item.Product?.Product_ID)
                 .Select(g => new ProductSalesData
                 {
-                    ProductName = g.Key.Product_Name,
+                    ProductName = g.First()?.Product?.Product_Name ?? "Unknown Product",
                     QuantitySold = g.Sum(item => item.Product_QTY),
                     Revenue = g.Sum(item => item.Product_Total_Amount)
                 })
