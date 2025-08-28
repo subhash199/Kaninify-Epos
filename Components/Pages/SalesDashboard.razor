@@ -105,11 +105,9 @@
                         <div class="daylog-info">
                             <span class="daylog-label">@(isDayLog ? "Day Log Report" : "Shift Log Report")</span>
                             <span class="daylog-period">
-                                @(
-                                                        isDayLog
-                                                        ? $"{DayLog?.DayLog_Start_DateTime.ToString("dd/MM/yyyy HH:mm")} - {DayLog?.DayLog_End_DateTime?.ToString("dd/MM/yyyy HH:mm")}"
-                                                        : $"{ShiftLog?.Shift_Start_DateTime.ToString("dd/MM/yyyy HH:mm")} - {ShiftLog?.Shift_End_DateTime?.ToString("dd/MM/yyyy HH:mm")}"
-                                                        )
+                                @(isDayLog 
+                                    ? $"{TimeZoneInfo.ConvertTimeFromUtc(DayLog?.DayLog_Start_DateTime ?? DateTime.UtcNow, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")} - {(DayLog?.DayLog_End_DateTime.HasValue == true ? TimeZoneInfo.ConvertTimeFromUtc(DayLog.DayLog_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm") : "Ongoing")}"
+                                    : $"{TimeZoneInfo.ConvertTimeFromUtc(ShiftLog?.Shift_Start_DateTime ?? DateTime.UtcNow, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")} - {(ShiftLog?.Shift_End_DateTime.HasValue == true ? TimeZoneInfo.ConvertTimeFromUtc(ShiftLog.Shift_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm") : "Ongoing")}")
                     </span>
                 </div>
                                 }
@@ -411,7 +409,7 @@
                             @foreach (var stock in SalesData.StockTransactions.Take(20))
                             {
                                 <div class="table-row">
-                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@stock.TransactionDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@TimeZoneInfo.ConvertTimeFromUtc(stock.TransactionDate, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")</div>
                                     <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">
                                         <div class="campaign-info">
                                             <div class="campaign-icon">
@@ -515,7 +513,7 @@
                                     <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@refund.ProductName</div>
                                     <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@refund.Quantity</div>
                                     <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@refund.EmployeeName</div>
-                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@refund.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@TimeZoneInfo.ConvertTimeFromUtc(refund.TransactionDate, TimeZoneInfo.Local).ToString("dd-MM-yyyy HH:mm")</div>
                                     <div class="table-cell amount" style="width: 10%; word-wrap: break-word; word-break: break-word;">-@refund.Amount.ToString("C")</div>
                                 </div>
                             }
@@ -558,7 +556,7 @@
                                     <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">@voided.ProductName</div>
                                     <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@voided.Quantity</div>
                                     <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@voided.EmployeeName</div>
-                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@voided.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                    <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@TimeZoneInfo.ConvertTimeFromUtc(voided.TransactionDate, TimeZoneInfo.Local).ToString("dd-MM-yyyy HH:mm")</div>
                                     <div class="table-cell amount" style="width: 10%; word-wrap: break-word; word-break: break-word;">@voided.Amount.ToString("C")</div>
                                 </div>
                             }
@@ -598,7 +596,7 @@
                                     </div>
                                     <div class="table-cell" style="width: 35%; word-wrap: break-word; word-break: break-word;">@payout.Description</div>
                                     <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">@payout.EmployeeName</div>
-                                    <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">@payout.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                    <div class="table-cell" style="width: 14%; word-wrap: break-word; word-break: break-word;">@TimeZoneInfo.ConvertTimeFromUtc(payout.TransactionDate, TimeZoneInfo.Local).ToString("dd-MM-yyyy HH:mm")</div>
                                     <div class="table-cell amount" style="width: 13%; word-wrap: break-word; word-break: break-word;">@payout.Amount.ToString("C")</div>
                                 </div>
                             }
@@ -643,7 +641,7 @@
                                 <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@service.Quantity</div>
                                 <div class="table-cell amount" style="width: 15%; word-wrap: break-word; word-break: break-word;">@service.Amount.ToString("C")</div>
                                 <div class="table-cell" style="width: 17%; word-wrap: break-word; word-break: break-word;">@service.EmployeeName</div>
-                                <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">@service.TransactionDate.ToString("dd-MM-yyyy HH:mm")</div>
+                                <div class="table-cell" style="width: 10%; word-wrap: break-word; word-break: break-word;">@TimeZoneInfo.ConvertTimeFromUtc(service.TransactionDate, TimeZoneInfo.Local).ToString("dd-MM-yyyy HH:mm")</div>
                             </div>
                         }
                     }
@@ -688,7 +686,7 @@
                                 <div class="table-cell" style="width: 12%; word-wrap: break-word; word-break: break-word;">@misc.Quantity</div>
                                 <div class="table-cell amount" style="width: 15%; word-wrap: break-word; word-break: break-word;">@((misc.Price * misc.Quantity).ToString("C"))</div>
                                 <div class="table-cell" style="width: 18%; word-wrap: break-word; word-break: break-word;">@misc.EmployeeName</div>
-                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@misc.DateTime.ToString("dd-MM-yyyy HH:mm")</div>
+                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">@TimeZoneInfo.ConvertTimeFromUtc(misc.DateTime, TimeZoneInfo.Local).ToString("dd-MM-yyyy HH:mm")</div>
                             </div>
                         }
                     </div>
@@ -835,51 +833,62 @@
         }
 
         <!-- Drawer Log Table -->
-        <div class="drawer-log-section mt-4">
-            <div class="section-header">
-                <h3 class="section-title">
+        <div class="table-container">
+            <div class="table-header">
+                <h3 class="table-title">
                     <i class="fas fa-cash-register"></i>
                     Drawer Log
                 </h3>
+                <div class="table-controls">
+                    <span class="status-badge success">@(DrawerLogs?.Count() ?? 0) Entries</span>
+                </div>
             </div>
-
+            
             @if (DrawerLogs != null && DrawerLogs.Any())
             {
-                <div class="modern-table-container">
-                    <div class="table-wrapper">
-                        <div class="table-header">
-                            <div class="table-cell" style="width: 15%;">Date/Time</div>
-                            <div class="table-cell" style="width: 20%;">Opened By</div>
-                            <div class="table-cell" style="width: 15%;">Till</div>
-                            <div class="table-cell" style="width: 15%;">Site</div>
-                            <div class="table-cell" style="width: 20%;">Created By</div>
-                            <div class="table-cell" style="width: 15%;">Status</div>
-                        </div>
+                <div class="modern-table">
+                    <div class="table-row table-header-row">
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date/Time</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Opened By</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Till</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Site</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Created By</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Status</div>
+                    </div>
 
-                        @foreach (var drawerLog in DrawerLogs.Take(10))
-                        {
-                            <div class="table-row">
-                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
-                                    @drawerLog.DrawerOpenDateTime.ToString("dd/MM/yyyy HH:mm")
-                                </div>
-                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
-                                    @(drawerLog.OpenedBy?.First_Name ?? "Unknown")
-                                </div>
-                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
-                                    @(drawerLog.Till?.Till_Name ?? "N/A")
-                                </div>
-                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
-                                    @(drawerLog.Site?.Site_BusinessName ?? "N/A")
-                                </div>
-                                <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
-                                    @(drawerLog.Created_By?.First_Name ?? "System")
-                                </div>
-                                <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
-                                    <span class="status-badge active">Active</span>
+                    @foreach (var drawerLog in DrawerLogs.Take(10))
+                    {
+                        <div class="table-row">
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                @TimeZoneInfo.ConvertTimeFromUtc(drawerLog.DrawerOpenDateTime, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <span>@(drawerLog.OpenedBy?.First_Name ?? "Unknown")</span>
                                 </div>
                             </div>
-                        }
-                    </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                @(drawerLog.Till?.Till_Name ?? "N/A")
+                            </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                @(drawerLog.Site?.Site_BusinessName ?? "N/A")
+                            </div>
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon">
+                                        <i class="fas fa-user-cog"></i>
+                                    </div>
+                                    <span>@(drawerLog.Created_By?.First_Name ?? "System")</span>
+                                </div>
+                            </div>
+                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                                <span class="status-badge active">Active</span>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
             else

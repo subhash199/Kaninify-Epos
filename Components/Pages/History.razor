@@ -220,13 +220,13 @@
         </div>
         
         <div class="col-lg-3 col-md-6 mb-4">
-            <div class="modern-card h-100">
+            <div class="modern-card h-100" @onclick="() => NavigateToSalesDashboard()">
                 <div class="card-icon bg-success">
-                    <img src="images/icons/svg/monitoring_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Quick Stats" class="img-fluid"/>
+                    <img src="images/icons/svg/finance_mode_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Sales Report" class="img-fluid"/>
                 </div>
                 <div class="card-content">
-                    <h5 class="card-title">Quick Stats</h5>
-                    <p class="card-description">@GetQuickStatsText()</p>
+                    <h5 class="card-title">Sales Report</h5>
+                    <p class="card-description">View comprehensive sales analytics and dashboard</p>
                     <div class="card-arrow">
                         <i class="bi bi-arrow-right"></i>
                     </div>
@@ -295,6 +295,11 @@
     private void NavigateToCheckout()
     {
         Navigation.NavigateTo("/checkout");
+    }
+
+    private void NavigateToSalesDashboard()
+    {
+        Navigation.NavigateTo("/sales-dashboard?filter=today");
     }
 
     private string GetQuickStatsText()
