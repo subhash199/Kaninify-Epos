@@ -81,13 +81,16 @@
 
 .search-filters {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-end;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .search-input-group {
     position: relative;
-    max-width: 500px;
+    flex: 1;
+    min-width: 300px;
 }
 
 .search-icon {
@@ -137,10 +140,10 @@
 /* Date Range Styles */
 .date-range-group {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 15px;
-    margin-top: 15px;
-    flex-wrap: wrap;
+    margin-top: 0;
+    flex-wrap: nowrap;
 }
 
 .date-input-wrapper {
@@ -214,7 +217,8 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 20px;
+    margin-top: 0;
+    white-space: nowrap;
 }
 
 .clear-dates-btn:hover {
@@ -230,7 +234,8 @@
 .action-buttons {
     display: flex;
     gap: 10px;
-    margin-top: 15px;
+    margin-top: 0;
+    align-items: flex-end;
 }
 
 .print-all-btn, .export-btn {

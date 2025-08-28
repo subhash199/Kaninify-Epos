@@ -39,16 +39,12 @@
             <div class="search-filters">
                 <div class="search-input-group">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="search-input" placeholder="Search by product name, barcode, or user..."
-                           @bind="SearchQuery" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+                    <input type="text" class="search-input" placeholder="Search by product name, barcode, or user..." @bind="SearchQuery" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
                     @if (!string.IsNullOrEmpty(SearchQuery))
                     {
-                        <button class="clear-search-btn" @onclick="ClearSearch">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <button class="clear-search-btn" @onclick="ClearSearch"><i class="fas fa-times"></i></button>
                     }
                 </div>
-
                 <div class="date-range-group">
                     <div class="date-input-wrapper">
                         <label for="fromDate">From Date:</label>
@@ -58,28 +54,15 @@
                         <label for="toDate">To Date:</label>
                         <input type="date" id="toDate" class="date-input @(IsDateRangeInvalid ? "invalid" : "")" @bind-value="ToDate" @bind-value:event="oninput" @onchange="OnDateRangeChanged" />
                     </div>
-                    <button class="clear-dates-btn" @onclick="ClearDateRange">
-                        <i class="fas fa-calendar-times"></i>
-                        <span>Clear Dates</span>
-                    </button>
+                    <button class="clear-dates-btn" @onclick="ClearDateRange"><i class="fas fa-calendar-times"></i><span>Clear Dates</span></button>
                     @if (IsDateRangeInvalid)
                     {
-                        <div class="date-range-error">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Start date must be less than or equal to end date</span>
-                        </div>
+                        <div class="date-range-error"><i class="fas fa-exclamation-triangle"></i><span>Start date must be less than or equal to end date</span></div>
                     }
                 </div>
-
                 <div class="action-buttons">
-                    <button class="print-all-btn" @onclick="PrintVoidedProductsReport" disabled="@(!FilteredVoidedProducts.Any())">
-                        <i class="fas fa-print"></i>
-                        <span>Print Report</span>
-                    </button>
-                    <button class="export-btn" @onclick="ExportVoidedProductsData" disabled="@(!FilteredVoidedProducts.Any())">
-                        <i class="fas fa-download"></i>
-                        <span>Export Data</span>
-                    </button>
+                    <button class="print-all-btn" @onclick="PrintVoidedProductsReport" disabled="@(!FilteredVoidedProducts.Any())"><i class="fas fa-print"></i><span>Print Report</span></button>
+                    <button class="export-btn" @onclick="ExportVoidedProductsData" disabled="@(!FilteredVoidedProducts.Any())"><i class="fas fa-download"></i><span>Export Data</span></button>
                 </div>
             </div>
         </div>
