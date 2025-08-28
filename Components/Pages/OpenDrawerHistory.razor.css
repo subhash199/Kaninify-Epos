@@ -81,13 +81,41 @@
 
 .search-filters {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-end;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .search-input-group {
     position: relative;
-    max-width: 500px;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Add a label for the search input to match date inputs */
+.search-input-group::before {
+    content: "Search:";
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 12px 10px 45px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: white;
+    height: 42px;
+    box-sizing: border-box;
 }
 
 .search-icon {
@@ -137,16 +165,16 @@
 /* Date Range Styles */
 .date-range-group {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 15px;
-    margin-top: 15px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .date-input-wrapper {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 140px;
 }
 
 .date-input-wrapper label {
@@ -164,6 +192,8 @@
     transition: all 0.3s ease;
     background: white;
     min-width: 150px;
+    height: 42px;
+    box-sizing: border-box;
 }
 
 .date-input:focus {
@@ -182,25 +212,6 @@
     box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
 }
 
-.date-range-error {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #dc3545;
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin-top: 5px;
-    padding: 8px 12px;
-    background: #fff5f5;
-    border: 1px solid #f5c6cb;
-    border-radius: 6px;
-    width: 100%;
-}
-
-.date-range-error i {
-    font-size: 0.9rem;
-}
-
 .clear-dates-btn {
     display: flex;
     align-items: center;
@@ -214,7 +225,8 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 20px;
+    height: fit-content;
+    align-self: flex-end;
 }
 
 .clear-dates-btn:hover {
@@ -230,7 +242,8 @@
 .action-buttons {
     display: flex;
     gap: 10px;
-    margin-top: 15px;
+    align-items: flex-end;
+    margin-left: auto;
 }
 
 .print-all-btn, .export-btn {

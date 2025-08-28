@@ -36,6 +36,7 @@
     <div class="search-section">
         <div class="search-container">
             <div class="search-filters">
+                <!-- Search Input -->
                 <div class="search-input-group">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="search-input" placeholder="Search by user name or till..." 
@@ -48,6 +49,7 @@
                     }
                 </div>
                 
+                <!-- Date Range Filters -->
                 <div class="date-range-group">
                     <div class="date-input-wrapper">
                         <label for="fromDate">From Date:</label>
@@ -57,19 +59,24 @@
                         <label for="toDate">To Date:</label>
                         <input type="date" id="toDate" class="date-input @(IsDateRangeInvalid ? "invalid" : "")" @bind-value="ToDate" @bind-value:event="oninput" @onchange="OnDateRangeChanged" />
                     </div>
-                    <button class="clear-dates-btn" @onclick="ClearDateRange">
-                        <i class="fas fa-calendar-times"></i>
-                        <span>Clear Dates</span>
-                    </button>
-                    @if (IsDateRangeInvalid)
+                    @if (!string.IsNullOrEmpty(FromDate?.ToString()) || !string.IsNullOrEmpty(ToDate?.ToString()))
                     {
-                        <div class="date-range-error">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Start date must be less than or equal to end date</span>
-                        </div>
+                        <button class="clear-dates-btn" @onclick="ClearDateRange">
+                            <i class="fas fa-times"></i>
+                            <span>Clear Dates</span>
+                        </button>
                     }
                 </div>
                 
+                @if (IsDateRangeInvalid)
+                {
+                    <div class="date-range-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>From date cannot be later than To date.</span>
+                    </div>
+                }
+                
+                <!-- Action Buttons -->
                 <div class="action-buttons">
                     <button class="print-all-btn" @onclick="PrintDrawerReport" disabled="@(!FilteredDrawerLogs.Any())">
                         <i class="fas fa-print"></i>
