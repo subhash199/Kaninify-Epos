@@ -1,11 +1,13 @@
 @page "/backoffice"
 @inject NavigationManager NavigationManager
+@inject PrinterManagementService PrinterManagementService
 @inject DataHandlerLibrary.Interfaces.IPrinterService PrinterService
 @inject DataHandlerLibrary.Services.DrawerLogServices DrawerLogService
 @inject EposRetail.Services.UserSessionService UserSessionService
 @inject DataHandlerLibrary.Services.SiteServices SiteService
 @inject DataHandlerLibrary.Services.TillServices TillService
 @using DataHandlerLibrary.Models
+@using EposRetail.Services
 
 <!-- Modern Header Section -->
 <div class="bg-primary text-white py-4 mb-4 shadow-sm">
@@ -208,21 +210,52 @@
     </div>
 </div>
 
+<!-- Drawer Opening Reason Modal -->
+@if (showDrawerModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        Drawer Opening Reason
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseDrawerModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Please select the reason for opening the till drawer:</p>
+                    <div class="d-grid gap-2">
+                        @foreach (var logType in GetAvailableDrawerLogTypes())
+                        {
+                            <button type="button" class="btn btn-outline-primary text-start p-3" 
+                                    @onclick="() => ConfirmDrawerOpening(logType)">
+                                <i class="@GetDrawerLogTypeIcon(logType) me-2"></i>
+                                @GetDrawerLogTypeDisplayName(logType)
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDrawerModal">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+
+    private bool showDrawerModal = false;
+
     private void NavigateToCheckout()
     {
         NavigationManager.NavigateTo("/checkout");
     }
 
-    private void NavigateToSalesDashboard()
-    {
-        NavigationManager.NavigateTo("/salesdashboard");
-    }
-
-    private void NavigateToTodaysSales()
-    {
-        NavigationManager.NavigateTo("/salesdashboard?filter=today");
-    }
 
     private void NavigateToShiftDashboard()
     {
@@ -266,25 +299,43 @@
 
     private async Task OpenDrawer()
     {
+        showDrawerModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseDrawerModal()
+    {
+        showDrawerModal = false;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDrawerOpening(DrawerLogType logType)
+    {
         try
         {
+            // Close modal first
+            showDrawerModal = false;
+            StateHasChanged();
+
             // Open the till drawer using printer service
-            PrinterService.OpenDrawer();
+            PrinterService = await PrinterManagementService.GetPrinterServicesAsync();
+            if( PrinterService == null)
+            {
+                throw new Exception("No printer configured.");
+            }
 
-            // Get current user, site, and till information
-            var currentUser = UserSessionService.CurrentUser;
-            var currentSite = await SiteService.GetFirstSiteRecord();
-            var currentTill = await TillService.GetFirstTillRecord();
-
-            // Create drawer log entry
+            // Create drawer log entry with the selected reason
             var drawerLog = new DrawerLog()
             {
-                OpenedById = currentUser?.User_ID ?? 1,
+                OpenedById =  UserSessionService.GetValidUserIdAsync(),
                 DrawerOpenDateTime = DateTime.UtcNow,
-                Site_Id = currentSite?.Site_Id,
-                Till_Id = currentTill?.Till_Id,
-                Created_By_Id = currentUser?.User_ID,
-                Last_Modified_By_Id = currentUser?.User_ID,
+                Site_Id = await UserSessionService.GetValidSiteIdAsync(),
+                Till_Id = await UserSessionService.GetValidTillIdAsync(),
+                DayLog_Id = await UserSessionService.GetValidDayLogIdAsync(),
+                Shift_Id = await UserSessionService.GetValidShiftIdAsync(),
+                DrawerLogType = logType, // Add the selected log type
+                Created_By_Id = UserSessionService.GetValidUserIdAsync(),
+                Last_Modified_By_Id = UserSessionService.GetValidUserIdAsync(),
                 Date_Created = DateTime.UtcNow,
                 Last_Modified = DateTime.UtcNow
             };
@@ -297,6 +348,51 @@
             // Handle any errors (you might want to show a toast or alert)
             Console.WriteLine($"Error opening drawer: {ex.Message}");
         }
+    }
+
+    private List<DrawerLogType> GetAvailableDrawerLogTypes()
+    {
+        var currentUser = UserSessionService.CurrentUser;
+        var userRole = currentUser?.User_Type;
+        
+        var availableTypes = new List<DrawerLogType>
+        {
+            DrawerLogType.NoSale,
+            DrawerLogType.TillAdjustment,
+            DrawerLogType.TillTransfer
+        };
+
+        // Only show PayIn for directors and managers
+        if (userRole == PosUserType.Director || userRole == PosUserType.Manager)
+        {
+            availableTypes.Add(DrawerLogType.PayIn);
+        }
+
+        return availableTypes;
+    }
+
+    private string GetDrawerLogTypeDisplayName(DrawerLogType logType)
+    {
+        return logType switch
+        {
+            DrawerLogType.NoSale => "No Sale",
+            DrawerLogType.PayIn => "Pay In",
+            DrawerLogType.TillAdjustment => "Till Adjustment",
+            DrawerLogType.TillTransfer => "Till Transfer",
+            _ => logType.ToString()
+        };
+    }
+
+    private string GetDrawerLogTypeIcon(DrawerLogType logType)
+    {
+        return logType switch
+        {
+            DrawerLogType.NoSale => "bi bi-receipt",
+            DrawerLogType.PayIn => "bi bi-cash-coin",
+            DrawerLogType.TillAdjustment => "bi bi-gear",
+            DrawerLogType.TillTransfer => "bi bi-arrow-left-right",
+            _ => "bi bi-cash"
+        };
     }
     private void NavigateToPromotionalDashboard(MouseEventArgs args)
     {

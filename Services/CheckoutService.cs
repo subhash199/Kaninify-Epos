@@ -57,6 +57,8 @@ public class CheckoutService
             {
                 salesItem.SaleTransaction_ID = transaction.SaleTransaction_ID;
                 salesItem.SalesTransaction = null;
+                salesItem.Created_By_Id = transaction.Created_By_Id;
+                salesItem.Last_Modified_By_Id = transaction.Last_Modified_By_Id;
                 salesItem.Product = null; // Detach product to avoid circular reference issues
                 salesItem.SalesPayout = null; // Detach payout to avoid circular reference issues
                 salesItem.Promotion = null; // Detach promotion to avoid circular reference issues

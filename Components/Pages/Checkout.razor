@@ -1,4 +1,5 @@
 @page "/checkout"
+@using DataHandlerLibrary.Interfaces
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposRetail.Constants
@@ -19,8 +20,9 @@
 @inject NavigationManager NavigationManager
 @inject PayoutServices PayoutServices
 @inject DayLogServices DayLogServices
-
+@inject PrinterManagementService printerManagementService
 @inject UserSessionService UserSession
+@inject DrawerLogServices DrawerLogServices
 
 @inject IJSRuntime JS
 
@@ -205,6 +207,10 @@
 
     //Refund-related properties
     private bool refundMode = false;
+
+    //Printer-related properties
+
+    private IPrinterService? _printerService;
 
     private async Task OnFloatAmountSet(decimal floatAmount)
     {
@@ -508,6 +514,14 @@
             // Show float modal if either day log or shift needs opening balance
             if (dayLogNeedsOpeningBalance || shiftNeedsOpeningBalance)
             {
+                if (_printerService == null)
+                {
+                    _printerService = await printerManagementService.GetPrinterServicesAsync();
+                }
+                _printerService.OpenDrawer();
+                var DrawerLog = await HandleOpenDrawerLogAsync(null);
+                DrawerLog.DrawerLogType = dayLogNeedsOpeningBalance ? DrawerLogType.DayStart : DrawerLogType.ShiftStart;
+                DrawerLogServices.AddAsync(DrawerLog);
                 showFloatModal = true;
                 StateHasChanged();
             }
@@ -663,6 +677,13 @@
             // Check if transaction is complete
             if (currentBasket.Transaction.SaleTransaction_Total_Amount <= currentBasket.Transaction.SaleTransaction_Total_Paid)
             {
+                if (_printerService == null)
+                {
+                    _printerService = await printerManagementService.GetPrinterServicesAsync();
+                }
+                _printerService.OpenDrawer();
+                var DrawerLog = await HandleOpenDrawerLogAsync(currentBasket.Transaction);
+                await DrawerLogServices.AddAsync(DrawerLog);
                 _state.ModalSettings.ShowModal = false;
                 await CompleteTransactionAsync(currentBasket);
             }
@@ -1558,5 +1579,40 @@
         {
             await ShowErrorModalAsync("Payout Error", $"Error processing payout: {ex.Message}");
         }
+    }
+
+    private async Task<DrawerLog> HandleOpenDrawerLogAsync(SalesTransaction transaction)
+    {
+        var DrawerLog = new DrawerLog
+        {
+            OpenedById = UserSession.GetValidUserIdAsync(),
+            DrawerOpenDateTime = DateTime.UtcNow,
+            Created_By_Id = UserSession.GetValidUserIdAsync(),
+            Date_Created = DateTime.UtcNow,
+            Last_Modified = DateTime.UtcNow,
+            Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
+            Site_Id = await UserSession.GetValidSiteIdAsync(),
+            Till_Id = await UserSession.GetValidTillIdAsync(),
+            Shift_Id = await UserSession.GetValidShiftIdAsync(),
+            DayLog_Id = await UserSession.GetValidDayLogIdAsync()
+        };
+        if (transaction == null)
+        {
+            DrawerLog.DrawerLogType = DrawerLogType.NoSale;
+            return DrawerLog;
+        }
+        switch (transaction)
+        {
+            case var t when t.SaleTransaction_Refund != 0:
+                DrawerLog.DrawerLogType = DrawerLogType.Refund;
+                break;
+            case var t when t.SaleTransaction_Payout != 0:
+                DrawerLog.DrawerLogType = DrawerLogType.Payout;
+                break;
+            default:
+                DrawerLog.DrawerLogType = DrawerLogType.Sale;
+                break;
+        }
+        return DrawerLog;
     }
 }

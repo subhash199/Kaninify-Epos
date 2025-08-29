@@ -133,9 +133,7 @@
                                 <th>Product</th>
                                 <th>Quantity</th>
                                 <th>Amount</th>
-                                <th>Payout Description</th>
-                                <th>Site</th>
-                                <th>Till</th>
+                                <th>User</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -164,14 +162,9 @@
                                         <span class="amount">@transaction.Product_Total_Amount.ToString("C")</span>
                                     </td>
                                     <td>
-                                        <span class="description">@(payout?.Payout_Description ?? "N/A")</span>
+                                        <span class="user-name">@(transaction.Created_By?.First_Name ?? "Unknown")</span>
                                     </td>
-                                    <td>
-                                        <span class="site-name">@(payout?.Site?.Site_BusinessName ?? "N/A")</span>
-                                    </td>
-                                    <td>
-                                        <span class="till-name">@(payout?.Till?.Till_Name ?? "N/A")</span>
-                                    </td>
+                                   
                                 </tr>
                             }
                         </tbody>

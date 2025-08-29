@@ -28,6 +28,7 @@
 @inject UserSessionService UserSessionService
 @inject VatServices VatService
 @inject PayoutServices PayoutService
+@inject DrawerLogServices DrawerLogServices
 
 <PageTitle>Sales Dashboard</PageTitle>
 
@@ -105,9 +106,9 @@
                         <div class="daylog-info">
                             <span class="daylog-label">@(isDayLog ? "Day Log Report" : "Shift Log Report")</span>
                             <span class="daylog-period">
-                                @(isDayLog 
-                                    ? $"{TimeZoneInfo.ConvertTimeFromUtc(DayLog?.DayLog_Start_DateTime ?? DateTime.UtcNow, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")} - {(DayLog?.DayLog_End_DateTime.HasValue == true ? TimeZoneInfo.ConvertTimeFromUtc(DayLog.DayLog_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm") : "Ongoing")}"
-                                    : $"{TimeZoneInfo.ConvertTimeFromUtc(ShiftLog?.Shift_Start_DateTime ?? DateTime.UtcNow, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")} - {(ShiftLog?.Shift_End_DateTime.HasValue == true ? TimeZoneInfo.ConvertTimeFromUtc(ShiftLog.Shift_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm") : "Ongoing")}")
+                                @(isDayLog
+                                                        ? $"{TimeZoneInfo.ConvertTimeFromUtc(DayLog?.DayLog_Start_DateTime ?? DateTime.UtcNow, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")} - {(DayLog?.DayLog_End_DateTime.HasValue == true ? TimeZoneInfo.ConvertTimeFromUtc(DayLog.DayLog_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm") : "Ongoing")}"
+                                                        : $"{TimeZoneInfo.ConvertTimeFromUtc(ShiftLog?.Shift_Start_DateTime ?? DateTime.UtcNow, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")} - {(ShiftLog?.Shift_End_DateTime.HasValue == true ? TimeZoneInfo.ConvertTimeFromUtc(ShiftLog.Shift_End_DateTime.Value, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm") : "Ongoing")}")
                     </span>
                 </div>
                                 }
@@ -840,29 +841,42 @@
                     Drawer Log
                 </h3>
                 <div class="table-controls">
-                    <span class="status-badge success">@(DrawerLogs?.Count() ?? 0) Entries</span>
+                    <div class="modern-filter-group">
+                        <label for="drawerTypeFilter" class="modern-filter-label">
+                            <i class="fas fa-filter"></i>
+                            Filter by Type
+                        </label>
+                        <select id="drawerTypeFilter" class="modern-filter-select" value="@selectedDrawerLogType" @onchange="OnDrawerTypeFilterChanged">
+                            <option value="">All Types (@(DrawerLogs?.Count() ?? 0))</option>
+                            @foreach (var logType in GetDistinctDrawerLogTypes())
+                            {
+                                var count = DrawerLogs?.Count(dl => dl.DrawerLogType == logType) ?? 0;
+                                <option value="@logType">@GetDrawerLogTypeDisplayName(logType) (@count)</option>
+                            }
+                        </select>
+                    </div>
+                    <span class="status-badge success">@(FilteredDrawerLogs?.Count() ?? 0) Entries</span>
                 </div>
             </div>
-            
-            @if (DrawerLogs != null && DrawerLogs.Any())
+
+            @if (FilteredDrawerLogs != null && FilteredDrawerLogs.Any())
             {
                 <div class="modern-table">
                     <div class="table-row table-header-row">
-                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Date/Time</div>
-                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Opened By</div>
-                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Till</div>
-                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Site</div>
-                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Created By</div>
-                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Status</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Date/Time</div>
+                        <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">Opened By</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Till</div>
+                        <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">Site</div>
+                        <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">Log Type</div>
                     </div>
 
-                    @foreach (var drawerLog in DrawerLogs.Take(10))
+                    @foreach (var drawerLog in FilteredDrawerLogs)
                     {
                         <div class="table-row">
-                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
                                 @TimeZoneInfo.ConvertTimeFromUtc(drawerLog.DrawerOpenDateTime, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")
                             </div>
-                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
+                            <div class="table-cell" style="width: 25%; word-wrap: break-word; word-break: break-word;">
                                 <div class="campaign-info">
                                     <div class="campaign-icon">
                                         <i class="fas fa-user"></i>
@@ -870,22 +884,14 @@
                                     <span>@(drawerLog.OpenedBy?.First_Name ?? "Unknown")</span>
                                 </div>
                             </div>
-                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
                                 @(drawerLog.Till?.Till_Name ?? "N/A")
                             </div>
-                            <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
+                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
                                 @(drawerLog.Site?.Site_BusinessName ?? "N/A")
                             </div>
-                            <div class="table-cell" style="width: 20%; word-wrap: break-word; word-break: break-word;">
-                                <div class="campaign-info">
-                                    <div class="campaign-icon">
-                                        <i class="fas fa-user-cog"></i>
-                                    </div>
-                                    <span>@(drawerLog.Created_By?.First_Name ?? "System")</span>
-                                </div>
-                            </div>
                             <div class="table-cell" style="width: 15%; word-wrap: break-word; word-break: break-word;">
-                                <span class="status-badge active">Active</span>
+                                <span class="status-badge @GetDrawerLogTypeClass(drawerLog.DrawerLogType)">@GetDrawerLogTypeDisplayName(drawerLog.DrawerLogType)</span>
                             </div>
                         </div>
                     }
@@ -977,6 +983,8 @@
     private Shift ShiftLog { get; set; } = new();
     private SalesDashboardData SalesData = new();
     private List<DrawerLog> DrawerLogs = new();
+    private List<DrawerLog> FilteredDrawerLogs = new();
+    private string selectedDrawerLogType = "";
     private DateTime StartDate = DateTime.Today;
     private DateTime EndDate = DateTime.Today;
     private bool IsLoading = false;
@@ -1238,6 +1246,9 @@
                     .OrderByDescending(dl => dl.DrawerOpenDateTime)
                     .ToList();
             }
+
+            // Initialize filtered drawer logs
+            FilterDrawerLogs();
 
             // Calculate net sales
             var netSales = totalSales + totalRefunds;
@@ -1684,26 +1695,50 @@
 
     }
 
-    private void HandleConfirmAction()
+    private async void HandleConfirmAction()
     {
+
+        var DrawerLog = new DrawerLog
+        {
+            OpenedById = UserSessionService.GetValidUserIdAsync(),
+            DrawerOpenDateTime = DateTime.UtcNow,
+            Created_By_Id = UserSessionService.GetValidUserIdAsync(),
+            Date_Created = DateTime.UtcNow,
+            Last_Modified = DateTime.UtcNow,
+            Last_Modified_By_Id = UserSessionService.GetValidUserIdAsync(),
+            Site_Id = await UserSessionService.GetValidSiteIdAsync(),
+            Till_Id = await UserSessionService.GetValidTillIdAsync(),
+            Shift_Id = await UserSessionService.GetValidShiftIdAsync(),
+            DayLog_Id = await UserSessionService.GetValidDayLogIdAsync()
+        };
 
         if (isDayLog)
         {
             closingBalanceModalTitle = "Record Day End Closing Balance";
             pendingActionType = ActionType.DayEnd;
             showClosingBalanceModal = true;
+            DrawerLog.DrawerLogType = DrawerLogType.DayEnd;
         }
         else if (isShiftLog)
         {
             closingBalanceModalTitle = "Record Shift End Closing Balance";
             pendingActionType = ActionType.ShiftEnd;
             showClosingBalanceModal = true;
+            DrawerLog.DrawerLogType = DrawerLogType.ShiftEnd;
         }
         // Reset pending action type
         modalState.ShowConfirmModal = false;
         StateHasChanged();
 
+        await SetupPrinter();
+        if (printerServices == null)
+        {
+            Console.WriteLine("Printer service is null.");
+            return;
+        }
 
+        printerServices.OpenDrawer();
+        await DrawerLogServices.AddAsync(DrawerLog);
     }
 
     private void HandlePrintAction()
@@ -2048,6 +2083,82 @@
         // Initialize printer service
         await printerManagementService.InitializePrinterAsync();
         printerServices = await printerManagementService.GetPrinterServicesAsync();
+    }
+
+    private string GetDrawerLogTypeClass(DataHandlerLibrary.Models.DrawerLogType logType)
+    {
+        return logType switch
+        {
+            DataHandlerLibrary.Models.DrawerLogType.DayStart => "success",
+            DataHandlerLibrary.Models.DrawerLogType.DayEnd => "success",
+            DataHandlerLibrary.Models.DrawerLogType.ShiftStart => "info",
+            DataHandlerLibrary.Models.DrawerLogType.ShiftEnd => "info",
+            DataHandlerLibrary.Models.DrawerLogType.Sale => "primary",
+            DataHandlerLibrary.Models.DrawerLogType.NoSale => "warning",
+            DataHandlerLibrary.Models.DrawerLogType.Refund => "secondary",
+            DataHandlerLibrary.Models.DrawerLogType.PayIn => "success",
+            DataHandlerLibrary.Models.DrawerLogType.Payout => "danger",
+            DataHandlerLibrary.Models.DrawerLogType.Float => "info",
+            DataHandlerLibrary.Models.DrawerLogType.TillAdjustment => "warning",
+            DataHandlerLibrary.Models.DrawerLogType.TillTransfer => "info",
+            _ => "secondary"
+        };
+    }
+
+    private string GetDrawerLogTypeDisplayName(DataHandlerLibrary.Models.DrawerLogType logType)
+    {
+        return logType switch
+        {
+            DataHandlerLibrary.Models.DrawerLogType.DayStart => "Day Start",
+            DataHandlerLibrary.Models.DrawerLogType.DayEnd => "Day End",
+            DataHandlerLibrary.Models.DrawerLogType.ShiftStart => "Shift Start",
+            DataHandlerLibrary.Models.DrawerLogType.ShiftEnd => "Shift End",
+            DataHandlerLibrary.Models.DrawerLogType.NoSale => "Manual",
+            DataHandlerLibrary.Models.DrawerLogType.Payout => "Payout",
+            DataHandlerLibrary.Models.DrawerLogType.Refund => "Refund",
+            DataHandlerLibrary.Models.DrawerLogType.PayIn => "PayIn",
+            DataHandlerLibrary.Models.DrawerLogType.Sale => "Sale",
+            DataHandlerLibrary.Models.DrawerLogType.TillAdjustment => "Till Adjustment",
+            DataHandlerLibrary.Models.DrawerLogType.TillTransfer => "Till Transfer",
+            _ => "Unknown"
+        };
+    }
+
+    private void FilterDrawerLogs()
+    {
+        if (string.IsNullOrEmpty(selectedDrawerLogType))
+        {
+            FilteredDrawerLogs = DrawerLogs;
+        }
+        else
+        {
+            if (Enum.TryParse<DataHandlerLibrary.Models.DrawerLogType>(selectedDrawerLogType, out var logType))
+            {
+                FilteredDrawerLogs = DrawerLogs.Where(dl => dl.DrawerLogType == logType).ToList();
+            }
+            else
+            {
+                FilteredDrawerLogs = DrawerLogs;
+            }
+        }
+    }
+
+    private void OnDrawerTypeFilterChanged(ChangeEventArgs e)
+    {
+        selectedDrawerLogType = e.Value?.ToString() ?? "";
+        FilterDrawerLogs();
+        StateHasChanged();
+    }
+
+    private IEnumerable<DataHandlerLibrary.Models.DrawerLogType> GetDistinctDrawerLogTypes()
+    {
+        if (DrawerLogs == null || !DrawerLogs.Any())
+            return new List<DataHandlerLibrary.Models.DrawerLogType>();
+        
+        return DrawerLogs
+            .Select(dl => dl.DrawerLogType)
+            .Distinct()
+            .OrderBy(logType => GetDrawerLogTypeDisplayName(logType));
     }
 }
 
