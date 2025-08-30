@@ -6,6 +6,8 @@
 @inject EposRetail.Services.UserSessionService UserSessionService
 @inject DataHandlerLibrary.Services.SiteServices SiteService
 @inject DataHandlerLibrary.Services.TillServices TillService
+@inject DataHandlerLibrary.Services.ErrorLogServices ErrorLogService
+@inject GlobalErrorLogService GlobalErrorLog
 @using DataHandlerLibrary.Models
 @using EposRetail.Services
 
@@ -44,7 +46,7 @@
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToDayLogSales">
                 <div class="card-icon bg-primary">
-                        <img src="images/icons/svg/bar_chart_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <img src="images/icons/svg/bar_chart_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                 </div>
                 <div class="card-content">
                     <h5 class="card-title">Today's Sales</h5>
@@ -55,11 +57,11 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToShiftDashboard">
                 <div class="card-icon bg-success">
-                        <img src="images/icons/svg/user_attributes_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <img src="images/icons/svg/user_attributes_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                 </div>
                 <div class="card-content">
                     <h5 class="card-title">Shift Sales</h5>
@@ -70,11 +72,11 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToHistory">
                 <div class="card-icon bg-info">
-                        <img src="images/icons/svg/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
+                    <img src="images/icons/svg/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" class="img-fluid mb-2" />
                 </div>
                 <div class="card-content">
                     <h5 class="card-title">History</h5>
@@ -85,7 +87,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="OpenDrawer">
                 <div class="card-icon bg-warning">
@@ -101,7 +103,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Inventory & Products Section -->
     <div class="row mb-5">
         <div class="col-12">
@@ -124,7 +126,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToDepartmentManagement">
                 <div class="card-icon bg-secondary">
@@ -139,7 +141,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToStockRefill">
                 <div class="card-icon bg-danger">
@@ -154,7 +156,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToExpiryManagement">
                 <div class="card-icon bg-orange">
@@ -170,7 +172,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Business Management Section -->
     <div class="row mb-5">
         <div class="col-12">
@@ -192,7 +194,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="modern-card h-100" @onclick="NavigateToPromotionalDashboard">
                 <div class="card-icon bg-gradient">
@@ -228,7 +230,7 @@
                     <div class="d-grid gap-2">
                         @foreach (var logType in GetAvailableDrawerLogTypes())
                         {
-                            <button type="button" class="btn btn-outline-primary text-start p-3" 
+                            <button type="button" class="btn btn-outline-primary text-start p-3"
                                     @onclick="() => ConfirmDrawerOpening(logType)">
                                 <i class="@GetDrawerLogTypeIcon(logType) me-2"></i>
                                 @GetDrawerLogTypeDisplayName(logType)
@@ -251,62 +253,138 @@
 
     private bool showDrawerModal = false;
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToCheckout", "Navigation to checkout failed");
+        }
     }
 
-
-    private void NavigateToShiftDashboard()
+    private async Task NavigateToShiftDashboard()
     {
-        NavigationManager.NavigateTo("/sales-dashboard?isShiftLog=true");
+        try
+        {
+            NavigationManager.NavigateTo("/sales-dashboard?isShiftLog=true");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToShiftDashboard", "Navigation to shift dashboard failed");
+        }
     }
 
-    private void NavigateToInventoryManagement()
+    private async Task NavigateToInventoryManagement()
     {
-        NavigationManager.NavigateTo("/inventory-management");
+        try
+        {
+            NavigationManager.NavigateTo("/inventory-management");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToInventoryManagement", "Navigation to inventory management failed");
+        }
     }
 
-    private void NavigateToDayLogSales()
+    private async Task NavigateToDayLogSales()
     {
-        NavigationManager.NavigateTo("/sales-dashboard?isDayLog=true");
+        try
+        {
+            NavigationManager.NavigateTo("/sales-dashboard?isDayLog=true");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToDayLogSales", "Navigation to day log sales failed");
+        }
     }
 
-    private void NavigateToHistory()
+    private async Task NavigateToHistory()
     {
-        NavigationManager.NavigateTo("/history");
+        try
+        {
+            NavigationManager.NavigateTo("/history");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToHistory", "Navigation to history failed");
+        }
     }
 
-    private void NavigateToDepartmentManagement()
+    private async Task NavigateToDepartmentManagement()
     {
-        NavigationManager.NavigateTo("/department-management");
+        try
+        {
+            NavigationManager.NavigateTo("/department-management");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToDepartmentManagement", "Navigation to department management failed");
+        }
     }
 
-    private void NavigateToExpiryManagement()
+    private async Task NavigateToExpiryManagement()
     {
-        NavigationManager.NavigateTo("/expiry-management");
+        try
+        {
+            NavigationManager.NavigateTo("/expiry-management");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToExpiryManagement", "Navigation to expiry management failed");
+        }
     }
 
-    private void NavigateToBusinessManagement()
+    private async Task NavigateToBusinessManagement()
     {
-        NavigationManager.NavigateTo("/business-management");
+        try
+        {
+            NavigationManager.NavigateTo("/business-management");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToBusinessManagement", "Navigation to business management failed");
+        }
     }
 
-    private void NavigateToStockRefill()
+    private async Task NavigateToStockRefill()
     {
-        NavigationManager.NavigateTo("/stock-refill");
+        try
+        {
+            NavigationManager.NavigateTo("/stock-refill");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToStockRefill", "Navigation to stock refill failed");
+        }
     }
 
     private async Task OpenDrawer()
     {
-        showDrawerModal = true;
-        StateHasChanged();
+        try
+        {
+            showDrawerModal = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "OpenDrawer", "Failed to open drawer modal");
+        }
     }
 
-    private void CloseDrawerModal()
+    private async Task CloseDrawerModal()
     {
-        showDrawerModal = false;
-        StateHasChanged();
+        try
+        {
+            showDrawerModal = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "CloseDrawerModal", "Failed to close drawer modal");
+        }
     }
 
     private async Task ConfirmDrawerOpening(DrawerLogType logType)
@@ -319,7 +397,7 @@
 
             // Open the till drawer using printer service
             PrinterService = await PrinterManagementService.GetPrinterServicesAsync();
-            if( PrinterService == null)
+            if (PrinterService == null)
             {
                 throw new Exception("No printer configured.");
             }
@@ -327,7 +405,7 @@
             // Create drawer log entry with the selected reason
             var drawerLog = new DrawerLog()
             {
-                OpenedById =  UserSessionService.GetValidUserIdAsync(),
+                OpenedById = UserSessionService.GetValidUserIdAsync(),
                 DrawerOpenDateTime = DateTime.UtcNow,
                 Site_Id = await UserSessionService.GetValidSiteIdAsync(),
                 Till_Id = await UserSessionService.GetValidTillIdAsync(),
@@ -342,60 +420,101 @@
 
             // Insert the drawer log into the database
             await DrawerLogService.AddAsync(drawerLog);
+
+            // Open the physical drawer
+            PrinterService.OpenDrawer();
         }
         catch (Exception ex)
         {
-            // Handle any errors (you might want to show a toast or alert)
-            Console.WriteLine($"Error opening drawer: {ex.Message}");
+            await GlobalErrorLog.LogErrorAsync(ex, "ConfirmDrawerOpening", $"Failed to open drawer with log type: {logType}");
+            // Close modal in case of error
+            showDrawerModal = false;
+            StateHasChanged();
         }
     }
 
     private List<DrawerLogType> GetAvailableDrawerLogTypes()
     {
-        var currentUser = UserSessionService.CurrentUser;
-        var userRole = currentUser?.User_Type;
-        
-        var availableTypes = new List<DrawerLogType>
+        try
         {
-            DrawerLogType.NoSale,
-            DrawerLogType.TillAdjustment,
-            DrawerLogType.TillTransfer
-        };
+            var currentUser = UserSessionService.CurrentUser;
+            var userRole = currentUser?.User_Type;
 
-        // Only show PayIn for directors and managers
-        if (userRole == PosUserType.Director || userRole == PosUserType.Manager)
-        {
-            availableTypes.Add(DrawerLogType.PayIn);
+            var availableTypes = new List<DrawerLogType>
+            {
+                DrawerLogType.NoSale,
+                DrawerLogType.TillAdjustment,
+                DrawerLogType.TillTransfer
+            };
+
+            // Only show PayIn for directors and managers
+            if (userRole == PosUserType.Director || userRole == PosUserType.Manager)
+            {
+                availableTypes.Add(DrawerLogType.PayIn);
+            }
+
+            return availableTypes;
         }
-
-        return availableTypes;
+        catch (Exception ex)
+        {
+            // Log error but return default types to prevent UI breaking
+            _ = GlobalErrorLog.LogErrorAsync(ex, "GetAvailableDrawerLogTypes", "Failed to get available drawer log types");
+            return new List<DrawerLogType> { DrawerLogType.NoSale };
+        }
     }
 
     private string GetDrawerLogTypeDisplayName(DrawerLogType logType)
     {
-        return logType switch
+        try
         {
-            DrawerLogType.NoSale => "No Sale",
-            DrawerLogType.PayIn => "Pay In",
-            DrawerLogType.TillAdjustment => "Till Adjustment",
-            DrawerLogType.TillTransfer => "Till Transfer",
-            _ => logType.ToString()
-        };
+            return logType switch
+            {
+                DrawerLogType.NoSale => "No Sale",
+                DrawerLogType.PayIn => "Pay In",
+                DrawerLogType.TillAdjustment => "Till Adjustment",
+                DrawerLogType.TillTransfer => "Till Transfer",
+                _ => logType.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            // Log error but return fallback to prevent UI breaking
+            _ = GlobalErrorLog.LogErrorAsync(ex, "GetDrawerLogTypeDisplayName", $"Failed to get display name for log type: {logType}");
+            return logType.ToString();
+        }
     }
 
     private string GetDrawerLogTypeIcon(DrawerLogType logType)
     {
-        return logType switch
+        try
         {
-            DrawerLogType.NoSale => "bi bi-receipt",
-            DrawerLogType.PayIn => "bi bi-cash-coin",
-            DrawerLogType.TillAdjustment => "bi bi-gear",
-            DrawerLogType.TillTransfer => "bi bi-arrow-left-right",
-            _ => "bi bi-cash"
-        };
+            return logType switch
+            {
+                DrawerLogType.NoSale => "bi bi-receipt",
+                DrawerLogType.PayIn => "bi bi-cash-coin",
+                DrawerLogType.TillAdjustment => "bi bi-gear",
+                DrawerLogType.TillTransfer => "bi bi-arrow-left-right",
+                _ => "bi bi-cash"
+            };
+        }
+        catch (Exception ex)
+        {
+            // Log error but return fallback to prevent UI breaking
+            _ = GlobalErrorLog.LogErrorAsync(ex, "GetDrawerLogTypeIcon", $"Failed to get icon for log type: {logType}");
+            return "bi bi-cash";
+        }
     }
-    private void NavigateToPromotionalDashboard(MouseEventArgs args)
+
+    private async Task NavigateToPromotionalDashboard(MouseEventArgs args)
     {
-        NavigationManager.NavigateTo("/promotional-dashboard");
+        try
+        {
+            NavigationManager.NavigateTo("/promotional-dashboard");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLog.LogErrorAsync(ex, "NavigateToPromotionalDashboard", "Navigation to promotional dashboard failed");
+        }
     }
+
 }

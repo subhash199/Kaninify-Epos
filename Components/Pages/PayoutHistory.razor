@@ -133,7 +133,7 @@
                                 <th>Product</th>
                                 <th>Quantity</th>
                                 <th>Amount</th>
-                                <th>User</th>
+                                <th>Employee</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -249,14 +249,8 @@
                 var endDate = ToDate.Value.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
                 AllSalesItems = (await SalesItemService.GetByConditionAsync(s => s.Date_Created >= startDate && s.Date_Created <= endDate && s.SalesPayout_ID.HasValue, true)).ToList();
             }
-            else if (FromDate.HasValue)
-            {
-                AllSalesItems = (await SalesItemService.GetByConditionAsync(s => s.Date_Created.Date >= FromDate.Value.Date && s.SalesPayout_ID.HasValue, true)).ToList();
-            }
-            else if (ToDate.HasValue)
-            {
-                AllSalesItems = (await SalesItemService.GetByConditionAsync(s => s.Date_Created.Date <= ToDate.Value.Date && s.SalesPayout_ID.HasValue, true)).ToList();
-            }
+            
+           
         }
         catch (Exception ex)
         {

@@ -10,6 +10,7 @@
 @inject ReceiptPrinterServices ReceiptPrinterServices
 @inject UserSessionService UserSessionService
 @inject NavigationManager NavigationManager
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Business Management</PageTitle>
 
@@ -708,11 +709,6 @@
         StateHasChanged();
     }
 
-    private void SetRolesTab()
-    {
-        StateHasChanged();
-    }
-
     private void SetSitesTab()
     {
         activeTab = "sites";
@@ -798,14 +794,18 @@
     // Update your existing OnInitializedAsync to include:
     protected override async Task OnInitializedAsync()
     {
-        SetRolesTab();
-        SetSitesTab();
-        SetUsersTab();
-        SetTillsTab();
-        await LoadUsers();
-        await LoadSites();
-        await LoadTills();
-        await LoadPrinters();
+        try
+        {
+            SetUsersTab();
+            await LoadUsers();
+            await LoadSites();
+            await LoadTills();
+            await LoadPrinters();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "OnInitializedAsync", "Loading initial data for business management");
+        }
     }
 
     // Tab management
@@ -825,7 +825,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error loading tills: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "LoadTills", "Loading all tills");
         }
     }
 
@@ -895,7 +895,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error saving till: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "SaveTill", isEditingTill ? "Updating till" : "Creating new till");
         }
     }
 
@@ -949,7 +949,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error activating till: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ActivateTill", $"Activating till with ID: {tillId}");
         }
     }
 
@@ -974,7 +974,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error deactivating till: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivateTill", $"Deactivating till with ID: {tillId}");
         }
     }
 
@@ -988,7 +988,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error loading printers: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "LoadPrinters", "Loading all printers");
         }
     }
 
@@ -1057,7 +1057,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error testing printer: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "TestPrinter", $"Testing printer with ID: {printer.Printer_Id}");
         }
     }
 
@@ -1077,7 +1077,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Connection test failed: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "TestPrinterConnection", $"Testing printer connection for ID: {printer.Printer_Id}");
         }
     }
 
@@ -1113,7 +1113,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error activating printer: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ActivatePrinter", $"Activating printer with ID: {printerId}");
         }
     }
 
@@ -1138,7 +1138,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error deactivating printer: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivatePrinter", $"Deactivating printer with ID: {printerId}");
         }
     }
 
@@ -1190,7 +1190,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading roles: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "LoadUsers", "Loading all users");
         }
     }
 
@@ -1204,7 +1204,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading sites: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "LoadSites", "Loading all sites");
         }
     }
 
@@ -1273,7 +1273,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error loading user details: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ViewUserDetails", $"Viewing user details for ID: {user.User_ID}");
         }
     }
 
@@ -1295,7 +1295,7 @@
         }
         catch (Exception ex)
         {
-            JSRuntime.InvokeVoidAsync("alert", $"Error setting up user edit: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "EditUser", $"Editing user with ID: {user.User_ID}");
         }
     }
 
@@ -1315,7 +1315,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error opening site access modal: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ManageSiteAccess", $"Managing site access for user ID: {user.User_ID}");
         }
     }
 
@@ -1355,7 +1355,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error deactivating user: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivateUser", $"Deactivating user with ID: {user.User_ID}");
         }
     }
 
@@ -1395,7 +1395,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error reactivating user: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ReactivateUser", $"Reactivating user with ID: {user.User_ID}");
         }
     }
 
@@ -1421,7 +1421,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error opening user creation modal: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ShowCreateUserModal", "Creating new user modal");
         }
     }
 
@@ -1455,7 +1455,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error handling user save: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "HandleUserSaved", isEditMode ? "Updating user" : "Creating new user");
         }
     }
 
@@ -1489,51 +1489,65 @@
 
     private async Task HandleSiteSaved(Site site)
     {
-        if (site != null)
+        try
         {
-            // Add the new site to the main sites list
-            sites.Add(site);
+            if (site != null)
+            {
+                // Add the new site to the main sites list
+                sites.Add(site);
 
-            // Also add to availableSites for the UserModal
-            availableSites.Add(site);
+                // Also add to availableSites for the UserModal
+                availableSites.Add(site);
 
-            // Refresh the filtered sites to show the new site
-            FilterSites();
+                // Refresh the filtered sites to show the new site
+                FilterSites();
 
-            // Close the site modal
-            showSiteModal = false;
+                // Close the site modal
+                showSiteModal = false;
 
-            // Trigger UI update
-            StateHasChanged();
+                // Trigger UI update
+                StateHasChanged();
 
-            // Optional: Show success message
-            await JSRuntime.InvokeVoidAsync("alert", $"Site '{site.Site_BusinessName}' created successfully!");
+                // Optional: Show success message
+                await JSRuntime.InvokeVoidAsync("alert", $"Site '{site.Site_BusinessName}' created successfully!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "HandleSiteSaved", "Saving site information");
         }
     }
 
     private async Task HandleSiteOnUpdate(Site site)
     {
-        if (site != null)
+        try
         {
-            // Update the site in the main sites list
-            var existingSiteIndex = sites.FindIndex(s => s.Site_Id == site.Site_Id);
-            if (existingSiteIndex >= 0)
+            if (site != null)
             {
-                sites[existingSiteIndex] = site;
-            }
-            // Also update in availableSites for the UserModal
-            var existingAvailableSiteIndex = availableSites.FindIndex(s => s.Site_Id == site.Site_Id);
-            if (existingAvailableSiteIndex >= 0)
-            {
-                availableSites[existingAvailableSiteIndex] = site;
-            }
-            // Refresh the filtered sites to show the updated site
-            FilterSites();
-            // Close the site modal
-            showSiteModal = false;
-            // Trigger UI update
-            StateHasChanged();
+                // Update the site in the main sites list
+                var existingSiteIndex = sites.FindIndex(s => s.Site_Id == site.Site_Id);
+                if (existingSiteIndex >= 0)
+                {
+                    sites[existingSiteIndex] = site;
+                }
+                // Also update in availableSites for the UserModal
+                var existingAvailableSiteIndex = availableSites.FindIndex(s => s.Site_Id == site.Site_Id);
+                if (existingAvailableSiteIndex >= 0)
+                {
+                    availableSites[existingAvailableSiteIndex] = site;
+                }
+                // Refresh the filtered sites to show the updated site
+                FilterSites();
+                // Close the site modal
+                showSiteModal = false;
+                // Trigger UI update
+                StateHasChanged();
 
+            }
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "HandleSiteOnUpdate", "Updating site information");
         }
     }
 
@@ -1562,7 +1576,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error activating site: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ActivateSite", $"Activating site with ID: {siteId}");
         }
     }
 
@@ -1583,7 +1597,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error deactivating site: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivateSite", $"Deactivating site with ID: {siteId}");
         }
     }
     private void OnUserModalClose()
@@ -1716,7 +1730,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error activating user: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ActivateUser", $"Activating user: {user.First_Name} {user.Last_Name}");
         }
     }
 
@@ -1737,7 +1751,7 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error opening site access modal: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ManageUserSiteAccess", $"Managing site access for user: {user.First_Name} {user.Last_Name}");
         }
     }
 
@@ -1760,19 +1774,33 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error setting primary printer: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "SetPrimaryPrinter", $"Setting primary printer with ID: {printerId}");
         }
     }
 
     // Navigation methods
-    private void NavigateToBackOffice()
+    private async Task NavigateToBackOffice()
     {
-        NavigationManager.NavigateTo("/backoffice");
+        try
+        {
+            NavigationManager.NavigateTo("/backoffice");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "NavigateToBackOffice", "Navigating to back office page");
+        }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "NavigateToCheckout", "Navigating to checkout page");
+        }
     }
 
 }

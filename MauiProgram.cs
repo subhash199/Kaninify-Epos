@@ -68,6 +68,8 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ReceiptPrinter>();
 		builder.Services.AddScoped<PrinterManagementService>();
 		builder.Services.AddScoped<StockRefillServices>();
+		builder.Services.AddScoped<ErrorLogServices>();
+		builder.Services.AddScoped<GlobalErrorLogService>();
 
         // Register enhanced UserSessionService
         builder.Services.AddScoped<UserSessionService>();

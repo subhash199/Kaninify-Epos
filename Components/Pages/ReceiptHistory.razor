@@ -3,6 +3,7 @@
 @using DataHandlerLibrary.Services
 @using DataHandlerLibrary.Interfaces
 @using EntityFrameworkDatabaseLibrary.Models
+@using EposRetail.Services
 @inject SalesTransactionServices SalesService
 @inject SalesItemTransactionServices SalesItemService
 @inject ProductServices ProductService
@@ -10,6 +11,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IPrinterService PrinterService
+@inject PrinterManagementService PrinterManagementService
 
 <PageTitle>Receipt History</PageTitle>
 
@@ -40,7 +42,7 @@
             <div class="search-filters">
                 <div class="search-input-group">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="search-input" placeholder="Search by Transaction ID, Product Barcode, or Product Name..." 
+                    <input type="text" class="search-input" placeholder="Search by Transaction ID, Product Barcode, or Product Name..."
                            @bind="SearchQuery" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
                     @if (!string.IsNullOrEmpty(SearchQuery))
                     {
@@ -49,7 +51,7 @@
                         </button>
                     }
                 </div>
-                
+
                 <div class="date-range-group">
                     <div class="date-input-wrapper">
                         <label for="fromDate">From Date:</label>
@@ -95,7 +97,7 @@
                         <span class="daylog-info">@TimeZoneInfo.ConvertTimeFromUtc(@CurrentDayLog.DayLog_Start_DateTime, TimeZoneInfo.Local).ToString("dd/MM/yyyy")</span>
                     }
                 </div>
-                
+
                 <div class="transactions-list">
                     @if (FilteredTransactions.Any())
                     {
@@ -110,7 +112,7 @@
                                 <div class="transaction-details">
                                     <span class="transaction-time">@TimeZoneInfo.ConvertTimeFromUtc(@transaction.Sale_Date, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm:ss")</span>
                                     <span class="transaction-items">@transaction.SaleTransaction_Total_QTY items</span>
-                                   @*  @if (transaction.Is_Refund)
+                                    @*  @if (transaction.Is_Refund)
                                     {
                                         <span class="refund-badge">REFUND</span>
                                     } *@
@@ -150,7 +152,7 @@
                             <span>Print Receipt</span>
                         </button>
                     </div>
-                    
+
                     <div class="transaction-summary">
                         <div class="summary-row">
                             <span class="label">Date & Time:</span>
@@ -271,8 +273,8 @@
             // Apply date range filter only when both dates are selected and start date is less than or equal to end date
             if (FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date <= ToDate.Value.Date)
             {
-                filteredTransactions = filteredTransactions.Where(t => 
-                    t.Sale_Date.Date >= FromDate.Value.Date && 
+                filteredTransactions = filteredTransactions.Where(t =>
+                    t.Sale_Date.Date >= FromDate.Value.Date &&
                     t.Sale_Date.Date <= ToDate.Value.Date);
             }
 
@@ -306,7 +308,7 @@
 
             // Get current day log
             CurrentDayLog = await DayLogService.GetLastDayLog();
-            if(CurrentDayLog != null)
+            if (CurrentDayLog != null)
             {
                 // Get all transactions to support date range filtering
                 AllTransactions = (await SalesService.GetByConditionAsync(t => t.DayLog_Id == CurrentDayLog.DayLog_Id, false)).ToList();
@@ -314,7 +316,7 @@
                 // Sort by most recent first
                 AllTransactions = AllTransactions.OrderByDescending(t => t.Sale_Date).ToList();
             }
-          
+
         }
         catch (Exception ex)
         {
@@ -342,7 +344,7 @@
             // Load transaction items with product details
             var items = await SalesItemService.GetByConditionAsync(
                 item => item.SaleTransaction_ID == transaction.SaleTransaction_ID, true);
-            
+
             SelectedTransactionItems = items.ToList();
         }
         catch (Exception ex)
@@ -368,18 +370,20 @@
         SearchQuery = string.Empty;
         StateHasChanged();
     }
-    
+
     private async Task OnDateRangeChanged()
     {
         // Validate date range and trigger UI update
         if (FromDate.HasValue && ToDate.HasValue)
         {
-            ToDate = ToDate.Value.Date.AddDays(1).AddTicks(-1); // Include the entire end date
+            var toDate = ToDate.Value.Date.AddDays(1).AddTicks(-1).ToUniversalTime(); // Include the entire end date
+            var fromDate = FromDate.Value.Date.ToUniversalTime();
+
             if (FromDate.Value.Date <= ToDate.Value.Date)
             {
                 AllTransactions.Clear();
                 // Get all transactions to support date range filtering
-                AllTransactions = (await SalesService.GetByConditionAsync(t => t.Sale_Date >= FromDate && t.Sale_Date<=ToDate, false)).ToList();
+                AllTransactions = (await SalesService.GetByConditionAsync(t => t.Sale_Date >= fromDate && t.Sale_Date <= toDate, false)).ToList();
 
                 // Sort by most recent first
                 AllTransactions = AllTransactions.OrderByDescending(t => t.Sale_Date).ToList();
@@ -390,10 +394,10 @@
                 Console.WriteLine("Invalid date range: Start date is greater than end date");
             }
         }
-        
+
         StateHasChanged();
     }
-    
+
     private void ClearDateRange()
     {
         FromDate = null;
@@ -410,7 +414,7 @@
     {
         NavigationManager.NavigateTo("/checkout");
     }
-    
+
     private async Task PrintSelectedReceipt()
     {
         if (SelectedTransaction == null || !SelectedTransactionItems.Any())
@@ -418,11 +422,17 @@
             await JSRuntime.InvokeVoidAsync("alert", "No transaction selected or transaction has no items to print.");
             return;
         }
-        
+
         try
         {
             // Print the receipt using the printer service
-            PrinterService.PrintSalesReceipt(SelectedTransaction,SelectedTransactionItems);
+            PrinterService = await PrinterManagementService.GetPrinterServicesAsync();
+            if(PrinterService == null)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No printer configured. Please set up a printer first.");
+                return;
+            }
+            await PrinterService.PrintSalesReceipt(SelectedTransaction, SelectedTransactionItems);
             await JSRuntime.InvokeVoidAsync("alert", "Receipt printed successfully.");
         }
         catch (Exception ex)
