@@ -2,11 +2,13 @@
 @using DataHandlerLibrary.Services
 @using EntityFrameworkDatabaseLibrary.Models
 @using DataHandlerLibrary.Models
+@using EposRetail.Services
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject StockRefillServices StockRefillServices
+@inject GlobalErrorLogService GlobalErrorLogService
 <PageTitle>Stock Refill Management</PageTitle>
 
 <div class="stock-refill-container">
@@ -413,7 +415,7 @@
         {
             using var scope = ServiceScopeFactory.CreateScope();
             var salesItemService = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
-
+    
             // Update sales items for this product to mark as refilled
             var itemsToUpdate = StockRefillItems?.Where(s => s.SalesItemTransaction.Product_ID == refillProduct.Product.Product_ID).ToList();
             if (itemsToUpdate?.Any() == true)
@@ -423,7 +425,7 @@
                     item.Stock_Refilled = true;
                 }
                 await StockRefillServices.UpdateRangeAsync(itemsToUpdate);
-
+    
                 // Update local state
                 refillProduct.Is_Refill = true;
                 IsDataChanged = true;
@@ -432,7 +434,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error marking as refilled: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(MarkAsRefilled), "Error marking product as refilled");
+            // Remove this line: Console.WriteLine($"Error marking as refilled: {ex.Message}");
         }
     }
 

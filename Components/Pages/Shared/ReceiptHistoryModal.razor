@@ -6,6 +6,7 @@
 @inject PrinterManagementService PrinterManagementService
 @inject SalesItemTransactionServices SalesItemService
 @inject IJSRuntime JSRuntime
+@inject GlobalErrorLogService GlobalErrorLogService
 
 @if (IsVisible)
 {
@@ -237,8 +238,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading transaction items: {ex.Message}");
             SelectedTransactionItems = new List<SalesItemTransaction>();
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SelectTransaction), "Loading transaction items");
         }
         finally
         {

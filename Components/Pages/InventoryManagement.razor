@@ -10,12 +10,20 @@
 @inject NavigationManager NavigationManager
 @inject ProductServices ProductService
 @inject EposDataHandler.Services.StockOrderGenerationService StockOrderService
+@inject EposRetail.Services.GlobalErrorLogService GlobalErrorLogService
 @using DataHandlerLibrary.Models
 @using EntityFrameworkDatabaseLibrary.Models
 @using EposDataHandler.Models
 @using EposRetail.Components.Pages.Shared
 @implements IDisposable
 <PageTitle>Inventory Management</PageTitle>
+
+@if(isLoading)
+{
+    <span class="loader"></span>
+}
+else
+{
 
 <div class="inventory-management-container">
     <div class="page-header">
@@ -1523,6 +1531,7 @@
         </div>
     </div>
 }
+}
 
 @code {
     private string activeTab = "transfers";
@@ -1628,8 +1637,13 @@
     private string modalTitle = string.Empty;
     private string modalMessage = string.Empty;
 
+    private bool isLoading = false;
+
     protected override async Task OnInitializedAsync()
     {
+        isLoading = true;
+        StateHasChanged();
+
         await LoadData();
         await LoadDepartments();
         await LoadSuppliers();
@@ -1637,6 +1651,8 @@
 
         // Add navigation protection
         NavigationManager.LocationChanged += OnLocationChanged;
+        isLoading = false;
+        StateHasChanged();
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -1667,8 +1683,7 @@
         }
         catch (Exception ex)
         {
-            // Handle error
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadData), "Error loading inventory data");
         }
     }
 
@@ -1683,7 +1698,7 @@
         criticalStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity == 0) ?? 0;
         lowStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity > 0 && p.ProductTotalQuantity <= p.Product_Min_Stock_Level) ?? 0;
         expiredStockCount = allProducts?.Count(p => p.Expiry_Date < DateTime.Now) ?? 0;
-        
+
         await ApplyAlertFilters();
     }
 
@@ -1696,7 +1711,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading departments: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadDepartments), "Loading departments for inventory management");
         }
     }
 
@@ -1711,7 +1726,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading suppliers: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadSuppliersList), "Loading suppliers list");
         }
     }
 
@@ -1776,6 +1791,8 @@
 
     private async Task PrintStockOrders()
     {
+        isLoading = true;
+        StateHasChanged();
         if (filteredStockOrders?.Any() != true)
         {
             modalTitle = "No Data";
@@ -1794,10 +1811,13 @@
             modalMessage = $"Failed to print: {ex.Message}";
             showMessageModal = true;
         }
+        isLoading = false;
+        StateHasChanged();
     }
 
     private async Task SetActiveTab(int tab)
     {
+        LoadingToggle();
         string newTab = tab switch
         {
             1 => "transfers",
@@ -1819,8 +1839,9 @@
             showConfirmExitModal = true;
             return;
         }
-
         await OnTabChanged(newTab);
+        LoadingToggle();
+
     }
 
     private async Task OnSearchChanged()
@@ -2083,6 +2104,9 @@
                 transferError = "No pending transfers to update.";
                 return;
             }
+            isLoading = true;
+            StateHasChanged();
+
             foreach (var transfer in pendingTransfers)
             {
                 if (transfer.Product != null)
@@ -2109,6 +2133,9 @@
         {
             transferError = "Error updating transfers: " + ex.Message;
         }
+        isLoading = false;
+        StateHasChanged();
+
     }
 
     // Exit confirmation methods
@@ -2267,6 +2294,9 @@
     {
         try
         {
+            isLoading = true;
+            StateHasChanged();
+
             // Generate stock orders based on yearly sales patterns for next 7 days
             var stockOrderReport = await StockOrderService.GetDetailedStockOrderReportAsync();
             stockOrders = stockOrderReport.StockOrders.ToList();
@@ -2310,9 +2340,8 @@
                 modalTitle = "Stock Analysis Complete";
                 modalMessage = "Stock analysis completed. All active products have sufficient stock for the next 7 days based on sales patterns.";
                 showMessageModal = true;
-            }
+            }          
 
-            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -2321,11 +2350,16 @@
             showMessageModal = true;
             StateHasChanged();
         }
+        isLoading = false;
+        StateHasChanged();
     }
 
     private async Task RefreshAlerts()
     {
+        isLoading = true;
+        StateHasChanged();
         await LoadLowStockAlerts();
+        isLoading = false;
         StateHasChanged();
     }
 
@@ -2376,11 +2410,15 @@
     // Delivery form methods
     private async Task HandleBarcodeKeyPress(KeyboardEventArgs e)
     {
+        isLoading = true;
+        StateHasChanged();
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(deliveryProductBarcode))
         {
             await SearchProductByBarcode();
 
         }
+        isLoading = false;
+        StateHasChanged();
     }
 
     private async Task SearchProductByBarcode()
@@ -2429,7 +2467,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading suppliers: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadSuppliers), "Loading suppliers for delivery management");
         }
     }
 
@@ -2648,6 +2686,8 @@
             return;
         }
 
+        isLoading = true;
+        StateHasChanged();
         try
         {
             int totalItems = deliveryItems.Count;
@@ -2764,7 +2804,7 @@
 
             // Refresh data to show updated stock levels
             await LoadData();
-
+            isLoading = false;
             StateHasChanged();
         }
         catch (Exception ex)
@@ -2866,7 +2906,7 @@
     private string productStatusFilter = "all";
     private bool showProductDetailsModal = false;
     private Product? selectedProductForDetails;
-    
+
     // Sorting variables
     private string currentSortColumn = "";
     private bool isAscending = true;
@@ -2897,26 +2937,34 @@
 
     private async Task RefreshProducts()
     {
+        LoadingToggle();
         await LoadProducts();
         await ApplyProductFilters();
+        LoadingToggle();
     }
 
     private async Task OnProductSearchChanged(ChangeEventArgs e)
     {
+        LoadingToggle();
         productSearchTerm = e.Value?.ToString() ?? "";
         await ApplyProductFilters();
+        LoadingToggle();
     }
 
     private async Task OnProductDepartmentFilterChanged(ChangeEventArgs e)
     {
+        LoadingToggle();
         selectedProductDepartmentFilter = e.Value?.ToString() ?? "";
         await ApplyProductFilters();
+        LoadingToggle();
     }
 
     private async Task OnProductStatusFilterChanged(ChangeEventArgs e)
     {
+        LoadingToggle();
         productStatusFilter = e.Value?.ToString() ?? "all";
         await ApplyProductFilters();
+        LoadingToggle();
     }
 
     private async Task ApplyProductFilters()
@@ -3070,6 +3118,7 @@
     // Sorting methods
     private async Task SortProducts(int column)
     {
+        LoadingToggle();
         string columnName = column switch
         {
             0=> "barcode",
@@ -3093,19 +3142,21 @@
         }
 
         await ApplyProductFilters();
+        LoadingToggle();
     }
 
     private string GetSortIcon(string column)
     {
         if (currentSortColumn != column)
             return "fa-sort text-muted";
-        
+
         return isAscending ? "fa-sort-up text-primary" : "fa-sort-down text-primary";
     }
 
     // Supplier Items Methods
     private async Task RefreshSupplierItems()
     {
+        LoadingToggle();
         try
         {
             supplierItems = (await SupplierItemsService.GetAllAsync(true)).ToList();
@@ -3118,12 +3169,15 @@
             modalMessage = $"Failed to load supplier items: {ex.Message}";
             showMessageModal = true;
         }
+        LoadingToggle();
     }
 
     private void OnSupplierFilterChanged(ChangeEventArgs e)
     {
+        LoadingToggle();
         selectedSupplierFilter = e.Value?.ToString() ?? "";
         ApplySupplierItemFilters();
+        LoadingToggle();
     }
 
     private void OnSupplierItemDepartmentFilterChanged(ChangeEventArgs e)
@@ -3184,14 +3238,18 @@
     // Low Stock Alerts Filter Methods
     private async Task OnAlertTypeFilterChanged(ChangeEventArgs e)
     {
+        LoadingToggle();
         alertTypeFilter = e.Value?.ToString() ?? "all";
         await ApplyAlertFilters();
+        LoadingToggle();
     }
 
     private async Task OnAlertDepartmentFilterChanged(ChangeEventArgs e)
     {
+        LoadingToggle();
         selectedAlertDepartmentFilter = e.Value?.ToString() ?? "";
         await ApplyAlertFilters();
+        LoadingToggle();
     }
 
     private async Task ClearAlertFilters()
@@ -3244,6 +3302,8 @@
 
     private async Task SortAlerts(int column)
     {
+        isLoading = true;
+        StateHasChanged();
         string columnName = column switch
         {
             0 => "product",
@@ -3260,13 +3320,14 @@
         }
 
         await ApplyAlertFilters();
+        LoadingToggle();
     }
 
     private string GetAlertSortIcon(string column)
     {
         if (currentAlertSortColumn != column)
             return "fa-sort text-muted";
-        
+
         return isAlertAscending ? "fa-sort-up text-primary" : "fa-sort-down text-primary";
     }
 
@@ -3310,5 +3371,11 @@
             modalMessage = $"Error removing product from alert list: {ex.Message}";
             showMessageModal = true;
         }
+    }
+
+    private void LoadingToggle()
+    {
+        isLoading = !isLoading;
+        StateHasChanged();
     }
 }

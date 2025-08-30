@@ -7,6 +7,7 @@
 @inject PrinterManagementService PrinterManagementService
 @inject NavigationManager NavigationManager
 @inject UserSessionService UserSessionService
+@inject GlobalErrorLogService GlobalErrorLogService
 <div class="col-md-12 mb-2">
     <div class="d-flex gap-2 mb-2">
         <button class="btn background-colour-light-red d-flex flex-column align-items-center flex-fill"
@@ -223,7 +224,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading recent transactions: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadLast10Transactions), "Loading recent transactions");
             recentTransactions = new List<SalesTransaction>();
             lastTransaction = null;
         }

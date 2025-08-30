@@ -29,6 +29,7 @@
 @inject VatServices VatService
 @inject PayoutServices PayoutService
 @inject DrawerLogServices DrawerLogServices
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Sales Dashboard</PageTitle>
 
@@ -1577,6 +1578,7 @@
         catch (Exception ex)
         {
             // Log the error and show a user-friendly message
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadReportData), "Loading sales report data");
             Console.WriteLine($"Error loading sales data: {ex.Message}");
             // You might want to show a toast notification or error message to the user
         }
@@ -1668,6 +1670,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintReport), "Printing sales report");
             Console.WriteLine($"Error printing report: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", $"Error printing report: {ex.Message}");
         }
@@ -2022,7 +2025,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error marking product as refilled: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(MarkAsRefilled), "Marking product as refilled");
         }
     }
 
@@ -2062,6 +2065,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(UpdateMarkedRefillsInDatabase), "Updating refilled products in database");
             Console.WriteLine($"Error updating refilled products in database: {ex.Message}");
         }
     }

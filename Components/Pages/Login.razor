@@ -11,10 +11,10 @@
 @inject PosUserServices PosuserService
 @inject TillServices TillService
 @inject SiteServices SiteService
-
 @inject UserSessionService UserSession
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <div class="login-container">
     <div class="cards-wrapper">
@@ -180,6 +180,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CheckForExistingUsers), "Checking for existing users");
             Console.WriteLine($"Error checking for existing users: {ex.Message}");
         }
     }
@@ -192,6 +193,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(GenerateQRCode), "Generating QR code");
             Console.WriteLine($"QR Code generation failed: {ex.Message}");
         }
     }
@@ -251,6 +253,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleLogin), "Processing user login");
             await ShowErrorModalAsync("Error", $"An error occurred during login: {ex.Message}");
         }
         finally

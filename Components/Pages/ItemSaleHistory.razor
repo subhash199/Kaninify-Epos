@@ -3,10 +3,12 @@
 @using DataHandlerLibrary.Services
 @using EntityFrameworkDatabaseLibrary.Models
 @using System.Web
+@using EposRetail.Services
 @inject SalesItemTransactionServices _salesItemTransactionServices
 @inject ProductServices _productServices
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Item Sale History</PageTitle>
 
@@ -244,7 +246,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error searching products: {ex.Message}");
+           await GlobalErrorLogService.LogErrorAsync(ex, nameof(SearchProducts), "Error loading sales history");
         }
         finally
         {
