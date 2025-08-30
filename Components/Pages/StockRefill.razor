@@ -19,7 +19,11 @@
                 <h1 class="page-title">Stock Refill Management</h1>
                 <p class="page-subtitle">Manage products that need to be refilled</p>
             </div>
-            <div class="header-right">
+            <div class="header-right d-flex align-items-center">
+                <button class="nav-btn checkout-btn me-2" @onclick="NavigateToCheckout">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Go to Checkout</span>
+                </button>
                 <button class="nav-btn back-btn" @onclick="NavigateToBackoffice">
                     <i class="fas fa-arrow-left"></i>
                     <span>Back to Backoffice</span>
@@ -49,8 +53,8 @@
                     <!-- Search Bar -->
                     <div class="search-group">
                         <label for="productSearch" class="form-label">Search Products:</label>
-                        <input type="text" id="productSearch" class="form-control" 
-                               placeholder="Search by product name or barcode..." 
+                        <input type="text" id="productSearch" class="form-control"
+                               placeholder="Search by product name or barcode..."
                                @bind="SearchTerm" @oninput="OnSearchChanged" />
                     </div>
 
@@ -142,7 +146,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th @onclick="() => SortBy(0)" class="sortable">
-                                    Product Name 
+                                    Product Name
                                     @if (CurrentSortField == "ProductName")
                                     {
                                         <i class="fas @(IsAscending ? "fa-sort-up" : "fa-sort-down")"></i>
@@ -173,7 +177,9 @@
                                             <strong>@product.Product.Product_Name</strong>
                                             @if (!string.IsNullOrEmpty(product.Product.Product_Barcode))
                                             {
-                                                <br><small class="text-muted">@product.Product.Product_Barcode</small>
+                                                <br>
+                                
+                                                <small class="text-muted">@product.Product.Product_Barcode</small>
                                             }
                                         </div>
                                     </td>
@@ -277,7 +283,7 @@
 
             // Load refill products
             AllRefillProducts = await GetRefillProductsAsync(salesItemService);
-            
+
             // Apply initial filters
             ApplyFilters();
         }
@@ -295,14 +301,15 @@
     private async Task<List<ProductRefillDTO>> GetRefillProductsAsync(SalesItemTransactionServices salesItemService)
     {
         // Get sales items that haven't been refilled within date range
-        StockRefillItems = (await StockRefillServices.GetByConditionAsync(
-            s => s.Stock_Refilled == false && 
-                 s.Date_Created >= FromDate.ToUniversalTime() && 
+        StockRefillItems = (await StockRefillServices.GetByConditionAsync(s =>
+            !s.Stock_Refilled &&
+                 s.Date_Created >= FromDate.ToUniversalTime() &&
                  s.Date_Created <= ToDate.AddDays(1).ToUniversalTime(), true)).ToList();
 
         // Group sales items by product and sum the quantities
         var refillData = StockRefillItems
-            .Where(s => s.SalesItemTransaction?.Product_ID != null && s.SalesItemTransaction?.Product.Is_activated == true)
+            .Where(s => s.SalesItemTransaction?.Product_ID != null && s.SalesItemTransaction?.Product?.Is_activated == true
+            && s.SalesItemTransaction?.Product?.Is_deleted == false)
             .GroupBy(s => s.SalesItemTransaction.Product_ID)
             .Select(g => new
             {
@@ -341,9 +348,9 @@
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
-            filtered = filtered.Where(p => 
+            filtered = filtered.Where(p =>
                 p.Product.Product_Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                (!string.IsNullOrEmpty(p.Product.Product_Barcode) && 
+                (!string.IsNullOrEmpty(p.Product.Product_Barcode) &&
                  p.Product.Product_Barcode.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)));
         }
 
@@ -356,11 +363,11 @@
         // Apply sorting
         filtered = CurrentSortField switch
         {
-            "ProductName" => IsAscending ? 
-                filtered.OrderBy(p => p.Product.Product_Name) : 
+            "ProductName" => IsAscending ?
+                filtered.OrderBy(p => p.Product.Product_Name) :
                 filtered.OrderByDescending(p => p.Product.Product_Name),
-            "RefillQty" => IsAscending ? 
-                filtered.OrderBy(p => p.Refill_QTY) : 
+            "RefillQty" => IsAscending ?
+                filtered.OrderBy(p => p.Refill_QTY) :
                 filtered.OrderByDescending(p => p.Refill_QTY),
             _ => filtered.OrderBy(p => p.Product.Product_Name)
         };
@@ -415,7 +422,7 @@
         {
             using var scope = ServiceScopeFactory.CreateScope();
             var salesItemService = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
-    
+
             // Update sales items for this product to mark as refilled
             var itemsToUpdate = StockRefillItems?.Where(s => s.SalesItemTransaction.Product_ID == refillProduct.Product.Product_ID).ToList();
             if (itemsToUpdate?.Any() == true)
@@ -425,7 +432,7 @@
                     item.Stock_Refilled = true;
                 }
                 await StockRefillServices.UpdateRangeAsync(itemsToUpdate);
-    
+
                 // Update local state
                 refillProduct.Is_Refill = true;
                 IsDataChanged = true;
@@ -456,6 +463,11 @@
     private void NavigateToBackoffice()
     {
         NavigationManager.NavigateTo("/backoffice");
+    }
+
+    private void NavigateToCheckout()
+    {
+        NavigationManager.NavigateTo("/checkout");
     }
 
     // ProductRefillDTO class definition (since it wasn't found in separate file)

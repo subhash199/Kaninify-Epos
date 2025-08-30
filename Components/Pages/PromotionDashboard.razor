@@ -21,12 +21,13 @@
                             <button class="btn btn-primary" @onclick="ShowCreatePromotionModal">
                                 <i class="fas fa-plus"></i> Create New Promotion
                             </button>
+                            <button class="btn btn-primary" @onclick="NavigateToCheckout">
+                                <i class="fas fa-cash-register"></i> Go to Checkout
+                            </button>
                             <button class="btn btn-outline-secondary" @onclick="NavigateToBackoffice">
                                 <i class="fas fa-arrow-left"></i> Back to Backoffice
                             </button>
-                            <button class="btn btn-primary" @onclick="NavigateToCheckout">
-                                <i class="fas fa-cash-register"></i> Back to Checkout
-                            </button>
+
                         </div>
                     </div>
                 </div>
@@ -81,13 +82,13 @@
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPromotion(promotion)">
-                                                        <i class="fas fa-edit">Edit</i>
+                                                        <i class="fas fa-edit"></i>Edit
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-success" @onclick="() => ManagePromotionProducts(promotion)">
-                                                        <i class="fas fa-box">Manage Products</i>
+                                                        <i class="fas fa-box"></i>Manage Products
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePromotion(promotion)">
-                                                        <i class="fas fa-trash">Delete</i>
+                                                        <i class="fas fa-trash"></i>Delete
                                                     </button>
                                                 </div>
                                             </td>
@@ -275,11 +276,14 @@
                             <button type="submit" class="btn btn-primary">
                                 @if (isEditMode)
                                 {
-                                    <i class="fas fa-save me-1">Update</i>
+                                    <i class="fas fa-save me-1"></i>
+                            
+                                    <span>Update</span>
                                 }
                                 else
                                 {
-                                    <i class="fas fa-plus me-1">Create</i>
+                                    <i class="fas fa-plus me-1"></i>
+                                    <span>Create</span>
                                 }
                             </button>
                         </div>

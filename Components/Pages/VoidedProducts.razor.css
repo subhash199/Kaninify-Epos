@@ -9,7 +9,7 @@
 
 /* Header Section */
 .voided-header {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    background: linear-gradient(135deg, #FF5C5C 0%, #FF2E2E 100%);
     color: white;
     padding: 20px 30px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);

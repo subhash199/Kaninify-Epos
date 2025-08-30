@@ -29,19 +29,23 @@ else
 
 <div class="inventory-management-container">
     <div class="page-header">
-        <div class="header-navigation">
-            <button class="btn btn-outline-secondary" @onclick="NavigateToBackOffice">
-                <i class="fas fa-arrow-left"></i> Back to BackOffice
-            </button>
-            <button class="btn btn-outline-primary" @onclick="NavigateToCheckout">
-                <i class="fas fa-cash-register"></i> Go to Checkout
-            </button>
+        <div class="header-content d-flex justify-content-between align-items-center">
+            <div class="header-title">
+                <h1 class="page-title">
+                    <i class="fas fa-warehouse"></i>
+                    Inventory Management
+                </h1>
+                <p class="page-subtitle">Manage stock transfers, orders, deliveries, and inventory operations</p>
+            </div>
+            <div class="header-navigation">
+                <button class="btn btn-outline-primary me-2" @onclick="NavigateToCheckout">
+                    <i class="fas fa-cash-register"></i> Go to Checkout
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="NavigateToBackOffice">
+                    <i class="fas fa-arrow-left"></i> Back to BackOffice
+                </button>
+            </div>
         </div>
-        <h1 class="page-title">
-            <i class="fas fa-warehouse"></i>
-            Inventory Management
-        </h1>
-        <p class="page-subtitle">Manage stock transfers, orders, deliveries, and inventory operations</p>
     </div>
 
     <!-- Tab Navigation -->
