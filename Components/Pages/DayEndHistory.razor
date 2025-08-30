@@ -3,11 +3,13 @@
 @using DataHandlerLibrary.Services
 @using DataHandlerLibrary.Interfaces
 @using EntityFrameworkDatabaseLibrary.Models
+@using EposRetail.Services
 @inject DayLogServices DayLogService
 @inject SalesTransactionServices SalesService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IPrinterService PrinterService
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Day End History</PageTitle>
 <div class="dayend-history-container">
@@ -225,7 +227,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAllDayLogs();
+        try
+        {
+            await LoadAllDayLogs();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnInitializedAsync), "Initializing DayEndHistory component");
+        }
     }
 
     private async Task LoadAllDayLogs()
@@ -239,13 +248,88 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading day logs: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadAllDayLogs), "Loading all day logs");
+            AllDayLogs = new List<DayLog>(); // Ensure we have an empty list to prevent UI errors
         }
         finally
         {
             IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task ViewDayLogDetails(DayLog dayLog)
+    {
+        try
+        {
+            NavigationManager.NavigateTo($"/sales-dashboard/daylog/{dayLog.DayLog_Id}");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ViewDayLogDetails), $"Navigating to day log details for ID {dayLog.DayLog_Id}");
+        }
+    }
+
+    private async Task PrintDayLogDetails(DayLog dayLog)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Day log details printed successfully!");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintDayLogDetails), $"Printing day log details for ID {dayLog.DayLog_Id}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error printing day log details: {ex.Message}");
+        }
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        try
+        {
+            await Task.Delay(300);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnSearchKeyUp), "Handling search key up event");
+        }
+    }
+
+    private void ClearSearch()
+    {
+        SearchQuery = string.Empty;
+        StateHasChanged();
+    }
+
+    private void OnDateRangeChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void ClearDateRange()
+    {
+        FromDate = null;
+        ToDate = null;
+        StateHasChanged();
+    }
+
+    private void ClearAllFilters()
+    {
+        SearchQuery = string.Empty;
+        FromDate = null;
+        ToDate = null;
+        StateHasChanged();
+    }
+
+    private void NavigateToHistory()
+    {
+        NavigationManager.NavigateTo("/history");
+    }
+
+    private void NavigateToCheckout()
+    {
+        NavigationManager.NavigateTo("/checkout");
     }
 
     private IEnumerable<DayLog> GetFilteredDayLogs()
@@ -290,10 +374,6 @@
         return dayLog.Closing_Cash_Amount - dayLog.Opening_Cash_Amount;
     }
 
-    private async Task ViewDayLogDetails(DayLog dayLog)
-    {
-        NavigationManager.NavigateTo($"/sales-dashboard/daylog/{dayLog.DayLog_Id}");
-    }
 
     private void CloseModal()
     {
@@ -302,58 +382,4 @@
         DayLogTransactions.Clear();
     }
 
-    private async Task PrintDayLogDetails(DayLog dayLog)
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Day log details printed successfully!");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error printing day log details: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Error printing day log details: {ex.Message}");
-        }
-    }
-
-    private async Task OnSearchKeyUp(KeyboardEventArgs e)
-    {
-        await Task.Delay(300);
-        StateHasChanged();
-    }
-
-    private void ClearSearch()
-    {
-        SearchQuery = string.Empty;
-        StateHasChanged();
-    }
-
-    private void OnDateRangeChanged()
-    {
-        StateHasChanged();
-    }
-
-    private void ClearDateRange()
-    {
-        FromDate = null;
-        ToDate = null;
-        StateHasChanged();
-    }
-
-    private void ClearAllFilters()
-    {
-        SearchQuery = string.Empty;
-        FromDate = null;
-        ToDate = null;
-        StateHasChanged();
-    }
-
-    private void NavigateToHistory()
-    {
-        NavigationManager.NavigateTo("/history");
-    }
-
-    private void NavigateToCheckout()
-    {
-        NavigationManager.NavigateTo("/checkout");
-    }
 }

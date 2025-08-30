@@ -23,6 +23,7 @@
 @inject PrinterManagementService printerManagementService
 @inject UserSessionService UserSession
 @inject DrawerLogServices DrawerLogServices
+@inject GlobalErrorLogService GlobalErrorLogService
 
 @inject IJSRuntime JS
 
@@ -230,8 +231,6 @@
             }
 
             // Update the current shift with opening balance if needed
-            // Note: The FloatAmountModal already handles shift creation/update with opening balance
-            // but we ensure consistency here
             if (UserSession.CurrentShift != null &&
                 (!UserSession.CurrentShift.Opening_Cash_Amount.HasValue || UserSession.CurrentShift.Opening_Cash_Amount.Value == 0))
             {
@@ -244,7 +243,7 @@
         }
         catch (Exception ex)
         {
-            await ShowErrorModalAsync("Update Error", $"Error updating opening balance: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnFloatAmountSet), "Setting opening float amount");
         }
 
         StateHasChanged();
@@ -347,6 +346,7 @@
         catch (Exception ex)
         {
             await ShowErrorModalAsync("Search Error", ex.Message);
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SearchKeyDownAsync), "Processing search input on Enter key press");
         }
     }
 
@@ -500,18 +500,12 @@
     {
         try
         {
-            // Ensure we have a complete session
             await UserSession.EnsureCompleteSessionAsync();
+            
+            bool dayLogNeedsOpeningBalance = UserSession.CurrentDayLog?.Opening_Cash_Amount == 0;
+            bool shiftNeedsOpeningBalance = !(UserSession.CurrentShift?.Opening_Cash_Amount.HasValue ?? false) ||
+                                           (UserSession.CurrentShift?.Opening_Cash_Amount ?? 0) == 0;
 
-            // Check if current day log has opening balance
-            bool dayLogNeedsOpeningBalance = UserSession.CurrentDayLog != null &&
-                (UserSession.CurrentDayLog.Opening_Cash_Amount == 0);
-
-            // Check if current shift has opening balance
-            bool shiftNeedsOpeningBalance = UserSession.CurrentShift != null &&
-                (!UserSession.CurrentShift.Opening_Cash_Amount.HasValue || UserSession.CurrentShift.Opening_Cash_Amount.Value == 0);
-
-            // Show float modal if either day log or shift needs opening balance
             if (dayLogNeedsOpeningBalance || shiftNeedsOpeningBalance)
             {
                 if (_printerService == null)
@@ -529,6 +523,7 @@
         catch (Exception ex)
         {
             await ShowErrorModalAsync("Session Error", $"Error checking opening balance: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CheckOpeningBalanceAsync), "Checking opening balance requirements");
         }
     }
 
@@ -567,6 +562,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PaymentButtonClickedAsync), "Processing payment button click");
             await ShowErrorModalAsync("Payment Error", ex.Message);
         }
     }
@@ -692,6 +688,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ProcessCashOrCardPaymentAsync), "Processing cash or card payment");
             await ShowErrorModalAsync("Payment Error", ex.Message);
         }
     }
@@ -782,7 +779,7 @@
 
     private async Task ShowChangeModalAsync(decimal changeAmount)
     {
-        if (changeAmount < 0)
+        if (changeAmount > 0)
         {
             _state.ModalSettings = new ModalSettings
             {
@@ -982,12 +979,12 @@
         catch (Exception ex)
         {
             await ShowErrorModalAsync("Void Error", $"Failed to void item: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleVoidLineButtonClicked), "Voiding selected basket item");
         }
         finally
         {
             // Always reset state and focus
             _state.SelectedItemIndex = -1;
-            await SetFocusOnSearchBoxAsync();
         }
     }
 
@@ -1211,6 +1208,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandlePayoutClick), "Processing payout action");
             await ShowErrorModalAsync("Payout Error", $"Error processing payout: {ex.Message}");
         }
     }
@@ -1232,6 +1230,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ShowPayoutSelectionModal), "Loading payout selection modal");
             await ShowErrorModalAsync("Error", $"Error loading payouts: {ex.Message}");
         }
     }
@@ -1257,6 +1256,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ProcessDirectPayout), $"Processing direct payout for {payoutType}");
             await ShowErrorModalAsync("Payout Error", $"Error processing {payoutType} payout: {ex.Message}");
         }
     }
@@ -1468,7 +1468,6 @@
         selectedProductForDiscount = null;
         isApplyingDiscountToAllProducts = false;
         await SetFocusOnSearchBoxAsync();
-
         StateHasChanged();
     }
 
@@ -1482,7 +1481,9 @@
             if (isApplyingDiscountToAllProducts)
             {
                 // Apply to all eligible products
-                itemsToDiscount = currentBasket.SalesItemsList.Where(IsProductEligibleForDiscount).ToList();
+                itemsToDiscount = currentBasket.SalesItemsList
+                    .Where(IsProductEligibleForDiscount)
+                    .ToList();
             }
             else if (selectedProductForDiscount != null)
             {
@@ -1523,6 +1524,7 @@
         catch (Exception ex)
         {
             await ShowErrorModalAsync("Discount Error", $"Error applying discount: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ApplyDiscountAsync), "Applying discount to basket items");
         }
     }
 
@@ -1583,36 +1585,44 @@
 
     private async Task<DrawerLog> HandleOpenDrawerLogAsync(SalesTransaction transaction)
     {
-        var DrawerLog = new DrawerLog
+        try
         {
-            OpenedById = UserSession.GetValidUserIdAsync(),
-            DrawerOpenDateTime = DateTime.UtcNow,
-            Created_By_Id = UserSession.GetValidUserIdAsync(),
-            Date_Created = DateTime.UtcNow,
-            Last_Modified = DateTime.UtcNow,
-            Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
-            Site_Id = await UserSession.GetValidSiteIdAsync(),
-            Till_Id = await UserSession.GetValidTillIdAsync(),
-            Shift_Id = await UserSession.GetValidShiftIdAsync(),
-            DayLog_Id = await UserSession.GetValidDayLogIdAsync()
-        };
-        if (transaction == null)
-        {
-            DrawerLog.DrawerLogType = DrawerLogType.NoSale;
+            var DrawerLog = new DrawerLog
+            {
+                OpenedById = UserSession.GetValidUserIdAsync(),
+                DrawerOpenDateTime = DateTime.UtcNow,
+                Created_By_Id = UserSession.GetValidUserIdAsync(),
+                Date_Created = DateTime.UtcNow,
+                Last_Modified = DateTime.UtcNow,
+                Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
+                Site_Id = await UserSession.GetValidSiteIdAsync(),
+                Till_Id = await UserSession.GetValidTillIdAsync(),
+                Shift_Id = await UserSession.GetValidShiftIdAsync(),
+                DayLog_Id = await UserSession.GetValidDayLogIdAsync()
+            };
+            if (transaction == null)
+            {
+                DrawerLog.DrawerLogType = DrawerLogType.NoSale;
+                return DrawerLog;
+            }
+            switch (transaction)
+            {
+                case var t when t.SaleTransaction_Refund != 0:
+                    DrawerLog.DrawerLogType = DrawerLogType.Refund;
+                    break;
+                case var t when t.SaleTransaction_Payout != 0:
+                    DrawerLog.DrawerLogType = DrawerLogType.Payout;
+                    break;
+                default:
+                    DrawerLog.DrawerLogType = DrawerLogType.Sale;
+                    break;
+            }
             return DrawerLog;
         }
-        switch (transaction)
+        catch (Exception ex)
         {
-            case var t when t.SaleTransaction_Refund != 0:
-                DrawerLog.DrawerLogType = DrawerLogType.Refund;
-                break;
-            case var t when t.SaleTransaction_Payout != 0:
-                DrawerLog.DrawerLogType = DrawerLogType.Payout;
-                break;
-            default:
-                DrawerLog.DrawerLogType = DrawerLogType.Sale;
-                break;
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleOpenDrawerLogAsync), "Creating drawer log entry");
+            throw; // Re-throw since this method returns a value that's needed
         }
-        return DrawerLog;
     }
 }

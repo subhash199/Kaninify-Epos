@@ -1,10 +1,12 @@
 @page "/department-management"
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
+@using EposRetail.Services
 @inject DepartmentServices DepartmentService
 @inject ProductServices ProductService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Department Management</PageTitle>
 
@@ -488,7 +490,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "LoadData", "Failed to load departments and products data");
         }
         finally
         {
@@ -497,6 +499,118 @@
         }
     }
 
+    private async Task SaveDepartment()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(CurrentDepartment.Department_Name))
+            {
+                return;
+            }
+
+            if (IsEditMode)
+            {
+                CurrentDepartment.Last_Modified = DateTime.UtcNow;
+                await DepartmentService.UpdateAsync(CurrentDepartment);
+            }
+            else
+            {
+                CurrentDepartment.Date_Created = DateTime.UtcNow;
+                CurrentDepartment.Last_Modified = DateTime.UtcNow;
+                await DepartmentService.AddAsync(CurrentDepartment);
+            }
+
+            await LoadData();
+            CloseDepartmentModal();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "SaveDepartment", "Failed to save department");
+        }
+    }
+
+    private async Task DeactivateDepartment(Department department)
+    {
+        try
+        {
+            department.Is_Activated = false;
+            department.Last_Modified = DateTime.UtcNow;
+            await DepartmentService.UpdateAsync(department);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivateDepartment", $"Failed to deactivate department: {department?.Department_Name}");
+        }
+    }
+
+    private async Task ActivateDepartment(Department department)
+    {
+        try
+        {
+            department.Is_Activated = true;
+            department.Last_Modified = DateTime.UtcNow;
+            await DepartmentService.UpdateAsync(department);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "ActivateDepartment", $"Failed to activate department: {department?.Department_Name}");
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        try
+        {
+            if (DepartmentToDelete != null)
+            {
+                DepartmentToDelete.Is_Deleted = true;
+                DepartmentToDelete.Last_Modified = DateTime.UtcNow;
+                await DepartmentService.UpdateAsync(DepartmentToDelete);
+                await LoadData();
+            }
+            CloseDeleteModal();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "ConfirmDelete", $"Failed to delete department: {DepartmentToDelete?.Department_Name}");
+        }
+    }
+
+    private async Task RemoveProductFromDepartment(Product product)
+    {
+        try
+        {
+         
+            product.Department_ID = (await DepartmentService.GetDefaultDepartment()).Department_ID;
+            await ProductService.UpdateAsync(product);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "RemoveProductFromDepartment", $"Failed to remove product from department: {product?.Product_Name}");
+        }
+    }
+
+    private async Task ConfirmChangeDepartment()
+    {
+        try
+        {
+            if (ProductToChange != null && NewDepartmentId > 0)
+            {
+                ProductToChange.Department_ID = NewDepartmentId;
+                await ProductService.UpdateAsync(ProductToChange);
+                await LoadData();
+            }
+            CloseChangeDepartmentModal();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, "ConfirmChangeDepartment", $"Failed to change department for product: {ProductToChange?.Product_Name}");
+        }
+    }
+    
     private void SetActiveTab(int tab)
     {
         string tabName = tab switch
@@ -573,36 +687,6 @@
         StateHasChanged();
     }
 
-    private async Task SaveDepartment()
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(CurrentDepartment.Department_Name))
-            {
-                return;
-            }
-
-            if (IsEditMode)
-            {
-                CurrentDepartment.Last_Modified = DateTime.UtcNow;
-                await DepartmentService.UpdateAsync(CurrentDepartment);
-            }
-            else
-            {
-                CurrentDepartment.Date_Created = DateTime.UtcNow;
-                CurrentDepartment.Last_Modified = DateTime.UtcNow;
-                await DepartmentService.AddAsync(CurrentDepartment);
-            }
-
-            await LoadData();
-            CloseDepartmentModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving department: {ex.Message}");
-        }
-    }
-
     private void CloseDepartmentModal()
     {
         ShowDepartmentModal = false;
@@ -610,35 +694,6 @@
         StateHasChanged();
     }
 
-    private async Task DeactivateDepartment(Department department)
-    {
-        try
-        {
-            department.Is_Activated = false;
-            department.Last_Modified = DateTime.UtcNow;
-            await DepartmentService.UpdateAsync(department);
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deactivating department: {ex.Message}");
-        }
-    }
-
-    private async Task ActivateDepartment(Department department)
-    {
-        try
-        {
-            department.Is_Activated = true;
-            department.Last_Modified = DateTime.UtcNow;
-            await DepartmentService.UpdateAsync(department);
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error activating department: {ex.Message}");
-        }
-    }
 
     private void ShowDeleteConfirmation(Department department)
     {
@@ -647,24 +702,6 @@
         StateHasChanged();
     }
 
-    private async Task ConfirmDelete()
-    {
-        try
-        {
-            if (DepartmentToDelete != null)
-            {
-                DepartmentToDelete.Is_Deleted = true;
-                DepartmentToDelete.Last_Modified = DateTime.UtcNow;
-                await DepartmentService.UpdateAsync(DepartmentToDelete);
-                await LoadData();
-            }
-            CloseDeleteModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting department: {ex.Message}");
-        }
-    }
 
     private void CloseDeleteModal()
     {
@@ -673,20 +710,7 @@
         StateHasChanged();
     }
 
-    private async Task RemoveProductFromDepartment(Product product)
-    {
-        try
-        {
-            // Set to default department (assuming ID 24 is Default based on CSV)
-            product.Department_ID = 24;
-            await ProductService.UpdateAsync(product);
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error removing product from department: {ex.Message}");
-        }
-    }
+  
 
     private void ShowChangeDepartmentModalView(Product product)
     {
@@ -696,23 +720,7 @@
         StateHasChanged();
     }
 
-    private async Task ConfirmChangeDepartment()
-    {
-        try
-        {
-            if (ProductToChange != null && NewDepartmentId > 0)
-            {
-                ProductToChange.Department_ID = NewDepartmentId;
-                await ProductService.UpdateAsync(ProductToChange);
-                await LoadData();
-            }
-            CloseChangeDepartmentModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error changing product department: {ex.Message}");
-        }
-    }
+ 
 
     private void CloseChangeDepartmentModal()
     {
