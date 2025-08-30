@@ -7,13 +7,14 @@ a, .btn-link {
     color: #006bb7;
 }
 
+
 .loader {
     transform: rotateZ(45deg);
     perspective: 1000px;
     border-radius: 50%;
     width: 48px;
     height: 48px;
-    color: #fff;
+    color: #696969;
 }
 
     .loader:before,
@@ -89,8 +90,48 @@ a, .btn-link {
         box-shadow: .2em -.2em 0 0 currentcolor;
     }
 }
-   
 
+.loader-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 9999;
+}
+
+    .loader-container .loader {
+        transform: rotateZ(45deg);
+        perspective: 1000px;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        color: #696969;
+    }
+
+        .loader-container .loader:before,
+        .loader-container .loader:after {
+            content: '';
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: inherit;
+            height: inherit;
+            border-radius: 50%;
+            transform: rotateX(70deg);
+            animation: 1s spin linear infinite;
+        }
+
+        .loader-container .loader:after {
+            color: #FF3D00;
+            transform: rotateY(70deg);
+            animation-delay: .4s;
+        }
 .btn {
 }
 

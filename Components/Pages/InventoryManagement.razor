@@ -20,7 +20,9 @@
 
 @if(isLoading)
 {
-    <span class="loader"></span>
+    <div class="loader-container">
+        <span class="loader"></span>
+    </div>
 }
 else
 {
@@ -355,6 +357,8 @@ else
                         </tbody>
                     </table>
                 </div>
+
+
             </div>
         }
 
@@ -576,7 +580,8 @@ else
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <div class="d-flex align-items-end">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-flex">
                                 <button class="btn btn-outline-secondary" @onclick="ClearSupplierItemFilters">
                                     <i class="fas fa-times"></i> Clear Filters
                                 </button>
@@ -826,7 +831,8 @@ else
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <div class="d-flex align-items-end">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-flex">
                                 <button class="btn btn-outline-secondary" @onclick="ClearAlertFilters">
                                     <i class="fas fa-times"></i> Clear Filters
                                 </button>
@@ -854,9 +860,9 @@ else
                             </tr>
                         </thead>
                         <tbody>
-                            @if (filteredLowStockProducts?.Any() == true)
+                            @if (pagedLowStockProducts?.Any() == true)
                             {
-                                @foreach (var product in filteredLowStockProducts)
+                                @foreach (var product in pagedLowStockProducts)
                                 {
                                     <tr class="@GetAlertRowClass(product)">
                                         <td>
@@ -903,12 +909,62 @@ else
                             else
                             {
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">No alerts found matching the current filters.</td>
+                                    <td colspan="6" class="text-center text-muted">No low stock alerts found.</td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Alert Pagination Controls -->
+                @if (totalAlertItems > 0)
+                {
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted">
+                                Showing @((currentAlertPage - 1) * alertPageSize + 1) to @(Math.Min(currentAlertPage * alertPageSize, totalAlertItems)) of @totalAlertItems alerts
+                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0">Items per page:</label>
+                                <select class="form-select form-select-sm" style="width: auto;" @onchange="ChangeAlertPageSize" value="@alertPageSize">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        @if (totalAlertPages > 1)
+                        {
+                            <nav aria-label="Alert pagination">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(currentAlertPage == 1 ? "disabled" : "")">
+                                        <button class="page-link" @onclick="PreviousAlertPage" disabled="@(currentAlertPage == 1)">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                    </li>
+                                    
+                                    @for (int i = Math.Max(1, currentAlertPage - 2); i <= Math.Min(totalAlertPages, currentAlertPage + 2); i++)
+                                    {
+                                        var pageNumber = i;
+                                        <li class="page-item @(currentAlertPage == pageNumber ? "active" : "")">
+                                            <button class="page-link" @onclick="() => GoToAlertPage(pageNumber)">
+                                                @pageNumber
+                                            </button>
+                                        </li>
+                                    }
+                                    
+                                    <li class="page-item @(currentAlertPage == totalAlertPages ? "disabled" : "")">
+                                        <button class="page-link" @onclick="NextAlertPage" disabled="@(currentAlertPage == totalAlertPages)">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    </div>
+                }
             </div>
         }
 
@@ -1020,9 +1076,9 @@ else
                             </tr>
                         </thead>
                         <tbody>
-                            @if (filteredProducts?.Any() == true)
+                            @if (pagedProducts?.Any() == true)
                             {
-                                @foreach (var product in filteredProducts)
+                                @foreach (var product in pagedProducts)
                                 {
                                     <tr class="@GetProductRowClass(product)">
                                         <td>
@@ -1030,9 +1086,7 @@ else
                                         </td>
                                         <td>
                                             <strong>@product.Product_Name</strong>
-
                                             <br><small class="text-muted">Size: @product.Product_Size</small>
-
                                         </td>
                                         <td>@product.Brand_Name</td>
                                         <td>
@@ -1068,7 +1122,6 @@ else
                                             @if (!product.Is_deleted && product.ProductTotalQuantity <= product.Product_Low_Stock_Alert_QTY)
                                             {
                                                 <br>
-                                
                                                 <span class="badge bg-warning mt-1">Low Stock</span>
                                             }
                                         </td>
@@ -1111,11 +1164,65 @@ else
                     </table>
                 </div>
 
-                <!-- Pagination -->
-                @if (filteredProducts?.Count > 0)
+                <!-- Pagination Controls -->
+                @if (totalItems > 0)
                 {
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <span class="text-muted">Showing @filteredProducts.Count products</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted">
+                                Showing @((currentPage - 1) * pageSize + 1) to @(Math.Min(currentPage * pageSize, totalItems)) of @totalItems products
+                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0">Items per page:</label>
+                                <select class="form-select form-select-sm" style="width: auto;" @onchange="ChangePageSize" value="@pageSize">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        @if (totalPages > 1)
+                        {
+                            <nav aria-label="Product pagination">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                        <button class="page-link" @onclick="PreviousPage" disabled="@(currentPage == 1)">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                    </li>
+                                    
+                                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                                    {
+                                        var pageNumber = i;
+                                        <li class="page-item @(currentPage == pageNumber ? "active" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(pageNumber)">
+                                                @pageNumber
+                                            </button>
+                                        </li>
+                                    }
+                                    
+                                    @if (currentPage + 2 < totalPages)
+                                    {
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                        <li class="page-item">
+                                            <button class="page-link" @onclick="() => GoToPage(totalPages)">
+                                                @totalPages
+                                            </button>
+                                        </li>
+                                    }
+                                    
+                                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                        <button class="page-link" @onclick="NextPage" disabled="@(currentPage == totalPages)">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
                     </div>
                 }
             </div>
@@ -1641,18 +1748,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
-        StateHasChanged();
-
-        await LoadData();
-        await LoadDepartments();
-        await LoadSuppliers();
-        await LoadProducts();
-
-        // Add navigation protection
         NavigationManager.LocationChanged += OnLocationChanged;
-        isLoading = false;
-        StateHasChanged();
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -1675,7 +1771,6 @@ else
     {
         try
         {
-            await LoadLowStockAlerts();
             await LoadDepartments();
             await LoadSuppliersList();
             await RefreshSupplierItems();
@@ -1689,17 +1784,32 @@ else
 
     private async Task LoadLowStockAlerts()
     {
-        var allProducts = await ProductService.GetAllAsync(false);
-        lowStockProducts = allProducts?.Where(p =>
-            (p.ProductTotalQuantity <= p.Product_Min_Stock_Level || p.Expiry_Date < DateTime.Now) &&
-            p.Is_activated == true &&
-            p.Is_deleted == false).ToList();
+        try
+        {
+            // Yield control to keep UI responsive
+            await Task.Yield();
+            
+            // Show spinner animation for 2 seconds minimum
+            await Task.Delay(2000);
+            
+            var allProducts = await ProductService.GetAllAsync(false);
+            lowStockProducts = allProducts?.Where(p =>
+                (p.ProductTotalQuantity <= p.Product_Min_Stock_Level || p.Expiry_Date < DateTime.Now) &&
+                p.Is_activated == true &&
+                p.Is_deleted == false).ToList();
 
-        criticalStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity == 0) ?? 0;
-        lowStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity > 0 && p.ProductTotalQuantity <= p.Product_Min_Stock_Level) ?? 0;
-        expiredStockCount = allProducts?.Count(p => p.Expiry_Date < DateTime.Now) ?? 0;
+            criticalStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity == 0) ?? 0;
+            lowStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity > 0 && p.ProductTotalQuantity <= p.Product_Min_Stock_Level) ?? 0;
+            expiredStockCount = allProducts?.Count(p => p.Expiry_Date < DateTime.Now) ?? 0;
 
-        await ApplyAlertFilters();
+            // Reset to first page when loading new data
+            currentAlertPage = 1;
+            await ApplyAlertFilters();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadLowStockAlerts), "Loading low stock alerts");
+        }
     }
 
     private async Task LoadDepartments()
@@ -1817,7 +1927,6 @@ else
 
     private async Task SetActiveTab(int tab)
     {
-        LoadingToggle();
         string newTab = tab switch
         {
             1 => "transfers",
@@ -1839,9 +1948,8 @@ else
             showConfirmExitModal = true;
             return;
         }
-        await OnTabChanged(newTab);
-        LoadingToggle();
 
+        await OnTabChanged(newTab);
     }
 
     private async Task OnSearchChanged()
@@ -2397,8 +2505,7 @@ else
     {
         if (firstRender)
         {
-            await LoadDepartments();
-            await LoadSuppliers();
+            LoadData();
         }
 
         if (activeTab == "deliveries")
@@ -2552,12 +2659,21 @@ else
 
     private async Task OnTabChanged(string newTab)
     {
+        LoadingToggle();
         activeTab = newTab;
-        if (activeTab == "deliveries")
+        switch (activeTab)
         {
-            await LoadSuppliers();
-            await FocusDeliveryBarcode();
+            case "deliveries":
+                await LoadSuppliers();
+                break;
+            case "products":
+                await LoadProducts(); // Only if not included in LoadData
+                break;
+            case "alerts":
+                await LoadLowStockAlerts();
+                break;
         }
+        LoadingToggle();
     }
 
     private async Task CloseMessageModal()
@@ -2907,6 +3023,13 @@ else
     private bool showProductDetailsModal = false;
     private Product? selectedProductForDetails;
 
+    // Pagination Variables
+    private int currentPage = 1;
+    private int pageSize = 25;
+    private int totalPages = 0;
+    private int totalItems = 0;
+    private List<Product>? pagedProducts;
+
     // Sorting variables
     private string currentSortColumn = "";
     private bool isAscending = true;
@@ -2917,21 +3040,45 @@ else
     private string selectedAlertDepartmentFilter = "";
     private string currentAlertSortColumn = "";
     private bool isAlertAscending = true;
+    
+    // Low Stock Alerts Pagination Variables
+    private int currentAlertPage = 1;
+    private int alertPageSize = 10;
+    private int totalAlertPages = 0;
+    private int totalAlertItems = 0;
+    private List<Product> pagedLowStockProducts = new List<Product>();
 
     // Product Management Methods
     private async Task LoadProducts()
     {
         try
         {
-            allProducts = (await ProductService.GetAllAsync(false)).ToList();
-            filteredProducts = allProducts?.ToList();
-            StateHasChanged();
+            // Yield control to keep UI responsive
+            await Task.Yield();
+            
+            // Show spinner animation for 2 seconds minimum
+            await Task.Delay(2000);
+            
+            allProducts = (await ProductService.GetAllAsync(false).ConfigureAwait(false)).ToList();
+            
+            // Update UI on main thread
+            await InvokeAsync(() =>
+            {
+                filteredProducts = allProducts?.ToList();
+                // Reset to first page when loading new data
+                currentPage = 1;
+                ApplyPagination();
+                StateHasChanged();
+            });
         }
         catch (Exception ex)
         {
-            modalTitle = "Error";
-            modalMessage = $"Failed to load products: {ex.Message}";
-            showMessageModal = true;
+            await InvokeAsync(() =>
+            {
+                modalTitle = "Error";
+                modalMessage = $"Failed to load products: {ex.Message}";
+                showMessageModal = true;
+            });
         }
     }
 
@@ -2972,6 +3119,9 @@ else
         if (allProducts == null)
         {
             filteredProducts = new List<Product>();
+            pagedProducts = new List<Product>();
+            totalItems = 0;
+            totalPages = 0;
             return;
         }
 
@@ -3022,6 +3172,10 @@ else
         }
 
         filteredProducts = filtered.ToList();
+        
+        // Reset to first page when filters change
+        currentPage = 1;
+        ApplyPagination();
         StateHasChanged();
     }
 
@@ -3264,6 +3418,7 @@ else
         if (lowStockProducts == null)
         {
             filteredLowStockProducts = new List<Product>();
+            ApplyAlertPagination();
             return;
         }
 
@@ -3297,6 +3452,7 @@ else
         }
 
         filteredLowStockProducts = filtered.ToList();
+        ApplyAlertPagination();
         StateHasChanged();
     }
 
@@ -3377,5 +3533,153 @@ else
     {
         isLoading = !isLoading;
         StateHasChanged();
+    }
+
+    // Pagination Methods
+    private void ApplyPagination()
+    {
+        if (filteredProducts == null)
+        {
+            pagedProducts = new List<Product>();
+            totalItems = 0;
+            totalPages = 0;
+            return;
+        }
+
+        totalItems = filteredProducts.Count;
+        totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+        
+        // Ensure current page is within bounds
+        if (currentPage > totalPages && totalPages > 0)
+        {
+            currentPage = totalPages;
+        }
+        else if (currentPage < 1)
+        {
+            currentPage = 1;
+        }
+
+        int skip = (currentPage - 1) * pageSize;
+        pagedProducts = filteredProducts.Skip(skip).Take(pageSize).ToList();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages && page != currentPage)
+        {
+            currentPage = page;
+            ApplyPagination();
+            StateHasChanged();
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            await GoToPage(currentPage - 1);
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            await GoToPage(currentPage + 1);
+        }
+    }
+
+    private async Task ChangePageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newPageSize))
+        {
+            pageSize = newPageSize;
+            currentPage = 1; // Reset to first page when changing page size
+            ApplyPagination();
+            StateHasChanged();
+        }
+    }
+
+    private string GetPaginationInfo()
+    {
+        if (totalItems == 0) return "0 products";
+        
+        int startItem = (currentPage - 1) * pageSize + 1;
+        int endItem = Math.Min(currentPage * pageSize, totalItems);
+        
+        return $"{startItem}-{endItem} of {totalItems}";
+    }
+
+    private int GetStartPage()
+    {
+        int start = Math.Max(1, currentPage - 2);
+        return Math.Min(start, Math.Max(1, totalPages - 4));
+    }
+
+    private int GetEndPage()
+    {
+        int end = Math.Min(totalPages, currentPage + 2);
+        return Math.Max(end, Math.Min(totalPages, 5));
+    }
+
+    // Alert Pagination Methods
+    private void ApplyAlertPagination()
+    {
+        if (filteredLowStockProducts == null)
+        {
+            pagedLowStockProducts = new List<Product>();
+            totalAlertItems = 0;
+            totalAlertPages = 0;
+            return;
+        }
+
+        totalAlertItems = filteredLowStockProducts.Count;
+        totalAlertPages = (int)Math.Ceiling((double)totalAlertItems / alertPageSize);
+        
+        // Ensure current page is valid
+        if (currentAlertPage > totalAlertPages && totalAlertPages > 0)
+            currentAlertPage = totalAlertPages;
+        if (currentAlertPage < 1)
+            currentAlertPage = 1;
+
+        var skip = (currentAlertPage - 1) * alertPageSize;
+        pagedLowStockProducts = filteredLowStockProducts.Skip(skip).Take(alertPageSize).ToList();
+    }
+
+    private async Task GoToAlertPage(int page)
+    {
+        if (page >= 1 && page <= totalAlertPages)
+        {
+            currentAlertPage = page;
+            ApplyAlertPagination();
+            StateHasChanged();
+        }
+    }
+
+    private async Task PreviousAlertPage()
+    {
+        if (currentAlertPage > 1)
+        {
+            await GoToAlertPage(currentAlertPage - 1);
+        }
+    }
+
+    private async Task NextAlertPage()
+    {
+        if (currentAlertPage < totalAlertPages)
+        {
+            await GoToAlertPage(currentAlertPage + 1);
+        }
+    }
+
+    private async Task ChangeAlertPageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newSize))
+        {
+            alertPageSize = newSize;
+            currentAlertPage = 1; // Reset to first page
+            ApplyAlertPagination();
+            StateHasChanged();
+        }
     }
 }
