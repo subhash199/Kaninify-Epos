@@ -1327,7 +1327,7 @@
                 // Group refills by product and sum the quantities (same logic as InventoryManagementModal)
                 var refillData = pendingRefills
                     .Where(sr => sr.SalesItemTransaction?.Product != null &&
-                                 sr.SalesItemTransaction?.Product.Is_activated == true &&
+                                 sr.SalesItemTransaction?.Product.Is_Activated == true &&
                                  sr.SalesItemTransaction?.Product?.Department?.Stock_Refill_Print == true &&
                                  sr.Stock_Refilled == false
                     )

@@ -5,6 +5,8 @@
 @inject SiteServices SiteServices
 @inject TillServices TillServices
 @inject PosUserServices PosUserServices
+@inject SupabaseSyncService SupabaseSyncService
+@inject RetailerServices RetailerServices
 
 
 
@@ -30,6 +32,10 @@
                         else if (currentStep == SetupStep.User)
                         {
                             <span>👤 Admin User Setup</span>
+                        }
+                        else if (currentStep == SetupStep.CloudSetup)
+                        {
+                            <span>☁️ Cloud Setup</span>
                         }
                         else if (currentStep == SetupStep.Complete)
                         {
@@ -58,6 +64,10 @@
                                 <div class="step-item">
                                     <span class="step-number">3</span>
                                     <span>Create admin user</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">4</span>
+                                    <span>Setup cloud sync (optional)</span>
                                 </div>
                             </div>
                         </div>
@@ -238,11 +248,14 @@
                             </div>
                             <h4>Setup Complete!</h4>
                             <p class="lead">Your POS system is now ready to use.</p>
-                            <div class="setup-summary">
-                                <p><strong>Site:</strong> @createdSite?.Site_BusinessName</p>
-                                <p><strong>Till:</strong> @createdTill?.Till_Name</p>
-                                <p><strong>Admin User:</strong> @createdUser?.First_Name @createdUser?.Last_Name</p>
-                            </div>
+                            @if (createdSite != null && createdTill != null && CreateUser != null)
+                            {
+                                <div class="setup-summary">
+                                    <p><strong>Site:</strong> @createdSite?.Site_BusinessName</p>
+                                    <p><strong>Till:</strong> @createdTill?.Till_Name</p>
+                                    <p><strong>Admin User:</strong> @createdUser?.First_Name @createdUser?.Last_Name</p>
+                                </div>
+                            }
                         </div>
                     }
 
@@ -285,8 +298,54 @@
                             {
                                 <span class="spinner-border spinner-border-sm me-2"></span>
                             }
-                            Create User & Finish
+                            Create User & Continue
                         </button>
+                    }
+                    else if (currentStep == SetupStep.CloudSetup)
+                    {
+                        <EditForm Model="@cloudSetupModel" OnValidSubmit="@SetupCloudSync">
+                            <DataAnnotationsValidator />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email *</label>
+                                        <InputText @bind-Value="cloudSetupModel.Email" class="form-control" />
+                                        <ValidationMessage For="@(() => cloudSetupModel.Email)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Password *</label>
+                                        <InputText @bind-Value="cloudSetupModel.Password" class="form-control" type="password" />
+                                        <ValidationMessage For="@(() => cloudSetupModel.Password)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">API URL *</label>
+                                        <InputText @bind-Value="cloudSetupModel.ApiUrl" class="form-control" placeholder="https://example.supabase.co" />
+                                        <ValidationMessage For="@(() => cloudSetupModel.ApiUrl)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">API Key *</label>
+                                        <InputText @bind-Value="cloudSetupModel.ApiKey" class="form-control" />
+                                        <ValidationMessage For="@(() => cloudSetupModel.ApiKey)" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Note:</strong> Cloud sync enables data backup and multi-device synchronization. Your data will be securely stored in the cloud.
+                            </div>
+                            <div class="d-grid gap-2 mt-3">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-cloud-upload me-2"></i>Set Up Cloud Sync
+                                </button>
+                            </div>
+                        </EditForm>
                     }
                     else if (currentStep == SetupStep.Complete)
                     {
@@ -352,18 +411,27 @@
     private Till tillModel = new();
     private PosUser userModel = new();
     private UserSetupModel userSetupModel = new();
+    private CloudSetupModel cloudSetupModel = new();
+    private bool cloudSyncSuccess = false;
 
     private Site? createdSite;
     private Till? createdTill;
     private PosUser? createdUser;
 
-    private enum SetupStep
+    public enum SetupStep
     {
         Welcome,
         Site,
         Till,
         User,
+        CloudSetup,
         Complete
+    }
+
+    public void SetCurrentStep(SetupStep step)
+    {
+        currentStep = step;
+        StateHasChanged();
     }
 
     public class UserSetupModel
@@ -390,7 +458,7 @@
         tillModel.Till_Name = "Main Till";
         userModel.Is_Activated = true;
         userModel.Is_Deleted = false;
-        
+
         // Set all permissions to true for admin user
         SetAdminPermissions();
     }
@@ -448,7 +516,7 @@
 
             await SiteServices.AddAsync(siteModel);
             createdSite = siteModel;
-            
+
             NextStep();
         }
         catch (Exception ex)
@@ -471,7 +539,7 @@
         try
         {
             tillModel.Site_Id = createdSite?.Site_Id ?? 0;
-            
+
             var validation = await TillServices.ValidateAsync(tillModel);
             if (!string.IsNullOrEmpty(validation))
             {
@@ -481,7 +549,7 @@
 
             await TillServices.AddAsync(tillModel);
             createdTill = tillModel;
-            
+
             NextStep();
         }
         catch (Exception ex)
@@ -508,10 +576,10 @@
             userModel.Last_Name = userSetupModel.Last_Name;
             userModel.Passcode = userSetupModel.Passcode;
             userModel.User_Type = userSetupModel.User_Type;
-            
+
             userModel.Primary_Site_Id = createdSite?.Site_Id;
             userModel.Till_Id = createdTill?.Till_Id;
-            
+
             var validation = await PosUserServices.ValidateAsync(userModel);
             if (!string.IsNullOrEmpty(validation))
             {
@@ -529,7 +597,7 @@
 
             await PosUserServices.AddAsync(userModel);
             createdUser = userModel;
-            
+
             NextStep();
         }
         catch (Exception ex)
@@ -557,9 +625,126 @@
         tillModel = new Till();
         userModel = new PosUser();
         userSetupModel = new UserSetupModel();
+        cloudSetupModel = new CloudSetupModel();
+        cloudSyncSuccess = false;
         createdSite = null;
         createdTill = null;
         createdUser = null;
     }
 
+    public class CloudSetupModel
+    {
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [StringLength(50, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "API URL is required")]
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        public string ApiUrl { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "API Key is required")]
+        public string ApiKey { get; set; } = string.Empty;
+    }
+
+
+    private async Task SetupCloudSync()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+
+            var authResult = await SupabaseSyncService.AuthenticateAsync(cloudSetupModel.Email, cloudSetupModel.Password, cloudSetupModel.ApiUrl, cloudSetupModel.ApiKey);
+
+            if (authResult.IsSuccess)
+            {
+                Retailer tempRetailer = new Retailer
+                {
+                    RetailerId =Guid.Parse(authResult.UserId),
+                    Email = cloudSetupModel.Email,
+                    ApiUrl = cloudSetupModel.ApiUrl,
+                    Password = cloudSetupModel.Password,
+                    ApiKey = cloudSetupModel.ApiKey,
+                    AccessToken = authResult.AccessToken,
+                    RefreshToken = authResult.RefreshToken,
+                    TokenExpiryAt = authResult.ExpiresAt,
+                    IsActive = true,
+                    Date_Created = DateTime.UtcNow,
+                    Last_Modified = DateTime.UtcNow,
+                    Last_Sign_In_At = DateTime.UtcNow,
+                    SyncStatus = SyncStatus.Pending
+                };
+                var result = await SupabaseSyncService.GetAsync<Retailer>(tempRetailer, "Retailers", "*", $"Email=eq.{cloudSetupModel.Email}", null);
+
+                if (result.Error != null)
+                {
+                    // Show error message when account doesn't exist
+                    errorMessage = $"Your account may not exist or {result.Error}. Please contact tech support.";
+                    isLoading = false;
+                    StateHasChanged();
+                    return;
+                }
+                else
+                {
+                    if(result.Data == null || result.Data.Count == 0)
+                    {
+                        errorMessage = "No retailer found with the provided email. Please contact tech support.";
+                        isLoading = false;
+                        StateHasChanged();
+                        return;
+                    }
+                    var retailer = result.Data[0];
+                    retailer.ApiKey = cloudSetupModel.ApiKey;
+                    // Update existing retailer with new tokens
+                    retailer.ApiUrl = cloudSetupModel.ApiUrl;
+                    retailer.Password = cloudSetupModel.Password;
+                    retailer.AccessToken = authResult.AccessToken;
+                    retailer.RefreshToken = authResult.RefreshToken;
+                    retailer.TokenExpiryAt = authResult.ExpiresAt;
+                    retailer.Last_Modified = DateTime.UtcNow;
+                    retailer.Last_Sign_In_At = DateTime.UtcNow;
+                    retailer.Date_Created = retailer.Date_Created.ToUniversalTime();
+                    retailer.LastLicenseCheck = retailer.LastLicenseCheck == null ? null : retailer.LastLicenseCheck.Value.ToUniversalTime();
+                    retailer.LicenseIssueDate = retailer.LicenseIssueDate.ToUniversalTime();
+                    retailer.LicenseExpiryDate = retailer.LicenseExpiryDate.ToUniversalTime();
+                    retailer.IsActive = true;
+                    retailer.SyncStatus = SyncStatus.Pending;
+
+                    // Update the retailer
+                    await RetailerServices.DeleteAllAsync();
+                    await RetailerServices.AddAsync(retailer);
+                }
+
+                cloudSyncSuccess = true;
+                NextStep();
+            }
+            else
+            {
+                errorMessage = $"Authentication failed: {authResult.ErrorMessage}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error setting up cloud sync: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SkipCloudSetup()
+    {
+        // Skip cloud setup and move to completion
+        NextStep();
+    }
+
 }
+

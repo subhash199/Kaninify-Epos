@@ -5,7 +5,7 @@
 @inject DataHandlerLibrary.Services.DepartmentServices DepartmentService
 @inject DataHandlerLibrary.Services.SupplierServices SupplierService
 @inject DataHandlerLibrary.Services.SupplierItemsServices SupplierItemsService
-@inject EposRetail.Services.UserSessionService UserSessionService
+@inject UserSessionService UserSessionService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject ProductServices ProductService
@@ -650,7 +650,7 @@ else
                                             <strong>£@item.Product?.Product_Cost.ToString("F2")</strong>
                                         </td>
                                         <td>
-                                            @if (item.Product?.Is_activated == true)
+                                            @if (item.Product?.Is_Activated == true)
                                             {
                                                 <span class="badge bg-success">Active</span>
                                             }
@@ -1111,11 +1111,11 @@ else
                                             </div>
                                         </td>
                                         <td>
-                                            @if (product.Is_deleted)
+                                            @if (product.Is_Deleted)
                                             {
                                                 <span class="badge bg-dark">Deleted</span>
                                             }
-                                            else if (product.Is_activated)
+                                            else if (product.Is_Activated)
                                             {
                                                 <span class="badge bg-success">Active</span>
                                             }
@@ -1123,7 +1123,7 @@ else
                                             {
                                                 <span class="badge bg-danger">Inactive</span>
                                             }
-                                            @if (!product.Is_deleted && product.ProductTotalQuantity <= product.Product_Low_Stock_Alert_QTY)
+                                            @if (!product.Is_Deleted && product.ProductTotalQuantity <= product.Product_Low_Stock_Alert_QTY)
                                             {
                                                 <br>
                                                 <span class="badge bg-warning mt-1">Low Stock</span>
@@ -1139,10 +1139,10 @@ else
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn btn-sm @(product.Is_activated ? "btn-outline-warning" : "btn-outline-success")"
+                                                <button class="btn btn-sm @(product.Is_Activated ? "btn-outline-warning" : "btn-outline-success")"
                                                         @onclick="() => ToggleProductStatus(product)"
-                                                        title="@(product.Is_activated ? "Deactivate" : "Activate")">
-                                                    <i class="fas @(product.Is_activated ? "fa-pause" : "fa-play")"></i>
+                                                        title="@(product.Is_Activated ? "Deactivate" : "Activate")">
+                                                    <i class="fas @(product.Is_Activated ? "fa-pause" : "fa-play")"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -1799,8 +1799,8 @@ else
             var allProducts = await ProductService.GetAllAsync(false);
             lowStockProducts = allProducts?.Where(p =>
                 (p.ProductTotalQuantity <= p.Product_Min_Stock_Level || p.Expiry_Date < DateTime.Now) &&
-                p.Is_activated == true &&
-                p.Is_deleted == false).ToList();
+                p.Is_Activated == true &&
+                p.Is_Deleted == false).ToList();
 
             criticalStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity == 0) ?? 0;
             lowStockCount = lowStockProducts?.Count(p => p.ProductTotalQuantity > 0 && p.ProductTotalQuantity <= p.Product_Min_Stock_Level) ?? 0;
@@ -3150,11 +3150,11 @@ else
         // Apply status filter
         filtered = productStatusFilter switch
         {
-            "active" => filtered.Where(p => p.Is_activated && !p.Is_deleted),
-            "inactive" => filtered.Where(p => !p.Is_activated && !p.Is_deleted),
-            "lowstock" => filtered.Where(p => p.ProductTotalQuantity <= p.Product_Low_Stock_Alert_QTY && !p.Is_deleted),
-            "deleted" => filtered.Where(p => p.Is_deleted),
-            "notdeleted" => filtered.Where(p => !p.Is_deleted),
+            "active" => filtered.Where(p => p.Is_Activated && !p.Is_Deleted),
+            "inactive" => filtered.Where(p => !p.Is_Activated && !p.Is_Deleted),
+            "lowstock" => filtered.Where(p => p.ProductTotalQuantity <= p.Product_Low_Stock_Alert_QTY && !p.Is_Deleted),
+            "deleted" => filtered.Where(p => p.Is_Deleted),
+            "notdeleted" => filtered.Where(p => !p.Is_Deleted),
             _ => filtered
         };
 
@@ -3170,7 +3170,7 @@ else
                 "sellingprice" => isAscending ? filtered.OrderBy(p => p.Product_Selling_Price) : filtered.OrderByDescending(p => p.Product_Selling_Price),
                 "costprice" => isAscending ? filtered.OrderBy(p => p.Product_Cost) : filtered.OrderByDescending(p => p.Product_Cost),
                 "stock" => isAscending ? filtered.OrderBy(p => p.ProductTotalQuantity) : filtered.OrderByDescending(p => p.ProductTotalQuantity),
-                "status" => isAscending ? filtered.OrderBy(p => p.Is_activated).ThenBy(p => p.Is_deleted) : filtered.OrderByDescending(p => p.Is_activated).ThenByDescending(p => p.Is_deleted),
+                "status" => isAscending ? filtered.OrderBy(p => p.Is_Activated).ThenBy(p => p.Is_Deleted) : filtered.OrderByDescending(p => p.Is_Activated).ThenByDescending(p => p.Is_Deleted),
                 _ => filtered
             };
         }
@@ -3188,7 +3188,7 @@ else
         selectedProductForModal = new Product
         {
             Product_ID = 0,
-            Is_activated = true,
+            Is_Activated = true,
             Date_Created = DateTime.Now,
             Created_By_Id = UserSessionService.CurrentUser?.User_ID,
             Site_Id = UserSessionService.CurrentSite?.Site_Id ?? 1
@@ -3219,10 +3219,9 @@ else
             Product_Min_Order = product.Product_Min_Order,
             Product_Low_Stock_Alert_QTY = product.Product_Low_Stock_Alert_QTY,
             Product_Min_Stock_Level = product.Product_Min_Stock_Level,
-            Print_To_Second_Printer = product.Print_To_Second_Printer,
-            Is_deleted = product.Is_deleted,
+            Is_Deleted = product.Is_Deleted,
             Allow_Discount = product.Allow_Discount,
-            Is_activated = product.Is_activated,
+            Is_Activated = product.Is_Activated,
             Date_Created = product.Date_Created,
             Last_Modified = DateTime.Now,
             Created_By_Id = product.Created_By_Id,
@@ -3245,7 +3244,7 @@ else
     {
         try
         {
-            product.Is_activated = !product.Is_activated;
+            product.Is_Activated = !product.Is_Activated;
             product.Last_Modified = DateTime.Now;
             product.Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID;
 
@@ -3253,7 +3252,7 @@ else
             await RefreshProducts();
 
             modalTitle = "Success";
-            modalMessage = $"Product {(product.Is_activated ? "activated" : "deactivated")} successfully.";
+            modalMessage = $"Product {(product.Is_Activated ? "activated" : "deactivated")} successfully.";
             showMessageModal = true;
         }
         catch (Exception ex)
@@ -3266,8 +3265,8 @@ else
 
     private string GetProductRowClass(Product product)
     {
-        if (product.Is_deleted) return "table-dark";
-        if (!product.Is_activated) return "table-secondary";
+        if (product.Is_Deleted) return "table-dark";
+        if (!product.Is_Activated) return "table-secondary";
         if (product.ProductTotalQuantity <= 0) return "table-danger";
         if (product.ProductTotalQuantity <= product.Product_Low_Stock_Alert_QTY) return "table-warning";
         return "";

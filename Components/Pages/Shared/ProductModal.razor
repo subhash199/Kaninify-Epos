@@ -162,16 +162,10 @@
                         <div class="section-title">Settings</div>
                         
                         <div class="form-grid">
-                            <div class="modern-form-group">
-                                <div class="modern-checkbox-wrapper">
-                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Print_To_Second_Printer" id="print-second">
-                                    <label for="print-second" class="modern-label mb-0">Print to Second Printer</label>
-                                </div>
-                            </div>
                             
                             <div class="modern-form-group">
                                 <div class="modern-checkbox-wrapper">
-                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Is_activated" id="activated">
+                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Is_Activated" id="activated">
                                     <label for="activated" class="modern-label mb-0">Product Activated</label>
                                 </div>
                             </div>
@@ -185,7 +179,7 @@
                             
                             <div class="modern-form-group">
                                 <div class="modern-checkbox-wrapper">
-                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Is_deleted" id="deleted">
+                                    <input type="checkbox" class="modern-checkbox" @bind="Product.Is_Deleted" id="deleted">
                                     <label for="deleted" class="modern-label mb-0">Mark as Deleted</label>
                                 </div>
                             </div>
@@ -374,7 +368,7 @@
                 {
                     Product.Priced_Changed_On = DateTime.UtcNow;
                 }
-                Product.Is_activated = true;
+                Product.Is_Activated = true;
                 Product.Last_Modified = DateTime.UtcNow;
                 await productServices.AddAsync(Product);
             }

@@ -1,5 +1,6 @@
 @page "/"
 @using DataHandlerLibrary.Services
+@using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Interfaces
 @using EposRetail.Components.Pages.Shared
 @using EposRetail.Models
@@ -7,14 +8,19 @@
 @using EposRetail.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
+@using System.Text.Json.Serialization;
+@using System.Text.Json
 
 @inject PosUserServices PosuserService
 @inject TillServices TillService
 @inject SiteServices SiteService
 @inject UserSessionService UserSession
+@inject RetailerServices RetailerService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject GlobalErrorLogService GlobalErrorLogService
+@inject SupabaseSyncService supabaseSyncService
+@inject ProductServices ProductServices
 
 @if (isLoading)
 {
@@ -138,10 +144,11 @@ else
                              OnClose="CloseModal" />
     }
 
-    <SystemSetupModal IsVisible="@showSetupModal"
-                      OnSetupComplete="@OnSetupComplete"
-                      OnClose="@CloseSetupModal" />
+   
 }
+<SystemSetupModal @ref="systemSetupModalRef" IsVisible="@showSetupModal"
+                  OnSetupComplete="@OnSetupComplete"
+                  OnClose="@CloseSetupModal" />
 
 @code {
     private LoginModel loginModel = new();
@@ -149,6 +156,7 @@ else
     private bool isLoading = false;
     private bool showSetupModal = false;
     private ElementReference passcodeInputRef;
+    private SystemSetupModal systemSetupModalRef;
 
     public class LoginModel
     {
@@ -161,19 +169,25 @@ else
     {
         if (firstRender)
         {
-            await GenerateQRCode();
+            isLoading = true;
+            StateHasChanged();
+            //await GenerateQRCode();
             await CheckForExistingUsers();
-
+            var products = (await ProductServices.GetByConditionAsync(p => p.Is_Deleted == false && p.Is_Activated == true && p.SyncStatus== SyncStatus.Pending, true)).ToList();
+            supabaseSyncService.SyncProductsAsync(products, UserSession.CurrentRetailer);
+            isLoading = false;
+            StateHasChanged();
             // Set focus on the passcode input field
             try
             {
                 await passcodeInputRef.FocusAsync();
+
             }
             catch (Exception)
             {
                 // Ignore focus errors
             }
-
+     
         }
     }
 
@@ -186,6 +200,176 @@ else
             {
                 showSetupModal = true;
                 StateHasChanged();
+                return;
+            }
+
+            // Check for retailer record
+            var retailer = await RetailerService.GetFirstActiveRetailerAsync();
+            if (retailer == null)
+            {
+                showSetupModal = true;
+                // Set the current step to CloudSetup
+                await InvokeAsync(() =>
+                {
+                    systemSetupModalRef?.SetCurrentStep(SystemSetupModal.SetupStep.CloudSetup);
+                });
+                StateHasChanged();
+            }
+            else
+            {
+                // Retailer exists, use access token to fetch any updates
+                try
+                {
+                    UserSession.SetRetailer(retailer);
+                    // First, fetch current server time to verify local PC datetime accuracy
+                    DateTime? serverTime;
+                    DateTime localTime = DateTime.Now;
+                    bool isTimeAccurate = true;
+
+                    // Initialize the Supabase connection with the retailer's ID
+                    await supabaseSyncService.InitializeForRetailerAsync(retailer);
+
+                    // Refresh token if needed
+                    bool tokenRefreshed = await supabaseSyncService.RefreshTokenIfNeededAsync(retailer.RetailerId);
+
+                    if (tokenRefreshed)
+                    {
+                        // Get the updated retailer information after token refresh
+                        retailer = await RetailerService.GetByGuidAsync(retailer.RetailerId);
+                    }
+
+                    // Enhanced license validation with server time verification and decryption
+                    bool isLicenseValid = false;
+                    string licenseErrorMessage = string.Empty;
+
+                    try
+                    {
+                        // ... existing code ...
+                        try
+                        {
+
+                            var result = await supabaseSyncService.GetServerDateTimeAlternativeAsync(retailer);
+                            if (result.IsSuccess)
+                            {
+                                serverTime = result.Data.ToLocalTime();
+                                var localDateTime = DateTime.Now;
+                                var timeDifference = Math.Abs((serverTime.Value - localDateTime).TotalMinutes);
+
+                                if (timeDifference > 5) // Allow 5 minutes difference
+                                {
+                                    licenseErrorMessage = "Your system time appears to be incorrect. Please sync your computer's clock and try again.";
+                                    isLicenseValid = false;
+                                    isTimeAccurate = false;
+                                }
+                            }
+                            else
+                            {
+                                serverTime = null;
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            // If server time check fails, log warning but continue with local validation
+                            Console.WriteLine($"Warning: Server time check failed: {ex.Message}");
+                        }
+
+                        if (isTimeAccurate)
+                        {
+                            if (!string.IsNullOrEmpty(retailer.LicenseKey) && !string.IsNullOrEmpty(retailer.SecretKey))
+                            {
+                                // Decrypt the license key using the secret key
+                                var aesService = new AESEncryptDecryptServices();
+                                string decryptedLicenseData = aesService.Decrypt(retailer.LicenseKey, retailer.SecretKey);
+
+                                // Deserialize the decrypted license data
+                                var licenseInfo = JsonSerializer.Deserialize<LicenseKey>(decryptedLicenseData);
+
+                                if (licenseInfo != null)
+                                {
+                                    // Convert issue date from UTC to local time
+                                    DateTime localIssueDate = licenseInfo.IssueDate.ToLocalTime();
+                                    DateTime currentDateTime = DateTime.Now;
+
+                                    // Check if issue date is greater than current datetime (additional clock sync check)
+                                    if (localIssueDate > currentDateTime)
+                                    {
+                                        licenseErrorMessage = "Your system clock appears to be incorrect. The license issue date is in the future. Please sync your date and time settings and try again.";
+                                        isLicenseValid = false;
+                                    }
+                                    else
+                                    {
+                                        // Check if current datetime is less than expiry date
+                                        DateTime localExpiryDate = licenseInfo.ExpiryDate.ToLocalTime();
+
+                                        if (currentDateTime < localExpiryDate)
+                                        {
+                                            isLicenseValid = true;
+                                            // Update retailer license properties with decrypted values
+                                            retailer.LicenseIssueDate = licenseInfo.IssueDate;
+                                            retailer.LicenseExpiryDate = licenseInfo.ExpiryDate;
+                                            retailer.IsLicenseValid = true;
+                                            retailer.LastLicenseCheck = DateTime.UtcNow;
+
+                                            // Save the updated retailer information
+                                            await RetailerService.UpdateAsync(retailer);
+                                        }
+                                        else
+                                        {
+                                            licenseErrorMessage = "Your license has expired. Please contact technical support to renew your license.";
+                                            isLicenseValid = false;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    licenseErrorMessage = "Invalid license data. Please contact technical support for assistance.";
+                                    isLicenseValid = false;
+                                }
+                            }
+                            else
+                            {
+                                licenseErrorMessage = "License key or secret key is missing. Please contact technical support for assistance.";
+                                isLicenseValid = false;
+                            }
+                        }
+                        else
+                        {
+                            // Time accuracy check failed, use the error message set above
+                            isLicenseValid = false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        licenseErrorMessage = "Failed to validate license. Please contact technical support for assistance.";
+                        isLicenseValid = false;
+                        // Log the exception for debugging
+                        Console.WriteLine($"License validation error: {ex.Message}");
+                    }
+
+                    if (!isLicenseValid)
+                    {
+                        // Show license error in GenericMessageModal
+                        modalSettings.ModalTitle = "License Error";
+                        modalSettings.ModalMessage = licenseErrorMessage;
+                        modalSettings.ShowModal = true;
+                        modalSettings.ModalEnum = ModalEnum.Error;
+
+                        // Update UI to show modal
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        // License is valid, proceed with normal flow
+                        // Clear any previous modal settings
+                        modalSettings.ShowModal = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await GlobalErrorLogService.LogErrorAsync(ex, nameof(CheckForExistingUsers), $"Error fetching retailer data: {ex.Message}");
+                    StateHasChanged();
+                }
             }
         }
         catch (Exception ex)
@@ -215,17 +399,17 @@ else
             await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");
             return;
         }
-    
+
         try
         {
             isLoading = true;
             StateHasChanged();
-            
+
             await Task.Delay(500); // Simulate loading delay
-            
+
             // Check if passcode exists
             var user = await PosuserService.GetByPasscodeAsync(int.Parse(loginModel.Passcode));
-    
+
             if (user != null)
             {
                 // User found, check if activated
@@ -240,10 +424,10 @@ else
                 {
                     var till = await TillService.GetFirstTillRecord();
                     var site = await SiteService.GetFirstSiteRecord();
-    
+
                     // Set session using UserSessionService
                     UserSession.SetSession(user, site, till);
-                    
+
                     // Keep loading state true during navigation to prevent glitch
                     NavigationManager.NavigateTo("/checkout");
                     return;
@@ -253,7 +437,7 @@ else
             {
                 // Passcode doesn't exist, check if any users exist
                 bool anyUsersExist = await PosuserService.CheckIfAnyUsersExist();
-    
+
                 if (!anyUsersExist)
                 {
                     // No users exist - new system setup

@@ -234,7 +234,7 @@
         {
             // Get products that are activated and have expiry dates within the range
             var products = await ProductService.GetByConditionAsync(
-                p => p.Is_activated == true && 
+                p => p.Is_Activated == true && 
                      p.Expiry_Date.Date >= FromDate.Date && 
                      p.Expiry_Date.Date <= ToDate.Date &&
                      (p.ShelfQuantity > 0 || p.StockroomQuantity > 0),

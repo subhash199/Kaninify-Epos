@@ -322,7 +322,7 @@
         // Group refills by product and sum the quantities
         var refillData = pendingRefills
             .Where(sr => sr.SalesItemTransaction?.Product != null &&
-                         sr.SalesItemTransaction.Product.Is_activated == true)
+                         sr.SalesItemTransaction.Product.Is_Activated == true)
             .GroupBy(sr => sr.SalesItemTransaction.Product_ID)
             .Select(g => new
             {
@@ -360,7 +360,7 @@
     {
         var expiryDate = DateTime.UtcNow.AddDays(7);
         var products = await ProductService.GetByConditionAsync(
-            p => p.Is_activated == true &&
+            p => p.Is_Activated == true &&
                  p.Expiry_Date <= expiryDate &&
                  (p.ShelfQuantity > 0 || p.StockroomQuantity > 0), false
         );
@@ -370,7 +370,7 @@
 
     private async Task<List<Product>> GetShortageProductsAsync()
     {
-        var products = await ProductService.GetByConditionAsync(p => p.Is_activated == true, false);
+        var products = await ProductService.GetByConditionAsync(p => p.Is_Activated == true, false);
         var shortageProducts = new List<Product>();
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
@@ -403,21 +403,21 @@
                 if (SelectedDepartmentId > 0)
                 {
                     FilteredRefillProducts = AllRefillProducts?
-                    .Where(p => p.Product.Is_activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true) && p.Product?.Department_ID == SelectedDepartmentId)
+                    .Where(p => p.Product.Is_Activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true) && p.Product?.Department_ID == SelectedDepartmentId)
                     .OrderBy(p => p.Product.Product_Name)
                     .ToList() ?? new List<ProductRefillDTO>();
                 }
                 else if (!string.IsNullOrWhiteSpace(SearchTerm))
                 {
                     FilteredRefillProducts = AllRefillProducts?
-                    .Where(p => p.Product.Is_activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true) && (p.Product?.Product_Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .Where(p => p.Product.Is_Activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true) && (p.Product?.Product_Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
                     .OrderBy(p => p.Product.Product_Name)
                     .ToList() ?? new List<ProductRefillDTO>();
                 }
                 else
                 {
                     FilteredRefillProducts = AllRefillProducts?
-                    .Where(p => p.Product.Is_activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true))
+                    .Where(p => p.Product.Is_Activated == true && (p.Product?.Department?.Stock_Refill_Print ?? true))
                     .OrderBy(p => p.Product.Product_Name)
                     .ToList() ?? new List<ProductRefillDTO>();
                 }
@@ -677,7 +677,7 @@
     private async Task UpdateRefilledSalesItems()
     {
         // Update sales items that have been marked as refilled
-        var refilledItems = AllRefillProducts?.Where(s => s.Is_Refill == true && s.Product != null && s.Product.Is_activated == true).ToList();
+        var refilledItems = AllRefillProducts?.Where(s => s.Is_Refill == true && s.Product != null && s.Product.Is_Activated == true).ToList();
         if (refilledItems?.Count > 0)
         {
             foreach (var item in stockRefillItems)
@@ -758,9 +758,8 @@
             Product_Min_Order = product.Product_Min_Order,
             Product_Low_Stock_Alert_QTY = product.Product_Low_Stock_Alert_QTY,
             Product_Min_Stock_Level = product.Product_Min_Stock_Level,
-            Print_To_Second_Printer = product.Print_To_Second_Printer,
-            Is_activated = product.Is_activated,
-            Is_deleted = product.Is_deleted,
+            Is_Activated = product.Is_Activated,
+            Is_Deleted = product.Is_Deleted,
             Allow_Discount = product.Allow_Discount,
             Date_Created = product.Date_Created,
             Last_Modified = product.Last_Modified,
@@ -820,9 +819,8 @@
             existingProduct.Product_Min_Order = savedProduct.Product_Min_Order;
             existingProduct.Product_Low_Stock_Alert_QTY = savedProduct.Product_Low_Stock_Alert_QTY;
             existingProduct.Product_Min_Stock_Level = savedProduct.Product_Min_Stock_Level;
-            existingProduct.Print_To_Second_Printer = savedProduct.Print_To_Second_Printer;
-            existingProduct.Is_activated = savedProduct.Is_activated;
-            existingProduct.Is_deleted = savedProduct.Is_deleted;
+            existingProduct.Is_Activated = savedProduct.Is_Activated;
+            existingProduct.Is_Deleted = savedProduct.Is_Deleted;
             existingProduct.Allow_Discount = savedProduct.Allow_Discount;
             existingProduct.Last_Modified = savedProduct.Last_Modified;
             existingProduct.Last_Modified_By_Id = savedProduct.Last_Modified_By_Id;
@@ -859,9 +857,8 @@
         target.Product_Min_Order = source.Product_Min_Order;
         target.Product_Low_Stock_Alert_QTY = source.Product_Low_Stock_Alert_QTY;
         target.Product_Min_Stock_Level = source.Product_Min_Stock_Level;
-        target.Print_To_Second_Printer = source.Print_To_Second_Printer;
-        target.Is_activated = source.Is_activated;
-        target.Is_deleted = source.Is_deleted;
+        target.Is_Activated = source.Is_Activated;
+        target.Is_Deleted = source.Is_Deleted;
         target.Allow_Discount = source.Allow_Discount;
         target.Last_Modified = source.Last_Modified;
         target.Last_Modified_By_Id = source.Last_Modified_By_Id;

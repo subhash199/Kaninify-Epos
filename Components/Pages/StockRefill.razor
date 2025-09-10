@@ -308,8 +308,8 @@
 
         // Group sales items by product and sum the quantities
         var refillData = StockRefillItems
-            .Where(s => s.SalesItemTransaction?.Product_ID != null && s.SalesItemTransaction?.Product?.Is_activated == true
-            && s.SalesItemTransaction?.Product?.Is_deleted == false)
+            .Where(s => s.SalesItemTransaction?.Product_ID != null && s.SalesItemTransaction?.Product?.Is_Activated == true
+            && s.SalesItemTransaction?.Product?.Is_Deleted == false)
             .GroupBy(s => s.SalesItemTransaction.Product_ID)
             .Select(g => new
             {

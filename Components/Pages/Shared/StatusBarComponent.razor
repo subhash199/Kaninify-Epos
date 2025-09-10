@@ -240,7 +240,7 @@
             var expiryThreshold = currentDate.AddDays(7); // Products expiring within 7 days
 
             var expiringProducts = await productServices.GetByConditionAsync(
-                p => p.Is_activated == true &&
+                p => p.Is_Activated == true &&
                      p.Expiry_Date.Date <= expiryThreshold && (p.ShelfQuantity > 0 || p.StockroomQuantity > 0),
                 false);
 
@@ -282,7 +282,7 @@
                 .ToList();
 
             var products = await productServices.GetByConditionAsync(
-                p => p.Is_activated == true,
+                p => p.Is_Activated == true,
                 false);
 
             var shortageCount = 0;

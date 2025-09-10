@@ -70,6 +70,8 @@ public static class MauiProgram
 		builder.Services.AddScoped<StockRefillServices>();
 		builder.Services.AddScoped<ErrorLogServices>();
 		builder.Services.AddScoped<GlobalErrorLogService>();
+		builder.Services.AddScoped<RetailerServices>();
+		builder.Services.AddScoped<SupabaseSyncService>();
 
         // Register enhanced UserSessionService
         builder.Services.AddScoped<UserSessionService>();

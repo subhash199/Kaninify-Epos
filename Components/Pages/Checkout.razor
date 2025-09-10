@@ -371,7 +371,7 @@
             return;
         }
 
-        if (!product.Is_activated || product.Is_deleted)
+        if (!product.Is_Activated || product.Is_Deleted)
         {
             await ShowProductActivationModalAsync(product);
             return;
@@ -441,7 +441,7 @@
         {
             Product_Barcode = _state.SearchText,
             Expiry_Date = DateTime.UtcNow.AddDays(7),
-            Is_activated = true
+            Is_Activated = true
         };
         StateHasChanged();
     }
@@ -921,7 +921,7 @@
                 Product_Name = departmentClickName,
                 Product_Selling_Price = amount,
                 Expiry_Date = DateTime.MaxValue,
-                Is_activated = true
+                Is_Activated = true
             };
             _state.ModalSettings.ShowModal = true;
 
