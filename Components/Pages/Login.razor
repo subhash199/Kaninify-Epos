@@ -187,7 +187,7 @@ else
             {
                 // Ignore focus errors
             }
-     
+
         }
     }
 
@@ -195,6 +195,7 @@ else
     {
         try
         {
+            
             var users = await PosuserService.GetAllAsync(false);
             if (users == null || !users.Any())
             {
@@ -205,6 +206,7 @@ else
 
             // Check for retailer record
             var retailer = await RetailerService.GetFirstActiveRetailerAsync();
+            await supabaseSyncService.SyncDatabaseToCloudAsync(retailer);
             if (retailer == null)
             {
                 showSetupModal = true;
