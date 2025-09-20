@@ -206,7 +206,7 @@ else
 
             // Check for retailer record
             var retailer = await RetailerService.GetFirstActiveRetailerAsync();
-            await supabaseSyncService.SyncDatabaseToCloudAsync(retailer);
+            await supabaseSyncService.SyncDatabaseToCloudAsync(retailer, 10000);
             if (retailer == null)
             {
                 showSetupModal = true;
