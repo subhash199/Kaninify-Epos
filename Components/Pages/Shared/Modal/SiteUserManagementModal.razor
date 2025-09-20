@@ -4,8 +4,6 @@
 @inject IJSRuntime JSRuntime
 @inject UserManagementServices UserManagementServices
 @inject UserSiteAccessServices UserSiteAccessServices
-@inject PosUser CurrentUser
-
 
 @if (IsVisible && SelectedSite != null)
 {
@@ -185,6 +183,7 @@
     [Parameter] public bool IsVisible { get; set; } = false;
     [Parameter] public Site? SelectedSite { get; set; }
     [Parameter] public EventCallback OnModalClosed { get; set; }
+    [Parameter] public PosUser CurrentUser { get; set; } = new PosUser();
 
     private List<PosUser> AllUsers = new List<PosUser>();
     private List<UserSiteAccess> CurrentSiteAccesses = new List<UserSiteAccess>();

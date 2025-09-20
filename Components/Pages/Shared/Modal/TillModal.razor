@@ -13,7 +13,7 @@
                     }
                     else
                     {
-                        <text>@(IsEditMode ? "Edit Till" : "Create New Till")</text>
+                        <text>@(IsEditMode && CurrentTill.Till_Id != 0 ? "Edit Till" : "Create New Till")</text>
                     }
                 </h5>
                 <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
@@ -203,7 +203,7 @@
                 return;
             }
             
-            if (IsEditMode)
+            if (IsEditMode && CurrentTill.Till_Id != 0 )
             {
                 await TillService.UpdateAsync(CurrentTill);
                 await OnTillUpdated.InvokeAsync(CurrentTill);

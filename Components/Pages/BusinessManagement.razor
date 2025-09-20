@@ -50,16 +50,16 @@
                             </button>
                         </li>
                     </ul>
-                    
+
                     <!-- Navigation Buttons -->
                     <div class="d-flex gap-2">
-                         <button class="btn btn-outline-primary" @onclick="NavigateToCheckout">
+                        <button class="btn btn-outline-primary" @onclick="NavigateToCheckout">
                             <i class="fas fa-cash-register me-1"></i>Go to Checkout
                         </button>
                         <button class="btn btn-outline-secondary" @onclick="NavigateToBackOffice">
                             <i class="fas fa-arrow-left me-1"></i>Back to Backoffice
                         </button>
-                       
+
                     </div>
                 </div>
 
@@ -687,21 +687,26 @@
                      OnSiteAccessSaved="HandleSiteAccessSaved"
                      OnModalClosed="CloseSiteAccessModal" />
 }
-
-<!-- Site User Management Modal -->
-<SiteUserManagementModal IsVisible="showSiteUserManagementModal"
-                         SelectedSite="selectedSiteForUserManagement"
-                         OnModalClosed="CloseSiteUserManagementModal" />
-
-<PrinterModal IsVisible="@showPrinterModal"
-              IsVisibleChanged="@((bool visible) => showPrinterModal = visible)"
-              PrinterToEdit="@currentPrinter"
-              IsViewMode="@isViewMode"
-              OnPrinterSaved="@OnPrinterSaved"
-              OnPrinterUpdated="@OnPrinterUpdated"
-              OnClosePrinterModal="@(() => { showPrinterModal = false; currentPrinter = null; })"
-              Sites="@sites"
-              Tills="@tills" />
+@if (showSiteUserManagementModal)
+{
+    <!-- Site User Management Modal -->
+    <SiteUserManagementModal IsVisible="showSiteUserManagementModal"
+                             CurrentUser="UserSessionService.CurrentUser"
+                             SelectedSite="selectedSiteForUserManagement"
+                             OnModalClosed="CloseSiteUserManagementModal" />
+}
+@if (showPrinterModal)
+{
+    <PrinterModal IsVisible="@showPrinterModal"
+                  IsVisibleChanged="@((bool visible) => showPrinterModal = visible)"
+                  PrinterToEdit="@currentPrinter"
+                  IsViewMode="@isViewMode"
+                  OnPrinterSaved="@OnPrinterSaved"
+                  OnPrinterUpdated="@OnPrinterUpdated"
+                  OnClosePrinterModal="@(() => { showPrinterModal = false; currentPrinter = null; })"
+                  Sites="@sites"
+                  Tills="@tills" />
+}
 
 @code {
     private void SetUsersTab()
@@ -1432,15 +1437,14 @@
         {
             showUserModal = false;
 
-            if (isEditMode)
+
+            // Update existing user in the list
+            var existingUserIndex = users.FindIndex(u => u.User_ID == user.User_ID);
+            if (existingUserIndex >= 0)
             {
-                // Update existing user in the list
-                var existingUserIndex = users.FindIndex(u => u.User_ID == user.User_ID);
-                if (existingUserIndex >= 0)
-                {
-                    users[existingUserIndex] = user;
-                }
+                users[existingUserIndex] = user;
             }
+
             else
             {
                 // Add new user to the list
@@ -1462,7 +1466,7 @@
 
     private void ViewSiteDetails(Site site)
     {
-        if(UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
+        if (UserSessionService.CurrentUser == null || UserSessionService.CurrentUser?.Allowed_Manage_Sites == false)
         {
             // Only allow Directors and Admins to view site details
             JSRuntime.InvokeVoidAsync("alert", "You do not have permission to view site details.");
@@ -1710,8 +1714,9 @@
                 await JSRuntime.InvokeVoidAsync("alert", "You do not have permission to activate users.");
                 return;
             }
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-                $"Are you sure you want to activate {user.First_Name} {user.Last_Name}?");
+            var confirmed = await JSRuntime.InvokeAsync<bool>
+    ("confirm",
+    $"Are you sure you want to activate {user.First_Name} {user.Last_Name}?");
 
             if (confirmed)
             {
@@ -1763,7 +1768,8 @@
             var printer = printers.FirstOrDefault(p => p.Printer_Id == printerId);
             if (printer != null && printer.Site_Id.HasValue)
             {
-                var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+                var confirmed = await JSRuntime.InvokeAsync<bool>
+                    ("confirm",
                     $"Are you sure you want to set {printer.Printer_Name} as the primary printer?");
                 if (confirmed)
                 {

@@ -400,13 +400,19 @@
                             {
                                 <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                             }
-                            @if (IsEditMode)
+                            @if (IsEditMode && CurrentUser.User_ID != 0)
                             {
-                                <span class="fas fa-save me-2">Update User</span>
+                                <span class="fas fa-save me-2"></span>
+                                <span>
+                                    Update User
+                                </span>
                             }
                             else
                             {
-                                <span class="fas fa-plus me-2">Create User</span>
+                                <span class="fas fa-plus me-2"></span>
+                                <span>
+                                    Create User
+                                </span>
                             }
                         </button>
                     }
@@ -633,7 +639,7 @@
         try
         {
             // Set audit fields
-            if (!IsEditMode)
+            if (IsEditMode)
             {
                 CurrentUser.Date_Created = DateTime.UtcNow;
                 CurrentUser.Is_Activated = true;
@@ -642,7 +648,7 @@
             CurrentUser.Last_Modified = DateTime.UtcNow;
 
             // Trigger the save event
-            if (!IsEditMode)
+            if (IsEditMode)
             {
 
                 ErrorMessage = await UserManagementServices.CreateUserAsync(CurrentUser);

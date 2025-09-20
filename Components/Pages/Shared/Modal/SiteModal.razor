@@ -25,11 +25,11 @@
                         @ErrorMessage
                     </div>
                 }
-                
+
                 <EditForm Model="@CurrentSite" OnValidSubmit="@HandleValidSubmit">
                     <DataAnnotationsValidator />
                     <ValidationSummary class="text-danger" />
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -56,13 +56,13 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-12">
                             <h6 class="mb-3">Address Information</h6>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
@@ -78,7 +78,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
@@ -101,7 +101,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -117,13 +117,13 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-12">
                             <h6 class="mb-3">Contact Information</h6>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -138,7 +138,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @onclick="CloseModal">
                             @(IsViewMode ? "Close" : "Cancel")
@@ -150,7 +150,7 @@
                                 {
                                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 }
-                                @(IsEditMode ? "Update Site" : "Create Site")
+                                @(IsEditMode && CurrentSite.Site_Id != 0 ? "Update Site" : "Create Site")
                             </button>
                         }
                     </div>
@@ -176,12 +176,12 @@
     [Parameter] public EventCallback OncloseSiteModal { get; set; }
 
     [Inject] public SiteServices SiteService { get; set; } = default!;
-    
+
     private Site CurrentSite { get; set; } = new();
     private bool IsEditMode => SiteToEdit != null && !IsViewMode;
     private bool IsLoading { get; set; }
     private string ErrorMessage { get; set; } = string.Empty;
-    
+
     protected override void OnParametersSet()
     {
         if (IsVisible)
@@ -214,19 +214,19 @@
                 CurrentSite = new Site
                 {
                     Is_Active = true,
-                    Site_Country = "United Kingdom", // Default country                   
+                    Site_Country = "United Kingdom", // Default country
                 };
             }
         }
-        
+
         ErrorMessage = string.Empty;
     }
-    
+
     private async Task HandleValidSubmit()
     {
         IsLoading = true;
         ErrorMessage = string.Empty;
-        
+
         try
         {
             // Validate the entity
@@ -236,8 +236,8 @@
                 ErrorMessage = validationResult;
                 return;
             }
-            
-            if (IsEditMode)
+
+            if (IsEditMode && CurrentSite.Site_Id != 0)
             {
                 CurrentSite.Last_Modified = DateTime.UtcNow;
                 await SiteService.UpdateAsync(CurrentSite);
@@ -250,7 +250,7 @@
                 await SiteService.AddAsync(CurrentSite);
                 await OnSiteSaved.InvokeAsync(CurrentSite);
             }
-            
+
             await CloseModal();
         }
         catch (Exception ex)
@@ -262,7 +262,7 @@
             IsLoading = false;
         }
     }
-    
+
     private async Task CloseModal()
     {
         IsVisible = false;
