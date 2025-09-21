@@ -9,6 +9,7 @@
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject StockRefillServices StockRefillService
 @inject UserSessionService UserSessionService
+@inject PrinterManagementService PrinterManagementService
 @implements IDisposable
 
 <!-- Modal -->
@@ -100,7 +101,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Pagination for Refill Products -->
                         @if (ModalType == InventoryManagementType.Refill && FilteredRefillProducts?.Any() == true)
                         {
@@ -129,9 +130,9 @@
                                             @for (int i = Math.Max(1, CurrentPage - 2); i <= Math.Min(TotalPages, CurrentPage + 2); i++)
                                             {
                                                 var pageNumber = i; // Capture the loop variable
-                                                <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
-                                                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
-                                                </li>
+                                                                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                                                        <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                                                                    </li>
                                             }
                                             <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
                                                 <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)" disabled="@(CurrentPage == TotalPages)">Next</button>
@@ -192,7 +193,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Pagination for Expiry Products -->
                         @if (ModalType == InventoryManagementType.Expiry && FilteredProducts?.Any() == true)
                         {
@@ -221,9 +222,9 @@
                                             @for (int i = Math.Max(1, CurrentPage - 2); i <= Math.Min(TotalPages, CurrentPage + 2); i++)
                                             {
                                                 var pageNumber = i; // Capture the loop variable
-                                                <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
-                                                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
-                                                </li>
+                                                                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                                                        <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                                                                    </li>
                                             }
                                             <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
                                                 <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)" disabled="@(CurrentPage == TotalPages)">Next</button>
@@ -281,7 +282,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Pagination for Shortage Products -->
                         @if (ModalType == InventoryManagementType.Shortage && FilteredProducts?.Any() == true)
                         {
@@ -310,9 +311,9 @@
                                             @for (int i = Math.Max(1, CurrentPage - 2); i <= Math.Min(TotalPages, CurrentPage + 2); i++)
                                             {
                                                 var pageNumber = i; // Capture the loop variable
-                                                <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
-                                                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
-                                                </li>
+                                                                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                                                        <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                                                                    </li>
                                             }
                                             <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
                                                 <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)" disabled="@(CurrentPage == TotalPages)">Next</button>
@@ -329,6 +330,21 @@
                 }
             </div>
             <div class="modal-footer">
+                @if (HasItems())
+                {
+                    <button type="button" class="btn btn-primary me-2" @onclick="PrintCurrentList" disabled="@IsPrinting">
+                        @if (IsPrinting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <text>Printing...</text>
+                        }
+                        else
+                        {
+                            <i class="fas fa-print me-2"></i>
+                            <text>Print @GetPrintButtonText()</text>
+                        }
+                    </button>
+                }
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @onclick="Modalclose">Close</button>
             </div>
         </div>
@@ -380,6 +396,7 @@
     private int PageSize { get; set; } = 10;
     private int TotalPages => GetTotalPages();
     private int TotalItems => GetTotalItems();
+    private bool IsPrinting = false;
 
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
@@ -587,7 +604,7 @@
                 FilteredProducts = filtered.OrderBy(p => p.Product_Name).ToList();
                 break;
         }
-        
+
         // Reset pagination when filters change
         ResetPagination();
     }
@@ -1064,7 +1081,7 @@
     private async Task GoToPage(int page)
     {
         if (page < 1 || page > TotalPages) return;
-        
+
         CurrentPage = page;
         StateHasChanged();
     }
@@ -1082,5 +1099,76 @@
     private void ResetPagination()
     {
         CurrentPage = 1;
+    }
+
+    // Print functionality
+    private bool HasItems()
+    {
+        return ModalType switch
+        {
+            InventoryManagementType.Refill => FilteredRefillProducts?.Any() == true,
+            InventoryManagementType.Expiry => FilteredProducts?.Any() == true,
+            InventoryManagementType.Shortage => FilteredProducts?.Any() == true,
+            _ => false
+        };
+    }
+
+    private string GetPrintButtonText()
+    {
+        return ModalType switch
+        {
+            InventoryManagementType.Refill => "Refill List",
+            InventoryManagementType.Expiry => "Expiry List",
+            InventoryManagementType.Shortage => "Shortage List",
+            _ => "List"
+        };
+    }
+
+    private async Task PrintCurrentList()
+    {
+        if (!HasItems() || IsPrinting) return;
+
+        try
+        {
+            IsPrinting = true;
+            StateHasChanged();
+
+            var printerService = await PrinterManagementService.GetPrinterServicesAsync();
+            var success = false;
+
+            switch (ModalType)
+            {
+                case InventoryManagementType.Refill:
+                    await printerService.PrintRefillProductsAsync(FilteredRefillProducts);
+                    success = true;
+                    break;
+                case InventoryManagementType.Expiry:
+                    await printerService.PrintExpiryProductsList(FilteredProducts);
+                    success = true;
+                    break;
+                case InventoryManagementType.Shortage:
+                    await printerService.PrintShortageProductsList(FilteredProducts);
+                    success = true;
+                    break;
+                default:
+                    success = false;
+                    break;
+            }
+
+            if (!success)
+            {
+                // Handle print failure - could show a toast or error message
+                Console.WriteLine($"Failed to print {GetPrintButtonText()}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing {GetPrintButtonText()}: {ex.Message}");
+        }
+        finally
+        {
+            IsPrinting = false;
+            StateHasChanged();
+        }
     }
 }
