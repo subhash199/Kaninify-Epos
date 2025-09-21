@@ -465,6 +465,7 @@
             {
                 AvailableSites.Add(new Site { Site_Id = -1, Site_BusinessName = "-- Create New Site --", Site_AddressLine1 = "" });
             }
+            RoleChangedAsync();
             StateHasChanged();
         }
     }
@@ -638,24 +639,33 @@
 
         try
         {
-            // Set audit fields
-            if (IsEditMode)
+            // Check if user already exists (for edit mode, User_ID > 0)
+            bool userExists = CurrentUser.User_ID > 0;
+
+            if (userExists)
             {
+                // Update existing user
+                CurrentUser.Last_Modified = DateTime.UtcNow;
+                await UserManagementServices.UpdateUserAsync(CurrentUser);
+                SuccessMessage = "User updated successfully!";
+            }
+            else
+            {
+                // Create new user
                 CurrentUser.Date_Created = DateTime.UtcNow;
+                CurrentUser.Last_Modified = DateTime.UtcNow;
                 CurrentUser.Is_Activated = true;
                 CurrentUser.Is_Deleted = false;
-            }
-            CurrentUser.Last_Modified = DateTime.UtcNow;
-
-            // Trigger the save event
-            if (IsEditMode)
-            {
-
+                
                 ErrorMessage = await UserManagementServices.CreateUserAsync(CurrentUser);
+                if (string.IsNullOrEmpty(ErrorMessage))
+                {
+                    SuccessMessage = "User created successfully!";
+                }
             }
+
             if (string.IsNullOrEmpty(ErrorMessage))
             {
-                SuccessMessage = IsEditMode ? "User updated successfully!" : "User created successfully!";
                 // Close modal after a short delay
                 await Task.Delay(1500);
                 await OnUserSaved.InvokeAsync(CurrentUser);
@@ -664,8 +674,6 @@
             {
                 SuccessMessage = string.Empty; // Clear success message if there was an error
             }
-
-
         }
         catch (Exception ex)
         {
