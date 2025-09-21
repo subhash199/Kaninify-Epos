@@ -72,10 +72,9 @@
                 <div class="departments-section">
                     <!-- Search and Filters -->
                     <div class="search-section">
-                        <div class="search-filters">
-                            <div class="search-input-group">
+                        <div class="d-flex gap-3 align-items-center">
+                            <div class="flex-grow-1">
                                 <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
                                     <input type="text" class="form-control" placeholder="Search departments..." 
                                            @bind-value="SearchQuery" @bind-value:event="oninput" @onkeyup="OnSearchKeyUp" />
                                     @if (!string.IsNullOrEmpty(SearchQuery))
@@ -86,7 +85,7 @@
                                     }
                                 </div>
                             </div>
-                            <div class="filter-group">
+                            <div class="flex-shrink-0" style="min-width: 200px;">
                                 <select class="form-select" @bind-value="StatusFilter" @bind-value:event="oninput" @onchange="OnStatusFilterChanged">
                                     <option value="all">All Status</option>
                                     <option value="active">Active Only</option>
