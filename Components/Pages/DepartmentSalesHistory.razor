@@ -325,6 +325,11 @@
         </div>
     </div>
 }
+
+<GenericMessageModal IsVisible="showMessageModal" 
+                     Title="@modalTitle" 
+                     Message="@modalMessage" />
+
 @code {
     private List<Department> AllDepartments = new();
     private List<DepartmentSalesData> AllDepartmentSales = new();
@@ -334,6 +339,11 @@
     private DateTime? ToDate;
     private int SelectedDepartmentId = 0;
     private bool IsLoading = true;
+
+    // Modal variables for error handling
+    private bool showMessageModal = false;
+    private string modalTitle = "";
+    private string modalMessage = "";
 
     private bool IsDateRangeInvalid => FromDate.HasValue && ToDate.HasValue && FromDate > ToDate;
 
@@ -495,14 +505,23 @@
 
     private async Task PrintDepartmentSalesReport()
     {
+        if (!FilteredDepartmentSales.Any())
+        {
+            modalTitle = "No Data";
+            modalMessage = "No department sales data available to print.";
+            showMessageModal = true;
+            return;
+        }
+
         try
         {
-            var reportContent = GenerateDepartmentSalesReportContent();
-            await JSRuntime.InvokeVoidAsync("printContent", reportContent);
+            await JSRuntime.InvokeVoidAsync("window.print");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing report: {ex.Message}");
+            modalTitle = "Print Error";
+            modalMessage = $"Failed to print report: {ex.Message}";
+            showMessageModal = true;
         }
     }
 

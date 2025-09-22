@@ -183,6 +183,12 @@
     }
 </div>
 
+<!-- Message Modal for error handling -->
+<GenericMessageModal IsVisible="showMessageModal"
+                     Title="@modalTitle"
+                     Message="@modalMessage"
+                     OnClose="@(() => showMessageModal = false)" />
+
 
 
 @code {
@@ -197,6 +203,11 @@
     private string StatusFilter = string.Empty;
     private bool IsLoading = true;
     private bool IsDateRangeInvalid => FromDate.HasValue && ToDate.HasValue && FromDate > ToDate;
+    
+    // Modal variables for error handling
+    private bool showMessageModal = false;
+    private string modalTitle = string.Empty;
+    private string modalMessage = string.Empty;
 
     private IEnumerable<SalesItemTransaction> FilteredTransactions
     {
@@ -303,11 +314,22 @@
     {
         try
         {
+            // Only run if there are payout transactions on the page
+            if (!FilteredTransactions.Any())
+            {
+                modalTitle = "No Data";
+                modalMessage = "No payout transactions available to print.";
+                showMessageModal = true;
+                return;
+            }
+
             await JSRuntime.InvokeVoidAsync("window.print");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing report: {ex.Message}");
+            modalTitle = "Print Error";
+            modalMessage = $"Failed to print: {ex.Message}";
+            showMessageModal = true;
         }
     }
 
@@ -315,12 +337,36 @@
     {
         try
         {
-            // Implementation for exporting data
-            await JSRuntime.InvokeVoidAsync("alert", "Export functionality will be implemented soon.");
+            if (!FilteredTransactions.Any())
+            {
+                modalTitle = "No Data";
+                modalMessage = "No payout transactions available to export.";
+                showMessageModal = true;
+                return;
+            }
+
+            var csvContent = "Payout ID,Transaction Date,Product Name,Quantity,Amount,Employee,Created Date\n";
+            foreach (var transaction in FilteredTransactions)
+            {
+                var payout = AllPayouts.FirstOrDefault(p => p.Payout_Id == transaction.SalesPayout_ID);
+                var localDate = TimeZoneInfo.ConvertTimeFromUtc(transaction.Date_Created, TimeZoneInfo.Local);
+                
+                csvContent += $"{transaction.SalesPayout_ID},{localDate:dd/MM/yyyy HH:mm:ss},\"" +
+                             $"{transaction.Product?.Product_Name ?? "Unknown Product"}\"," +
+                             $"{transaction.Product_QTY}," +
+                             $"{transaction.Product_Total_Amount:F2},\"" +
+                             $"{transaction.Created_By?.First_Name ?? "Unknown"}\"," +
+                             $"{localDate:dd/MM/yyyy HH:mm:ss}\n";
+            }
+
+            var fileName = $"payout_history_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, csvContent, "text/csv");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error exporting data: {ex.Message}");
+            modalTitle = "Export Error";
+            modalMessage = $"Failed to export data: {ex.Message}";
+            showMessageModal = true;
         }
     }
 

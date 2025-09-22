@@ -3,6 +3,7 @@
 @using DataHandlerLibrary.Services
 @using DataHandlerLibrary.Interfaces
 @using EntityFrameworkDatabaseLibrary.Models
+@using EposRetail.Components.Pages.Shared
 @inject VoidedProductServices VoidedProductService
 @inject ProductServices ProductService
 @inject PosUserServices UserService
@@ -197,6 +198,9 @@
     }
 </div>
 
+<GenericMessageModal IsVisible="showMessageModal" 
+                     Title="@modalTitle" 
+                     Message="@modalMessage" />
 
 @code {
     // Properties
@@ -205,6 +209,11 @@
     private DateTime? FromDate;
     private DateTime? ToDate;
     private bool IsLoading = true;
+
+    // Modal variables for error handling
+    private bool showMessageModal = false;
+    private string modalTitle = "";
+    private string modalMessage = "";
 
     // Computed Properties
     private bool IsDateRangeInvalid => FromDate.HasValue && ToDate.HasValue && FromDate > ToDate;
@@ -314,14 +323,23 @@
 
     private async Task PrintVoidedProductsReport()
     {
+        if (!FilteredVoidedProducts.Any())
+        {
+            modalTitle = "No Data";
+            modalMessage = "No voided products available to print.";
+            showMessageModal = true;
+            return;
+        }
+
         try
         {
-            var reportContent = GenerateVoidedProductsReportContent();
-            await JSRuntime.InvokeVoidAsync("printContent", reportContent);
+            await JSRuntime.InvokeVoidAsync("window.print");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing voided products report: {ex.Message}");
+            modalTitle = "Print Error";
+            modalMessage = $"Failed to print report: {ex.Message}";
+            showMessageModal = true;
         }
     }
 

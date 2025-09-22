@@ -57,6 +57,24 @@
     color: white;
 }
 
+.clear-dates-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: fit-content;
+    align-self: flex-end;
+    white-space: nowrap;
+}
+
 /* Loading Styles */
 .loading-container {
     display: flex;

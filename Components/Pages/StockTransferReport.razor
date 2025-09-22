@@ -1,6 +1,7 @@
 @page "/stocktransferreport"
 @using DataHandlerLibrary.Models
 @using DataHandlerLibrary.Services
+@using EposRetail.Components.Pages.Shared
 @inject StockTransactionServices StockTransactionService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
@@ -343,6 +344,10 @@
     </div>
 }
 
+<GenericMessageModal IsVisible="showMessageModal" 
+                     Title="@modalTitle" 
+                     Message="@modalMessage" />
+
 @code {
     private List<StockTransaction> AllStockTransfers = new();
     private StockTransaction? SelectedStockTransfer;
@@ -351,6 +356,11 @@
     private DateTime? ToDate;
     private string SelectedTransferType = string.Empty;
     private bool IsLoading = true;
+
+    // Modal variables for error handling
+    private bool showMessageModal = false;
+    private string modalTitle = "";
+    private string modalMessage = "";
 
     private bool IsDateRangeInvalid => FromDate.HasValue && ToDate.HasValue && FromDate > ToDate;
 
@@ -457,14 +467,23 @@
 
     private async Task PrintStockTransferReport()
     {
+        if (!FilteredStockTransfers.Any())
+        {
+            modalTitle = "No Data";
+            modalMessage = "No stock transfers available to print.";
+            showMessageModal = true;
+            return;
+        }
+
         try
         {
-            var reportContent = GenerateStockTransferReportContent();
-            await JSRuntime.InvokeVoidAsync("printContent", reportContent);
+            await JSRuntime.InvokeVoidAsync("window.print");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing report: {ex.Message}");
+            modalTitle = "Print Error";
+            modalMessage = $"Failed to print report: {ex.Message}";
+            showMessageModal = true;
         }
     }
 

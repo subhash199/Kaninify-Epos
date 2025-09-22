@@ -375,6 +375,12 @@
     </div>
 }
 
+<!-- Message Modal for error handling -->
+<GenericMessageModal IsVisible="showMessageModal"
+                     Title="@modalTitle"
+                     Message="@modalMessage"
+                     OnClose="@(() => showMessageModal = false)" />
+
 @code {
     private List<SalesTransaction> AllRefunds = new();
     private SalesTransaction? SelectedRefund;
@@ -382,6 +388,11 @@
     private DateTime? FromDate;
     private DateTime? ToDate;
     private bool IsLoading = true;
+    
+    // Modal variables for error handling
+    private bool showMessageModal = false;
+    private string modalTitle = string.Empty;
+    private string modalMessage = string.Empty;
 
     private bool IsDateRangeInvalid => FromDate.HasValue && ToDate.HasValue && FromDate > ToDate;
 
@@ -481,12 +492,22 @@
     {
         try
         {
-            var reportContent = GenerateRefundReportContent();
-            await JSRuntime.InvokeVoidAsync("printContent", reportContent);
+            // Only run if there are refund transactions on the page
+            if (!FilteredRefunds.Any())
+            {
+                modalTitle = "No Data";
+                modalMessage = "No refund transactions available to print.";
+                showMessageModal = true;
+                return;
+            }
+
+            await JSRuntime.InvokeVoidAsync("window.print");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing report: {ex.Message}");
+            modalTitle = "Print Error";
+            modalMessage = $"Failed to print: {ex.Message}";
+            showMessageModal = true;
         }
     }
 
