@@ -124,6 +124,29 @@
                         </div>
                     </div>
                     
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Print Capabilities</label>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox id="printReceipt" class="form-check-input" @bind-Value="CurrentPrinter.Print_Receipt" disabled="@IsViewMode" />
+                                    <label class="form-check-label" for="printReceipt">
+                                        Receipt Print
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <InputCheckbox id="printLabel" class="form-check-input" @bind-Value="CurrentPrinter.Print_Label" disabled="@IsViewMode" />
+                                    <label class="form-check-label" for="printLabel">
+                                        Label Print
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Empty column for layout balance -->
+                        </div>
+                    </div>
+                    
                     @if (IsViewMode)
                     {
                         <div class="row">
@@ -207,6 +230,8 @@
                     Printer_Port_Number = PrinterToEdit.Printer_Port_Number,
                     Printer_Password = PrinterToEdit.Printer_Password,
                     Paper_Width = PrinterToEdit.Paper_Width,
+                    Print_Receipt = PrinterToEdit.Print_Receipt,
+                    Print_Label = PrinterToEdit.Print_Label,
                     Is_Active = PrinterToEdit.Is_Active,
                     Is_Primary = PrinterToEdit.Is_Primary,
                     Site_Id = PrinterToEdit.Site_Id,
@@ -224,6 +249,8 @@
                 {
                     Is_Active = true,
                     Is_Primary = false,
+                    Print_Receipt = true, // Default to true
+                    Print_Label = true,   // Default to true
                     Paper_Width = 80 // Default paper width
                 };
             }

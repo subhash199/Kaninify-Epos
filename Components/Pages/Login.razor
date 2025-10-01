@@ -173,8 +173,6 @@ else
             StateHasChanged();
             //await GenerateQRCode();
             await CheckForExistingUsers();
-            var products = (await ProductServices.GetByConditionAsync(p => p.Is_Deleted == false && p.Is_Activated == true && p.SyncStatus== SyncStatus.Pending, true)).ToList();
-            supabaseSyncService.SyncProductsAsync(products, UserSession.CurrentRetailer);
             isLoading = false;
             StateHasChanged();
             // Set focus on the passcode input field
@@ -195,7 +193,7 @@ else
     {
         try
         {
-            
+
             var users = await PosuserService.GetAllAsync(false);
             if (users == null || !users.Any())
             {
@@ -206,7 +204,8 @@ else
 
             // Check for retailer record
             var retailer = await RetailerService.GetFirstActiveRetailerAsync();
-            await supabaseSyncService.SyncDatabaseToCloudAsync(retailer, 10000);
+            await supabaseSyncService.SyncUnsyncedDataAsync(retailer);
+           // await supabaseSyncService.SyncDatabaseToCloudAsync(retailer, 10000);
             if (retailer == null)
             {
                 showSetupModal = true;

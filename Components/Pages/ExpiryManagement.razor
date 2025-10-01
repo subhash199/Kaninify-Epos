@@ -26,11 +26,11 @@
                     <p class="page-subtitle">Monitor and manage products approaching expiry</p>
                 </div>
                 <div class="header-right d-flex align-items-center">
-                    <a href="/checkout" class="nav-btn me-2">
+                    <a href="/checkout" class="navigation-btn me-2">
                         <i class="fas fa-shopping-cart"></i>
                         <span>Go to Checkout</span>
                     </a>
-                    <a href="/backoffice" class="nav-btn">
+                    <a href="/backoffice" class="navigation-btn">
                         <i class="fas fa-arrow-left"></i>
                         <span>Back to Backoffice</span>
                     </a>
@@ -235,8 +235,8 @@
             // Get products that are activated and have expiry dates within the range
             var products = await ProductService.GetByConditionAsync(
                 p => p.Is_Activated == true && 
-                     p.Expiry_Date.Date >= FromDate.Date && 
-                     p.Expiry_Date.Date <= ToDate.Date &&
+                     p.Expiry_Date.Date >= FromDate.Date.ToUniversalTime() && 
+                     p.Expiry_Date.Date <= ToDate.Date.ToUniversalTime() &&
                      (p.ShelfQuantity > 0 || p.StockroomQuantity > 0),
                 false
             );

@@ -53,10 +53,10 @@
 
                     <!-- Navigation Buttons -->
                     <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary" @onclick="NavigateToCheckout">
+                        <button class="navigation-btn" @onclick="NavigateToCheckout">
                             <i class="fas fa-cash-register me-1"></i>Go to Checkout
                         </button>
-                        <button class="btn btn-outline-secondary" @onclick="NavigateToBackOffice">
+                        <button class="navigation-btn" @onclick="NavigateToBackOffice">
                             <i class="fas fa-arrow-left me-1"></i>Back to Backoffice
                         </button>
 
@@ -655,7 +655,7 @@
                TillToEdit="currentTill"
                IsViewMode="isViewMode"
                AvailableSites="sites"
-               OnTillSaved="SaveTill"
+               OnTillSaved="AfterSavedTill"
                OnModalClosed="CloseTillModal" />
 }
 
@@ -875,24 +875,16 @@
         isViewMode = false;
     }
 
-    private async Task SaveTill()
+    private async Task AfterSavedTill(Till _till)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(currentTill.Till_Name) || currentTill.Site_Id == 0)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Please fill in all required fields.");
-                return;
-            }
-
             if (isEditingTill)
             {
-                await TillServices.UpdateAsync(currentTill);
                 await JSRuntime.InvokeVoidAsync("alert", "Till updated successfully!");
             }
             else
             {
-                await TillServices.AddAsync(currentTill);
                 await JSRuntime.InvokeVoidAsync("alert", "Till created successfully!");
             }
 
@@ -1024,6 +1016,8 @@
             Printer_Port_Number = printer.Printer_Port_Number,
             Printer_Password = printer.Printer_Password,
             Paper_Width = printer.Paper_Width,
+            Print_Label = printer.Print_Label,
+            Print_Receipt = printer.Print_Receipt,
             Is_Active = printer.Is_Active,
             Is_Primary = printer.Is_Primary,
             Site_Id = printer.Site_Id,

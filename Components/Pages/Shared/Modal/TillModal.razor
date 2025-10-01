@@ -191,30 +191,23 @@
         try
         {
             // Basic validation
-            if (string.IsNullOrWhiteSpace(CurrentTill.Till_Name))
+            ErrorMessage = await TillService.ValidateAsync(CurrentTill);
+            if (string.IsNullOrEmpty(ErrorMessage))
             {
-                ErrorMessage = "Till name is required.";
-                return;
+                if (IsEditMode && CurrentTill.Till_Id != 0)
+                {
+                    await TillService.UpdateAsync(CurrentTill);
+                    await OnTillUpdated.InvokeAsync(CurrentTill);
+                }
+                else
+                {
+                    await TillService.AddAsync(CurrentTill);
+                    await OnTillSaved.InvokeAsync(CurrentTill);
+                }
+
+                await CloseModal();
             }
 
-            if (CurrentTill.Site_Id == 0)
-            {
-                ErrorMessage = "Please select a site.";
-                return;
-            }
-
-            if (IsEditMode && CurrentTill.Till_Id != 0)
-            {
-                await TillService.UpdateAsync(CurrentTill);
-                await OnTillUpdated.InvokeAsync(CurrentTill);
-            }
-            else
-            {
-                await TillService.AddAsync(CurrentTill);
-                await OnTillSaved.InvokeAsync(CurrentTill);
-            }
-
-            await CloseModal();
         }
         catch (Exception ex)
         {

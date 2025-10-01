@@ -9,6 +9,7 @@
 @inject IJSRuntime JSRuntime
 @inject StockRefillServices StockRefillServices
 @inject GlobalErrorLogService GlobalErrorLogService
+@inject UserSessionService UserSessionService
 <PageTitle>Stock Refill Management</PageTitle>
 
 <div class="stock-refill-container">
@@ -431,6 +432,9 @@
                 foreach (var item in itemsToUpdate)
                 {
                     item.Stock_Refilled = true;
+                    item.Refilled_Date = DateTime.UtcNow;
+                    item.Refilled_By = UserSessionService.GetCurrentUserId();
+                    item.Quantity_Refilled = item.Refill_Quantity;
                 }
                 await StockRefillServices.UpdateRangeAsync(itemsToUpdate);
 

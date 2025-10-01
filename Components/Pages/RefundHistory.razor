@@ -210,11 +210,11 @@
                                 </div>
                                 <div class="table-cell" data-label="Payment Method:">
                                     <div class="payment-info">
-                                        @if (refund.SaleTransaction_Cash > 0)
+                                        @if (refund.SaleTransaction_Cash < 0)
                                         {
                                             <span class="payment-method cash">Cash: £@refund.SaleTransaction_Cash.ToString("F2")</span>
                                         }
-                                        @if (refund.SaleTransaction_Card > 0)
+                                        @if (refund.SaleTransaction_Card < 0)
                                         {
                                             <span class="payment-method card">Card: £@refund.SaleTransaction_Card.ToString("F2")</span>
                                         }
