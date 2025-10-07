@@ -144,7 +144,7 @@ else
                              OnClose="CloseModal" />
     }
 
-   
+
 }
 <SystemSetupModal @ref="systemSetupModalRef" IsVisible="@showSetupModal"
                   OnSetupComplete="@OnSetupComplete"
@@ -157,6 +157,8 @@ else
     private bool showSetupModal = false;
     private ElementReference passcodeInputRef;
     private SystemSetupModal systemSetupModalRef;
+
+    private Retailer retailer;
 
     public class LoginModel
     {
@@ -203,9 +205,9 @@ else
             }
 
             // Check for retailer record
-            var retailer = await RetailerService.GetFirstActiveRetailerAsync();
-            await supabaseSyncService.SyncUnsyncedDataAsync(retailer);
-           // await supabaseSyncService.SyncDatabaseToCloudAsync(retailer, 10000);
+            retailer = await RetailerService.GetFirstActiveRetailerAsync();
+
+            // await supabaseSyncService.SyncDatabaseToCloudAsync(retailer, 10000);
             if (retailer == null)
             {
                 showSetupModal = true;
@@ -395,75 +397,76 @@ else
 
     private async Task HandleLogin()
     {
-        if (!loginModel.Passcode.All(char.IsDigit))
-        {
-            await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");
-            return;
-        }
+        await supabaseSyncService.SyncUnsyncedDataAsync(retailer);
+        // if (!loginModel.Passcode.All(char.IsDigit))
+        // {
+        //     await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");
+        //     return;
+        // }
 
-        try
-        {
-            isLoading = true;
-            StateHasChanged();
+        // try
+        // {
+        //     isLoading = true;
+        //     StateHasChanged();
 
-            await Task.Delay(500); // Simulate loading delay
+        //     await Task.Delay(500); // Simulate loading delay
 
-            // Check if passcode exists
-            var user = await PosuserService.GetByPasscodeAsync(int.Parse(loginModel.Passcode));
+        //     // Check if passcode exists
+        //     var user = await PosuserService.GetByPasscodeAsync(int.Parse(loginModel.Passcode));
 
-            if (user != null)
-            {
-                // User found, check if activated
-                if (!user.Is_Activated)
-                {
-                    isLoading = false;
-                    StateHasChanged();
-                    await ShowErrorModalAsync("Account Not Activated", "Your account is not activated. Please contact an administrator.");
-                    return;
-                }
-                else
-                {
-                    var till = await TillService.GetFirstTillRecord();
-                    var site = await SiteService.GetFirstSiteRecord();
+        //     if (user != null)
+        //     {
+        //         // User found, check if activated
+        //         if (!user.Is_Activated)
+        //         {
+        //             isLoading = false;
+        //             StateHasChanged();
+        //             await ShowErrorModalAsync("Account Not Activated", "Your account is not activated. Please contact an administrator.");
+        //             return;
+        //         }
+        //         else
+        //         {
+        //             var till = await TillService.GetFirstTillRecord();
+        //             var site = await SiteService.GetFirstSiteRecord();
 
-                    // Set session using UserSessionService
-                    UserSession.SetSession(user, site, till);
+        //             // Set session using UserSessionService
+        //             UserSession.SetSession(user, site, till);
 
-                    // Keep loading state true during navigation to prevent glitch
-                    NavigationManager.NavigateTo("/checkout");
-                    return;
-                }
-            }
-            else
-            {
-                // Passcode doesn't exist, check if any users exist
-                bool anyUsersExist = await PosuserService.CheckIfAnyUsersExist();
+        //             // Keep loading state true during navigation to prevent glitch
+        //             NavigationManager.NavigateTo("/checkout");
+        //             return;
+        //         }
+        //     }
+        //     else
+        //     {
+        //         // Passcode doesn't exist, check if any users exist
+        //         bool anyUsersExist = await PosuserService.CheckIfAnyUsersExist();
 
-                if (!anyUsersExist)
-                {
-                    // No users exist - new system setup
-                    isLoading = false;
-                    StateHasChanged();
-                    showSetupModal = true;
-                    StateHasChanged();
-                }
-                else
-                {
-                    // Users exist but passcode is wrong
-                    isLoading = false;
-                    StateHasChanged();
-                    await ShowErrorModalAsync("Login Failed", "Invalid passcode. Please try again.");
-                    return;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            isLoading = false;
-            StateHasChanged();
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleLogin), "Processing user login");
-            await ShowErrorModalAsync("Error", $"An error occurred during login: {ex.Message}");
-        }
+        //         if (!anyUsersExist)
+        //         {
+        //             // No users exist - new system setup
+        //             isLoading = false;
+        //             StateHasChanged();
+        //             showSetupModal = true;
+        //             StateHasChanged();
+        //         }
+        //         else
+        //         {
+        //             // Users exist but passcode is wrong
+        //             isLoading = false;
+        //             StateHasChanged();
+        //             await ShowErrorModalAsync("Login Failed", "Invalid passcode. Please try again.");
+        //             return;
+        //         }
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     isLoading = false;
+        //     StateHasChanged();
+        //     await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleLogin), "Processing user login");
+        //     await ShowErrorModalAsync("Error", $"An error occurred during login: {ex.Message}");
+        // }
     }
 
 
