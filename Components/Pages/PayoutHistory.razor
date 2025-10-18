@@ -140,7 +140,7 @@
                         <tbody>
                             @foreach (var transaction in FilteredTransactions)
                             {
-                                var payout = AllPayouts.FirstOrDefault(p => p.Payout_Id == transaction.SalesPayout_ID);
+                                var payout = AllPayouts.FirstOrDefault(p => p.Id == transaction.SalesPayout_ID);
                                 var localDate = TimeZoneInfo.ConvertTimeFromUtc(transaction.Date_Created, TimeZoneInfo.Local);
                                 
                                 <tr>
@@ -221,16 +221,16 @@
                 filtered = filtered.Where(t =>
                     t.SalesPayout_ID.ToString().Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
                     (t.Product?.Product_Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (AllPayouts.FirstOrDefault(p => p.Payout_Id == t.SalesPayout_ID)?.Payout_Description?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
+                    (AllPayouts.FirstOrDefault(p => p.Id == t.SalesPayout_ID)?.Payout_Description?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
             }
 
             // Apply status filter
             if (!string.IsNullOrEmpty(StatusFilter))
             {
                 if (StatusFilter == "active")
-                    filtered = filtered.Where(t => AllPayouts.FirstOrDefault(p => p.Payout_Id == t.SalesPayout_ID)?.Is_Active == true);
+                    filtered = filtered.Where(t => AllPayouts.FirstOrDefault(p => p.Id == t.SalesPayout_ID)?.Is_Active == true);
                 else if (StatusFilter == "inactive")
-                    filtered = filtered.Where(t => AllPayouts.FirstOrDefault(p => p.Payout_Id == t.SalesPayout_ID)?.Is_Active == false);
+                    filtered = filtered.Where(t => AllPayouts.FirstOrDefault(p => p.Id == t.SalesPayout_ID)?.Is_Active == false);
             }
 
             return filtered.OrderByDescending(t => t.Date_Created);
@@ -348,7 +348,7 @@
             var csvContent = "Payout ID,Transaction Date,Product Name,Quantity,Amount,Employee,Created Date\n";
             foreach (var transaction in FilteredTransactions)
             {
-                var payout = AllPayouts.FirstOrDefault(p => p.Payout_Id == transaction.SalesPayout_ID);
+                var payout = AllPayouts.FirstOrDefault(p => p.Id == transaction.SalesPayout_ID);
                 var localDate = TimeZoneInfo.ConvertTimeFromUtc(transaction.Date_Created, TimeZoneInfo.Local);
                 
                 csvContent += $"{transaction.SalesPayout_ID},{localDate:dd/MM/yyyy HH:mm:ss},\"" +

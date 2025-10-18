@@ -150,7 +150,7 @@
                                 {
                                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 }
-                                @(IsEditMode && CurrentSite.Site_Id != 0 ? "Update Site" : "Create Site")
+                                @(IsEditMode && CurrentSite.Id != 0 ? "Update Site" : "Create Site")
                             </button>
                         }
                     </div>
@@ -191,7 +191,7 @@
                 // Create a copy for editing
                 CurrentSite = new Site
                 {
-                    Site_Id = SiteToEdit.Site_Id,
+                    Id = SiteToEdit.Id,
                     Site_BusinessName = SiteToEdit.Site_BusinessName,
                     Site_AddressLine1 = SiteToEdit.Site_AddressLine1,
                     Site_AddressLine2 = SiteToEdit.Site_AddressLine2,
@@ -237,7 +237,7 @@
                 return;
             }
 
-            if (IsEditMode && CurrentSite.Site_Id != 0)
+            if (IsEditMode && CurrentSite.Id != 0)
             {
                 CurrentSite.Last_Modified = DateTime.UtcNow;
                 await SiteService.UpdateAsync(CurrentSite);

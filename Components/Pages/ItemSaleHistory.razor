@@ -269,7 +269,7 @@
 
     private async Task LoadSalesHistory()
     {
-        if (selectedProduct?.Product_ID > 0)
+        if (selectedProduct?.Id > 0)
         {
             IsLoading = true;
             StateHasChanged();
@@ -280,7 +280,7 @@
                 EndDate = EndDate.Date.AddDays(1).AddTicks(-1); // Set end date to end of day
 
                 var result = await _salesItemTransactionServices.GetByConditionAsync(
-                    item => item.Product_ID == selectedProduct.Product_ID && 
+                    item => item.Product_ID == selectedProduct.Id &&
                            item.Date_Created >= StartDate.ToUniversalTime() && 
                            item.Date_Created <= EndDate.ToUniversalTime(), true);
                 

@@ -163,7 +163,7 @@
                                 @foreach (var dayLog in FilteredDayLogs)
                                 {
                                     <tr class="daylog-row @(dayLog.DayLog_End_DateTime.HasValue ? "closed" : "open")">
-                                        <td class="daylog-id">#@dayLog.DayLog_Id</td>
+                                        <td class="daylog-id">#@dayLog.Id</td>
                                         <td class="start-datetime">@TimeZoneInfo.ConvertTimeFromUtc(dayLog.DayLog_Start_DateTime, TimeZoneInfo.Local).ToString("dd/MM/yyyy HH:mm")</td>
                                         <td class="end-datetime">
                                             @if (dayLog.DayLog_End_DateTime.HasValue)
@@ -263,11 +263,11 @@
     {
         try
         {
-            NavigationManager.NavigateTo($"/sales-dashboard/daylog/{dayLog.DayLog_Id}");
+            NavigationManager.NavigateTo($"/sales-dashboard/daylog/{dayLog.Id}");
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ViewDayLogDetails), $"Navigating to day log details for ID {dayLog.DayLog_Id}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ViewDayLogDetails), $"Navigating to day log details for ID {dayLog.Id}");
         }
     }
 
@@ -279,7 +279,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintDayLogDetails), $"Printing day log details for ID {dayLog.DayLog_Id}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintDayLogDetails), $"Printing day log details for ID {dayLog.Id}");
             await JSRuntime.InvokeVoidAsync("alert", $"Error printing day log details: {ex.Message}");
         }
     }
@@ -342,7 +342,7 @@
         {
             var query = SearchQuery.ToLower();
             filtered = filtered.Where(d =>
-                d.DayLog_Id.ToString().Contains(query));
+                d.Id.ToString().Contains(query));
         }
 
         // Apply date range filter

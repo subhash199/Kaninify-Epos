@@ -13,7 +13,7 @@
                     }
                     else
                     {
-                        <text>@(IsEditMode && CurrentTill.Till_Id != 0 ? "Edit Till" : "Create New Till")</text>
+                        <text>@(IsEditMode && CurrentTill.Id != 0 ? "Edit Till" : "Create New Till")</text>
                     }
                 </h5>
                 <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
@@ -74,7 +74,7 @@
                                     {
                                         @foreach (var site in AvailableSites.Where(s => s.Is_Active))
                                         {
-                                            <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                            <option value="@site.Id">@site.Site_BusinessName</option>
                                         }
                                     }
                                 </InputSelect>
@@ -117,7 +117,7 @@
                                 {
                                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 }
-                                @(IsEditMode && CurrentTill.Till_Id != 0 ? "Update Till" : "Create Till")
+                                @(IsEditMode && CurrentTill.Id != 0 ? "Update Till" : "Create Till")
                             </button>
                         }
                     </div>
@@ -159,7 +159,7 @@
                 // Create a copy for editing
                 CurrentTill = new Till
                 {
-                    Till_Id = TillToEdit.Till_Id,
+                    Id = TillToEdit.Id,
                     Till_Name = TillToEdit.Till_Name,
                     Till_Password = TillToEdit.Till_Password,
                     Till_IP_Address = TillToEdit.Till_IP_Address,
@@ -194,7 +194,7 @@
             ErrorMessage = await TillService.ValidateAsync(CurrentTill);
             if (string.IsNullOrEmpty(ErrorMessage))
             {
-                if (IsEditMode && CurrentTill.Till_Id != 0)
+                if (IsEditMode && CurrentTill.Id != 0)
                 {
                     await TillService.UpdateAsync(CurrentTill);
                     await OnTillUpdated.InvokeAsync(CurrentTill);

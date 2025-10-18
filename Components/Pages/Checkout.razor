@@ -98,11 +98,11 @@
                                         @foreach (var payout in availablePayouts)
                                         {
                                             <button type="button"
-                                                    class="list-group-item list-group-item-action @(selectedPayout?.Payout_Id == payout.Payout_Id ? "active" : "")"
+                                                    class="list-group-item list-group-item-action @(selectedPayout?.Id == payout.Id ? "active" : "")"
                                                     @onclick="() => OnPayoutSelected(payout)">
                                                 <div class="d-flex w-100 justify-content-between">
                                                     <h6 class="mb-1">@payout.Payout_Description</h6>
-                                                    <small>ID: @payout.Payout_Id</small>
+                                                    <small>ID: @payout.Id</small>
                                                 </div>
                                                 @if (!string.IsNullOrEmpty(payout.Payout_Description))
                                                 {
@@ -818,7 +818,7 @@
             // Use enhanced UserSession methods instead of fallback values
             transaction.DayLog_Id = await UserSession.GetValidDayLogIdAsync();
             transaction.Sale_Date = DateTime.UtcNow;
-            transaction.Shift_ID = await UserSession.GetValidShiftIdAsync();
+            transaction.Shift_Id = await UserSession.GetValidShiftIdAsync();
             transaction.Site_Id = await UserSession.GetValidSiteIdAsync();
             transaction.Till_Id = await UserSession.GetValidTillIdAsync();
             transaction.Last_Modified = DateTime.UtcNow;
@@ -1130,11 +1130,11 @@
                     Product_ID = voidedItem.Product_ID,
                     Voided_Quantity = voidedItem.Product_QTY,
                     Voided_Amount = voidedItem.Product_Total_Amount,
-                    Voided_By_User_ID = UserSession.CurrentUser?.User_ID ?? 1, // Use logged in user or default
+                    Voided_By_User_ID = UserSession.CurrentUser?.Id ?? 1, // Use logged in user or default
                     Void_Date = DateTime.UtcNow,
                     Additional_Notes = "Item voided from basket",
-                    Created_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
-                    Last_Modified_By_Id = UserSession.CurrentUser?.User_ID ?? 1,
+                    Created_By_Id = UserSession.CurrentUser?.Id ?? 1,
+                    Last_Modified_By_Id = UserSession.CurrentUser?.Id ?? 1,
                     Site_Id = UserSession.GetCurrentSiteId(),
                     Till_Id = UserSession.GetCurrentTillId(),
                     Shift_Id = UserSession.GetCurrentShiftId(),
@@ -1246,9 +1246,9 @@
                 // Create new payout type if it doesn't exist
                 payout = await PayoutServices.CreatePayoutAsync(
                     payoutType,
-                    UserSession.CurrentUser?.User_ID ?? 1,
-                    UserSession.CurrentSite?.Site_Id,
-                    UserSession.CurrentTill?.Till_Id
+                    UserSession.CurrentUser?.Id ?? 1,
+                    UserSession.CurrentSite?.Id,
+                    UserSession.CurrentTill?.Id
                 );
             }
 
@@ -1278,9 +1278,9 @@
             {
                 payoutDepartment = await DepartmentServices.AddGenericDepartment(
                     "Payout",
-                    UserSession.CurrentUser?.User_ID ?? 1,
-                    UserSession.CurrentSite?.Site_Id ?? 1,
-                    UserSession.CurrentTill?.Till_Id ?? 1
+                    UserSession.CurrentUser?.Id ?? 1,
+                    UserSession.CurrentSite?.Id ?? 1,
+                    UserSession.CurrentTill?.Id ?? 1
                 );
                 await DepartmentServices.UpdateAsync(payoutDepartment);
             }
@@ -1291,11 +1291,11 @@
             // Create new payout product
             var newProduct = await productServices.AddGenericProduct(
                 $"Payout - {payoutDescription}",
-                payoutDepartment.Department_ID,
-                zeroVat.VAT_ID,
-                UserSession.CurrentUser?.User_ID ?? 1,
-                UserSession.CurrentSite?.Site_Id ?? 1,
-                UserSession.CurrentTill?.Till_Id ?? 1
+                payoutDepartment.Id,
+                zeroVat.Id,
+                UserSession.CurrentUser?.Id ?? 1,
+                UserSession.CurrentSite?.Id ?? 1,
+                UserSession.CurrentTill?.Id ?? 1
             );
 
             // Set specific barcode for payout products
@@ -1347,9 +1347,9 @@
                 // Create new payout
                 payoutToUse = await PayoutServices.CreatePayoutAsync(
                     newPayoutDescription.Trim(),
-                    UserSession.CurrentUser?.User_ID ?? 1,
-                    UserSession.CurrentSite?.Site_Id,
-                    UserSession.CurrentTill?.Till_Id
+                    UserSession.CurrentUser?.Id ?? 1,
+                    UserSession.CurrentSite?.Id,
+                    UserSession.CurrentTill?.Id
                 );
             }
             else if (selectedPayout != null)
@@ -1388,7 +1388,7 @@
             // Update product selling price for this transaction
             payoutProduct.Product_Selling_Price = -payoutAmount;
 
-            await AddProductToBasketAsync(payoutProduct, SalesItemTransactionType.Payout, payout.Payout_Id);
+            await AddProductToBasketAsync(payoutProduct, SalesItemTransactionType.Payout, payout.Id);
         }
         catch (Exception ex)
         {

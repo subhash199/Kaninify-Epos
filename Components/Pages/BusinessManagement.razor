@@ -103,7 +103,7 @@
                                         {
                                             @foreach (var site in sites)
                                             {
-                                                <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                                <option value="@site.Id">@site.Site_BusinessName</option>
                                             }
                                         }
                                     </select>
@@ -292,7 +292,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="table-cell">
-                                                    <span class="count-badge">@GetUserCountForSite(site.Site_Id)</span>
+                                                    <span class="count-badge">@GetUserCountForSite(site.Id)</span>
                                                 </div>
                                                 <div class="table-cell">
                                                     @if (site.Is_Primary)
@@ -327,13 +327,13 @@
                                                         </button>
                                                         @if (site.Is_Active)
                                                         {
-                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateSite(site.Site_Id)">
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateSite(site.Id)">
                                                                 <i class="fas fa-pause"></i>
                                                             </button>
                                                         }
                                                         else
                                                         {
-                                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateSite(site.Site_Id)">
+                                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateSite(site.Id)">
                                                                 <i class="fas fa-play"></i>
                                                             </button>
                                                         }
@@ -382,7 +382,7 @@
                                         {
                                             @foreach (var site in sites)
                                             {
-                                                <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                                <option value="@site.Id">@site.Site_BusinessName</option>
                                             }
                                         }
                                     </select>
@@ -421,7 +421,7 @@
                                                 </div>
                                                 <div class="table-cell">
                                                     @{
-                                                        var tillSite = sites?.FirstOrDefault(s => s.Site_Id == till.Site_Id);
+                                                        var tillSite = sites?.FirstOrDefault(s => s.Id == till.Site_Id);
                                                     }
                                                     <div class="site-name">@(tillSite?.Site_BusinessName ?? "Unknown Site")</div>
                                                 </div>
@@ -461,13 +461,13 @@
                                                         </button>
                                                         @if (till.Is_Active)
                                                         {
-                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateTill(till.Till_Id)">
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivateTill(till.Id)">
                                                                 <i class="fas fa-pause"></i>
                                                             </button>
                                                         }
                                                         else
                                                         {
-                                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateTill(till.Till_Id)">
+                                                            <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateTill(till.Id)">
                                                                 <i class="fas fa-play"></i>
                                                             </button>
                                                         }
@@ -525,7 +525,7 @@
                                         {
                                             @foreach (var site in sites)
                                             {
-                                                <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                                <option value="@site.Id">@site.Site_BusinessName</option>
                                             }
                                         }
                                     </select>
@@ -581,10 +581,10 @@
                                                     </td>
                                                     <td>
                                                         <div class="site-info">
-                                                            <div class="site-name">@(sites?.FirstOrDefault(s => s.Site_Id == printer.Site_Id)?.Site_BusinessName ?? "N/A")</div>
+                                                            <div class="site-name">@(sites?.FirstOrDefault(s => s.Id == printer.Site_Id)?.Site_BusinessName ?? "N/A")</div>
                                                             @if (printer.Till_Id.HasValue)
                                                             {
-                                                                <div class="text-muted small">Till: @(tills?.FirstOrDefault(t => t.Till_Id == printer.Till_Id)?.Till_Name ?? "N/A")</div>
+                                                                <div class="text-muted small">Till: @(tills?.FirstOrDefault(t => t.Id == printer.Till_Id)?.Till_Name ?? "N/A")</div>
                                                             }
                                                         </div>
                                                     </td>
@@ -614,13 +614,13 @@
                                                             </button>
                                                             @if (printer.Is_Active)
                                                             {
-                                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivatePrinter(printer.Printer_Id)" title="Deactivate">
+                                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeactivatePrinter(printer.Id)" title="Deactivate">
                                                                     <i class="fas fa-power-off"></i>
                                                                 </button>
                                                             }
                                                             else
                                                             {
-                                                                <button class="btn btn-sm btn-outline-success" @onclick="() => ActivatePrinter(printer.Printer_Id)" title="Activate">
+                                                                <button class="btn btn-sm btn-outline-success" @onclick="() => ActivatePrinter(printer.Id)" title="Activate">
                                                                     <i class="fas fa-power-off"></i>
                                                                 </button>
                                                             }
@@ -847,7 +847,7 @@
     {
         currentTill = new Till
         {
-            Till_Id = till.Till_Id,
+            Id = till.Id,
             Till_Name = till.Till_Name,
             Till_Password = till.Till_Password,
             Till_IP_Address = till.Till_IP_Address,
@@ -930,7 +930,7 @@
     {
         try
         {
-            var till = tills.FirstOrDefault(t => t.Till_Id == tillId);
+            var till = tills.FirstOrDefault(t => t.Id == tillId);
             if (till != null)
             {
                 var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
@@ -955,7 +955,7 @@
     {
         try
         {
-            var till = tills.FirstOrDefault(t => t.Till_Id == tillId);
+            var till = tills.FirstOrDefault(t => t.Id == tillId);
             if (till != null)
             {
                 var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
@@ -1010,7 +1010,7 @@
     {
         currentPrinter = new ReceiptPrinter
         {
-            Printer_Id = printer.Printer_Id,
+            Id = printer.Id,
             Printer_Name = printer.Printer_Name,
             Printer_IP_Address = printer.Printer_IP_Address,
             Printer_Port_Number = printer.Printer_Port_Number,
@@ -1045,7 +1045,7 @@
     {
         try
         {
-            bool connectionSuccessful = await ReceiptPrinterServices.TestPrinterConnectionAsync(printer.Printer_Id);
+            bool connectionSuccessful = await ReceiptPrinterServices.TestPrinterConnectionAsync(printer.Id);
             if (connectionSuccessful)
             {
                 await JSRuntime.InvokeVoidAsync("alert", $"Test print sent to {printer.Printer_Name}");
@@ -1057,7 +1057,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "TestPrinter", $"Testing printer with ID: {printer.Printer_Id}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "TestPrinter", $"Testing printer with ID: {printer.Id}");
         }
     }
 
@@ -1065,7 +1065,7 @@
     {
         try
         {
-            bool connectionSuccessful = await ReceiptPrinterServices.TestPrinterConnectionAsync(printer.Printer_Id);
+            bool connectionSuccessful = await ReceiptPrinterServices.TestPrinterConnectionAsync(printer.Id);
             if (connectionSuccessful)
             {
                 await JSRuntime.InvokeVoidAsync("alert", $"Connection test successful for {printer.Printer_Name}");
@@ -1077,7 +1077,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "TestPrinterConnection", $"Testing printer connection for ID: {printer.Printer_Id}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "TestPrinterConnection", $"Testing printer connection for ID: {printer.Id}");
         }
     }
 
@@ -1097,7 +1097,7 @@
     {
         try
         {
-            var printer = printers.FirstOrDefault(p => p.Printer_Id == printerId);
+            var printer = printers.FirstOrDefault(p => p.Id == printerId);
             if (printer != null)
             {
                 var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
@@ -1121,7 +1121,7 @@
     {
         try
         {
-            var printer = printers.FirstOrDefault(p => p.Printer_Id == printerId);
+            var printer = printers.FirstOrDefault(p => p.Id == printerId);
             if (printer != null)
             {
                 var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
@@ -1260,7 +1260,7 @@
                 return;
             }
             // Get full user details including all relationships
-            var userDetails = await UserManagementServices.GetUserWithFullDetailsAsync(user.User_ID);
+            var userDetails = await UserManagementServices.GetUserWithFullDetailsAsync(user.Id);
 
             if (userDetails != null)
             {
@@ -1273,7 +1273,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "ViewUserDetails", $"Viewing user details for ID: {user.User_ID}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ViewUserDetails", $"Viewing user details for ID: {user.Id}");
         }
     }
 
@@ -1295,7 +1295,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "EditUser", $"Editing user with ID: {user.User_ID}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "EditUser", $"Editing user with ID: {user.Id}");
         }
     }
 
@@ -1315,7 +1315,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "ManageSiteAccess", $"Managing site access for user ID: {user.User_ID}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ManageSiteAccess", $"Managing site access for user ID: {user.Id}");
         }
     }
 
@@ -1339,7 +1339,7 @@
                 // For now, using a placeholder - replace with actual current user ID
                 int currentUserId = 1; // TODO: Get from authentication service
 
-                var success = await UserManagementServices.DeactivateUserAsync(user.User_ID, currentUserId);
+                var success = await UserManagementServices.DeactivateUserAsync(user.Id, currentUserId);
 
                 if (success)
                 {
@@ -1355,7 +1355,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivateUser", $"Deactivating user with ID: {user.User_ID}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "DeactivateUser", $"Deactivating user with ID: {user.Id}");
         }
     }
 
@@ -1379,7 +1379,7 @@
                 // For now, using a placeholder - replace with actual current user ID
                 int currentUserId = 1; // TODO: Get from authentication service
 
-                var success = await UserManagementServices.ReactivateUserAsync(user.User_ID, currentUserId);
+                var success = await UserManagementServices.ReactivateUserAsync(user.Id, currentUserId);
 
                 if (success)
                 {
@@ -1395,7 +1395,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, "ReactivateUser", $"Reactivating user with ID: {user.User_ID}");
+            await GlobalErrorLogService.LogErrorAsync(ex, "ReactivateUser", $"Reactivating user with ID: {user.Id}");
         }
     }
 
@@ -1433,7 +1433,7 @@
 
 
             // Update existing user in the list
-            var existingUserIndex = users.FindIndex(u => u.User_ID == user.User_ID);
+            var existingUserIndex = users.FindIndex(u => u.Id == user.Id);
             if (existingUserIndex >= 0)
             {
                 users[existingUserIndex] = user;
@@ -1524,13 +1524,13 @@
             if (site != null)
             {
                 // Update the site in the main sites list
-                var existingSiteIndex = sites.FindIndex(s => s.Site_Id == site.Site_Id);
+                var existingSiteIndex = sites.FindIndex(s => s.Id == site.Id);
                 if (existingSiteIndex >= 0)
                 {
                     sites[existingSiteIndex] = site;
                 }
                 // Also update in availableSites for the UserModal
-                var existingAvailableSiteIndex = availableSites.FindIndex(s => s.Site_Id == site.Site_Id);
+                var existingAvailableSiteIndex = availableSites.FindIndex(s => s.Id == site.Id);
                 if (existingAvailableSiteIndex >= 0)
                 {
                     availableSites[existingAvailableSiteIndex] = site;
@@ -1665,7 +1665,7 @@
         }
         currentSite = new Site
         {
-            Site_Id = site.Site_Id,
+            Id = site.Id,
             Site_BusinessName = site.Site_BusinessName,
             Site_AddressLine1 = site.Site_AddressLine1,
             Site_Postcode = site.Site_Postcode,
@@ -1715,7 +1715,7 @@
             if (confirmed)
             {
                 int currentUserId = 1; // TODO: Get from authentication service
-                var success = await UserManagementServices.ReactivateUserAsync(user.User_ID, currentUserId);
+                var success = await UserManagementServices.ReactivateUserAsync(user.Id, currentUserId);
 
                 if (success)
                 {
@@ -1759,7 +1759,7 @@
     {
         try
         {
-            var printer = printers.FirstOrDefault(p => p.Printer_Id == printerId);
+            var printer = printers.FirstOrDefault(p => p.Id == printerId);
             if (printer != null && printer.Site_Id.HasValue)
             {
                 var confirmed = await JSRuntime.InvokeAsync<bool>

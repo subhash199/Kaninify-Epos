@@ -105,10 +105,10 @@
                     {
                         @foreach (var transaction in FilteredTransactions)
                         {
-                            <div class="transaction-item @(SelectedTransaction?.SaleTransaction_ID == transaction.SaleTransaction_ID ? "selected" : "")"
+                            <div class="transaction-item @(SelectedTransaction?.Id == transaction.Id ? "selected" : "")"
                                  @onclick="() => SelectTransaction(transaction)">
                                 <div class="transaction-header">
-                                    <span class="transaction-id">#@transaction.SaleTransaction_ID</span>
+                                    <span class="transaction-id">#@transaction.Id</span>
                                     <span class="transaction-amount">@transaction.SaleTransaction_Total_Amount.ToString("C")</span>
                                 </div>
                                 <div class="transaction-details">
@@ -148,7 +148,7 @@
                 {
                     <div class="panel-header">
                         <h3>Transaction Details</h3>
-                        <span class="transaction-id-large">#@SelectedTransaction.SaleTransaction_ID</span>
+                        <span class="transaction-id-large">#@SelectedTransaction.Id</span>
                         <button class="print-btn" @onclick="PrintSelectedReceipt">
                             <i class="fas fa-print"></i>
                             <span>Print Receipt</span>
@@ -285,7 +285,7 @@
             {
                 var query = SearchQuery.ToLower();
                 filteredTransactions = filteredTransactions.Where(t =>
-                    t.SaleTransaction_ID.ToString().Contains(query) ||
+                    t.Id.ToString().Contains(query) ||
                     (t.SalesItemTransactions?.Any(item =>
                         item.Product?.Product_Name?.ToLower().Contains(query) == true ||
                         item.Product?.Product_Barcode?.ToLower().Contains(query) == true
@@ -313,7 +313,7 @@
             if (CurrentDayLog != null)
             {
                 // Get all transactions to support date range filtering
-                AllTransactions = (await SalesService.GetByConditionAsync(t => t.DayLog_Id == CurrentDayLog.DayLog_Id, false)).ToList();
+                AllTransactions = (await SalesService.GetByConditionAsync(t => t.DayLog_Id == CurrentDayLog.Id, false)).ToList();
 
                 // Sort by most recent first
                 AllTransactions = AllTransactions.OrderByDescending(t => t.Sale_Date).ToList();
@@ -333,7 +333,7 @@
 
     private async Task SelectTransaction(SalesTransaction transaction)
     {
-        if (SelectedTransaction?.SaleTransaction_ID == transaction.SaleTransaction_ID)
+        if (SelectedTransaction?.Id == transaction.Id)
             return;
 
         SelectedTransaction = transaction;
@@ -345,7 +345,7 @@
         {
             // Load transaction items with product details
             var items = await SalesItemService.GetByConditionAsync(
-                item => item.SaleTransaction_ID == transaction.SaleTransaction_ID, true);
+                item => item.SaleTransaction_ID == transaction.Id, true);
 
             SelectedTransactionItems = items.ToList();
         }

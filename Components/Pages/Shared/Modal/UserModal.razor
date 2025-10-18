@@ -99,7 +99,7 @@
                                     {
                                         @foreach (var site in AvailableSites)
                                         {
-                                            <option value="@site.Site_Id">
+                                            <option value="@site.Id">
                                                 @($"{site.Site_BusinessName}{(string.IsNullOrWhiteSpace(site.Site_AddressLine1) ? "" : " " + site.Site_AddressLine1)}")
                                             </option>
                                         }
@@ -348,7 +348,7 @@
                                     </div>
                                 </div>
 
-                                @if (IsEditMode && CurrentUser.User_ID > 0)
+                                @if (IsEditMode && CurrentUser.Id > 0)
                                 {
                                     <div class="col-md-6">
                                         <div class="form-check mb-3">
@@ -361,7 +361,7 @@
                                 }
                             </div>
 
-                            @if (IsEditMode && CurrentUser.User_ID > 0)
+                            @if (IsEditMode && CurrentUser.Id > 0)
                             {
                                 <div class="row">
                                     <div class="col-md-6">
@@ -400,7 +400,7 @@
                             {
                                 <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                             }
-                            @if (IsEditMode && CurrentUser.User_ID != 0)
+                            @if (IsEditMode && CurrentUser.Id != 0)
                             {
                                 <span class="fas fa-save me-2"></span>
                                 <span>
@@ -461,9 +461,9 @@
         if (!IsViewMode)
         {
 
-            if (!AvailableSites.Exists(s => s.Site_Id == -1))
+            if (!AvailableSites.Exists(s => s.Id == -1))
             {
-                AvailableSites.Add(new Site { Site_Id = -1, Site_BusinessName = "-- Create New Site --", Site_AddressLine1 = "" });
+                AvailableSites.Add(new Site { Id = -1, Site_BusinessName = "-- Create New Site --", Site_AddressLine1 = "" });
             }
             RoleChangedAsync();
             StateHasChanged();
@@ -640,7 +640,7 @@
         try
         {
             // Check if user already exists (for edit mode, User_ID > 0)
-            bool userExists = CurrentUser.User_ID > 0;
+            bool userExists = CurrentUser.Id > 0;
 
             if (userExists)
             {
@@ -721,7 +721,7 @@
         IsEditMode = true;
         CurrentUser = new PosUser
         {
-            User_ID = user.User_ID,
+            Id = user.Id,
             First_Name = user.First_Name,
             Last_Name = user.Last_Name,
             Passcode = user.Passcode,
@@ -758,7 +758,7 @@
         {
             // Add the new site to the available sites list
             AvailableSites.Add(site);
-            CurrentUser.Primary_Site_Id = site.Site_Id; // Set the primary site ID
+            CurrentUser.Primary_Site_Id = site.Id; // Set the primary site ID
         }
         showSiteModal = false; // Close the site modal after saving
     }

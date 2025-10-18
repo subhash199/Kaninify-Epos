@@ -207,7 +207,7 @@
                                     <option value="0">Select Department</option>
                                     @foreach (var dept in AllDepartments.Where(d => d.Is_Activated && !d.Is_Deleted))
                                     {
-                                        <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                        <option value="@dept.Id">@dept.Department_Name</option>
                                     }
                                 </select>
                             </div>
@@ -225,7 +225,7 @@
                     {
                         <div class="table-container">
                             <div class="table-header">
-                                <h3>Products in @(AllDepartments.FirstOrDefault(d => d.Department_ID == SelectedDepartmentId)?.Department_Name) (@FilteredDepartmentProducts.Count())</h3>
+                                <h3>Products in @(AllDepartments.FirstOrDefault(d => d.Id == SelectedDepartmentId)?.Department_Name) (@FilteredDepartmentProducts.Count())</h3>
                             </div>
 
                             @if (FilteredDepartmentProducts.Any())
@@ -396,9 +396,9 @@
                     <label class="form-label">New Department</label>
                     <select class="form-select" @bind="NewDepartmentId">
                         <option value="0">Select Department</option>
-                        @foreach (var dept in AllDepartments.Where(d => d.Is_Activated && !d.Is_Deleted && d.Department_ID != ProductToChange?.Department_ID))
+                        @foreach (var dept in AllDepartments.Where(d => d.Is_Activated && !d.Is_Deleted && d.Id != ProductToChange?.Department_ID))
                         {
-                            <option value="@dept.Department_ID">@dept.Department_Name</option>
+                            <option value="@dept.Id">@dept.Department_Name</option>
                         }
                     </select>
                 </div>
@@ -586,7 +586,7 @@
         try
         {
          
-            product.Department_ID = (await DepartmentService.GetDefaultDepartment()).Department_ID;
+            product.Department_ID = (await DepartmentService.GetDefaultDepartment()).Id;
             await ProductService.UpdateAsync(product);
             await LoadData();
         }
@@ -673,7 +673,7 @@
     {
         CurrentDepartment = new Department
         {
-            Department_ID = department.Department_ID,
+            Id = department.Id,
             Department_Name = department.Department_Name,
             Department_Description = department.Department_Description,
             Age_Restricted = department.Age_Restricted,

@@ -75,7 +75,7 @@
                             {
                                 @foreach (var department in AllDepartments.Where(d => d.Is_Activated))
                                 {
-                                    <option value="@department.Department_ID">@department.Department_Name</option>
+                                    <option value="@department.Id">@department.Department_Name</option>
                                 }
                             }
                         </select>
@@ -315,7 +315,7 @@
 
     private string GetDepartmentName(int departmentId)
     {
-        var department = AllDepartments.FirstOrDefault(d => d.Department_ID == departmentId);
+        var department = AllDepartments.FirstOrDefault(d => d.Id == departmentId);
         return department?.Department_Name ?? "Unknown";
     }
 

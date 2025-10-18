@@ -183,7 +183,7 @@
                                 @foreach (var shift in FilteredShifts)
                                 {
                                     <tr class="shift-row @(shift.Shift_End_DateTime.HasValue ? "closed" : "active")">
-                                        <td class="shift-id">#@shift.Shift_Id</td>
+                                        <td class="shift-id">#@shift.Id</td>
                                         <td class="user-name">@(shift.PosUser != null ? $"{shift.PosUser.First_Name} {shift.PosUser.Last_Name}" : "N/A")</td>
                                         <td class="till-name">@(shift.Till?.Till_Name ?? "N/A")</td>
                                         <td class="site-name">@(shift.Site?.Site_BusinessName ?? "N/A")</td>
@@ -241,7 +241,7 @@
     <div class="modal-overlay" @onclick="CloseModal">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h3>Shift Details - #@SelectedShift.Shift_Id</h3>
+                <h3>Shift Details - #@SelectedShift.Id</h3>
                 <button class="close-btn" @onclick="CloseModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -253,7 +253,7 @@
                         <div class="detail-grid">
                             <div class="detail-item">
                                 <label>Shift ID:</label>
-                                <span>#@SelectedShift.Shift_Id</span>
+                                <span>#@SelectedShift.Id</span>
                             </div>
                             <div class="detail-item">
                                 <label>User:</label>
@@ -408,7 +408,7 @@
         {
             var query = SearchQuery.ToLower();
             filtered = filtered.Where(s =>
-                s.Shift_Id.ToString().Contains(query) ||
+                s.Id.ToString().Contains(query) ||
                 (s.PosUser != null && ($"{s.PosUser.First_Name} {s.PosUser.Last_Name}").ToLower().Contains(query)) ||
                 (s.Till?.Till_Name?.ToLower().Contains(query) ?? false) ||
                 (s.Site?.Site_BusinessName?.ToLower().Contains(query) ?? false));
@@ -473,7 +473,7 @@
 
     private void ViewShiftDetails(Shift shift)
     {
-        NavigationManager.NavigateTo($"/sales-dashboard/shift/{shift.Shift_Id}");
+        NavigationManager.NavigateTo($"/sales-dashboard/shift/{shift.Id}");
         // SelectedShift = shift;
         // ShowModal = true;
         // StateHasChanged();
@@ -571,7 +571,7 @@
     <div style='font-family: Arial, sans-serif; padding: 20px;'>
         <h2>Shift Details Report</h2>
         <hr>
-        <h3>Shift #{shift.Shift_Id}</h3>
+        <h3>Shift #{shift.Id}</h3>
         <p><strong>User:</strong> {userName}</p>
         <p><strong>Till:</strong> {shift.Till?.Till_Name}</p>
         <p><strong>Site:</strong> {shift.Site?.Site_BusinessName}</p>
@@ -600,7 +600,7 @@
         // Data rows
         foreach (var shift in shifts)
         {
-            csv.AppendLine($"{shift.Shift_Id}," +
+            csv.AppendLine($"{shift.Id}," +
                           $"\"{(shift.PosUser != null ? $"{shift.PosUser.First_Name} {shift.PosUser.Last_Name}" : "N/A")}\"," +
                           $"\"{shift.Till?.Till_Name ?? "N/A"}\"," +
                           $"\"{shift.Site?.Site_BusinessName ?? "N/A"}\"," +

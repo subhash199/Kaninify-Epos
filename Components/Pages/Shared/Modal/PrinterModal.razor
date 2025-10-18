@@ -74,7 +74,7 @@
                                     {
                                         @foreach (var site in Sites.Where(s => s.Is_Active))
                                         {
-                                            <option value="@site.Site_Id">@site.Site_BusinessName</option>
+                                            <option value="@site.Id">@site.Site_BusinessName</option>
                                         }
                                     }
                                 </InputSelect>
@@ -90,7 +90,7 @@
                                     {
                                         @foreach (var till in Tills.Where(t => t.Site_Id == CurrentPrinter.Site_Id && t.Is_Active))
                                         {
-                                            <option value="@till.Till_Id">@till.Till_Name</option>
+                                            <option value="@till.Id">@till.Till_Name</option>
                                         }
                                     }
                                 </InputSelect>
@@ -211,7 +211,7 @@
     [Inject] public PrinterManagementService PrinterManagementService { get; set; } = default!;
 
     private ReceiptPrinter CurrentPrinter { get; set; } = new();
-    private bool IsEditMode => PrinterToEdit?.Printer_Id != 0 && !IsViewMode;
+    private bool IsEditMode => PrinterToEdit?.Id != 0 && !IsViewMode;
     private bool IsLoading { get; set; }
     private string ErrorMessage { get; set; } = string.Empty;
 
@@ -224,7 +224,7 @@
                 // Create a copy for editing
                 CurrentPrinter = new ReceiptPrinter
                 {
-                    Printer_Id = PrinterToEdit.Printer_Id,
+                    Id = PrinterToEdit.Id,
                     Printer_Name = PrinterToEdit.Printer_Name,
                     Printer_IP_Address = PrinterToEdit.Printer_IP_Address,
                     Printer_Port_Number = PrinterToEdit.Printer_Port_Number,
@@ -288,7 +288,7 @@
                 // Handle primary printer logic
                 if (CurrentPrinter.Is_Primary && CurrentPrinter.Site_Id.HasValue)
                 {
-                    await PrinterService.SetPrimaryPrinterAsync(CurrentPrinter.Printer_Id, CurrentPrinter.Site_Id.Value);
+                    await PrinterService.SetPrimaryPrinterAsync(CurrentPrinter.Id, CurrentPrinter.Site_Id.Value);
                 }
                 
                 await OnPrinterUpdated.InvokeAsync(CurrentPrinter);
@@ -302,7 +302,7 @@
                 // Handle primary printer logic for new printer
                 if (CurrentPrinter.Is_Primary && CurrentPrinter.Site_Id.HasValue)
                 {
-                    await PrinterService.SetPrimaryPrinterAsync(CurrentPrinter.Printer_Id, CurrentPrinter.Site_Id.Value);
+                    await PrinterService.SetPrimaryPrinterAsync(CurrentPrinter.Id, CurrentPrinter.Site_Id.Value);
                 }
                 
                 await OnPrinterSaved.InvokeAsync(CurrentPrinter);
@@ -327,7 +327,7 @@
     {
         try
         {
-            var result = await PrinterService.TestPrinterConnectionAsync(CurrentPrinter.Printer_Id);
+            var result = await PrinterService.TestPrinterConnectionAsync(CurrentPrinter.Id);
             var message = result ? "Printer connection test successful!" : "Printer connection test failed.";
             await JSRuntime.InvokeVoidAsync("alert", message);
         }

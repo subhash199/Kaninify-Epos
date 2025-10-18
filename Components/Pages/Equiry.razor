@@ -156,7 +156,7 @@
         {
             foreach (var product in products)
             {
-                if (!searchProducts.Any(p => p.Product_ID == product.Product_ID))
+                if (!searchProducts.Any(p => p.Id == product.Id))
                 {
                     searchProducts.Add(product);
                 }

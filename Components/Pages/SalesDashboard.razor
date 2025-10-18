@@ -1131,8 +1131,8 @@
             int? dayLogId = null;
             if (isShiftLog && ShiftLog != null)
             {
-                ShiftLogId = ShiftLog.Shift_Id;
-                salesTransactions = await SalesService.GetByConditionAsync(t => t.Shift_ID == ShiftLogId, true);
+                ShiftLogId = ShiftLog.Id;
+                salesTransactions = await SalesService.GetByConditionAsync(t => t.Id == ShiftLogId, true);
 
                 stockTransactions = await StockService.GetByConditionAsync(
                     st => st.Shift_Id == ShiftLogId
@@ -1141,7 +1141,7 @@
             }
             else if (isDayLog && DayLog != null)
             {
-                dayLogId = DayLog.DayLog_Id;
+                dayLogId = DayLog.Id;
                 salesTransactions = await SalesService.GetByConditionAsync(t => t.DayLog_Id == dayLogId, true);
 
                 stockTransactions = await StockService.GetByConditionAsync(
@@ -1180,7 +1180,7 @@
             var changePaymentCount = salesTransactions.Where(t => t.SaleTransaction_Change > 0).Count();
 
             // Load sales item transactions for detailed analysis
-            var salesTransactionIds = salesTransactions.Select(t => t.SaleTransaction_ID).ToList();
+            var salesTransactionIds = salesTransactions.Select(t => t.Id).ToList();
             salesItemTransactions = (await SalesItemService.GetByConditionAsync(
                 item => salesTransactionIds.Contains(item.SaleTransaction_ID), true)).ToList();
 
@@ -1270,7 +1270,7 @@
                 .GroupBy(t => t.Created_By_Id)
                 .Select(g => new EmployeePerformanceData
                 {
-                    EmployeeName = posusers?.FirstOrDefault(p => p.User_ID == g.Key)?.First_Name ?? "Unknown",
+                    EmployeeName = posusers?.FirstOrDefault(p => p.Id == g.Key)?.First_Name ?? "Unknown",
                     TotalSales = g.Sum(t => t.SaleTransaction_Total_Amount),
                     TransactionCount = g.Count(),
                     ItemsSold = g.SelectMany(t => t.SalesItemTransactions ?? new List<SalesItemTransaction>()).Sum(item => item.Product_QTY),
@@ -1287,7 +1287,7 @@
             // Calculate top products
             var topProducts = salesItemTransactions
                 .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale)
-                .GroupBy(item => item?.Product.Product_ID)
+                .GroupBy(item => item?.Product.Id)
                 .Select(g => new ProductSalesData
                 {
                     ProductName = g.First()?.Product?.Product_Name ?? "Unknown Product",
@@ -1301,7 +1301,7 @@
             // Calculate least popular products (products with low sales)
             var leastPopularProducts = salesItemTransactions
                 .Where(item => item.SalesItemTransactionType == SalesItemTransactionType.Sale)
-                .GroupBy(item => item.Product?.Product_ID)
+                .GroupBy(item => item.Product?.Id)
                 .Select(g => new ProductSalesData
                 {
                     ProductName = g.First()?.Product?.Product_Name ?? "Unknown Product",
@@ -1347,7 +1347,7 @@
                 stockRefillProducts = refillData
                     .Select(item => new StockRefillData
                     {
-                        ProductId = item.Product.Product_ID,
+                        ProductId = item.Product.Id,
                         ProductName = item.Product.Product_Name,
                         Price = item.Product.Product_Selling_Price,
                         RefillQuantity = item.TotalRefillQty,
@@ -1383,7 +1383,7 @@
                 .Select(item => new RefundTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,
-                    TransactionId = $"TXN{item.SalesTransaction.SaleTransaction_ID:D6}",
+                    TransactionId = $"TXN{item.SalesTransaction.Id:D6}",
                     ProductName = item.Product?.Product_Name ?? "Unknown Product",
                     Quantity = item.Product_QTY,
                     Amount = item.Product_Total_Amount,
@@ -1399,7 +1399,7 @@
                 .Select(vp => new VoidedTransactionData
                 {
                     TransactionDate = vp.Void_Date,
-                    TransactionId = $"VOID{vp.VoidedProduct_ID:D6}",
+                    TransactionId = $"VOID{vp.Id:D6}",
                     ProductName = vp.Product?.Product_Name ?? "Unknown Product",
                     Quantity = vp.Voided_Quantity,
                     Amount = vp.Voided_Amount,
@@ -1415,11 +1415,11 @@
                 .Select(item => new PayoutTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,
-                    PayoutId = $"PAY{item.SalesPayout?.Payout_Id:D3}",
+                    PayoutId = $"PAY{item.SalesPayout?.Id:D3}",
                     Amount = item.Product_Total_Amount,
                     Description = item.SalesPayout?.Payout_Description ?? "Payout",
                     Recipient = "Till", // You might want to add recipient information to your model
-                    EmployeeName = salesTransactions.FirstOrDefault(t => t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
+                    EmployeeName = salesTransactions.FirstOrDefault(t => t.Id == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
                     Status = "Completed"
                 })
                 .OrderByDescending(p => p.TransactionDate)
@@ -1433,7 +1433,7 @@
                 .GroupBy(item => item.Product?.Department_ID)
                 .Select(group => new DepartmentSalesData
                 {
-                    DepartmentName = allDepartments.FirstOrDefault(d => d.Department_ID == group.Key)?.Department_Name ?? "Unknown Department",
+                    DepartmentName = allDepartments.FirstOrDefault(d => d.Id == group.Key)?.Department_Name ?? "Unknown Department",
                     TotalSales = group.Sum(item => item.Product_Total_Amount),
                     TransactionCount = group.Select(item => item.SaleTransaction_ID).Distinct().Count(),
                     ItemsSold = group.Sum(item => item.Product_QTY)
@@ -1457,7 +1457,7 @@
                     Price = item.Product_Total_Amount,
                     Quantity = item.Product_QTY,
                     DateTime = item.SalesTransaction?.Sale_Date ?? DateTime.Now,
-                    EmployeeName = salesTransactions.FirstOrDefault(t => t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown"
+                    EmployeeName = salesTransactions.FirstOrDefault(t => t.Id == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown"
                 })
                 .OrderByDescending(m => m.DateTime)
                 .Take(10)
@@ -1465,7 +1465,7 @@
 
             var separateSalesDepartmentIds = allDepartments
                 .Where(d => d.Separate_Sales_In_Reports)
-                .Select(d => d.Department_ID)
+                .Select(d => d.Id)
                 .ToList();
 
             // Calculate Other Services excluding payouts
@@ -1481,12 +1481,12 @@
                 .Select(item => new OtherServicesTransactionData
                 {
                     TransactionDate = item.SalesTransaction.Sale_Date,
-                    TransactionId = $"SRV{item.SaleTransaction_Item_ID:D6}",
+                    TransactionId = $"SRV{item.Id:D6}",
                     ServiceName = item.Product?.Product_Name ?? "Unknown Service",
-                    DepartmentName = allDepartments.FirstOrDefault(d => d.Department_ID == item.Product.Department_ID)?.Department_Name ?? "Unknown Department",
+                    DepartmentName = allDepartments.FirstOrDefault(d => d.Id == item.Product.Department_ID)?.Department_Name ?? "Unknown Department",
                     Quantity = item.Product_QTY,
                     Amount = item.Product_Total_Amount,
-                    EmployeeName = salesTransactions.FirstOrDefault(t => t.SaleTransaction_ID == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
+                    EmployeeName = salesTransactions.FirstOrDefault(t => t.Id == item.SaleTransaction_ID)?.Created_By?.First_Name ?? "Unknown",
                     Status = "Completed"
                 })
                 .OrderByDescending(s => s.TransactionDate)
@@ -1983,9 +1983,9 @@
             if (ShiftLog.DayLog_Id == null || ShiftLog.DayLog_Id == 0)
             {
                 // If DayLog exists, use its ID
-                if (DayLog != null && DayLog.DayLog_Id > 0)
+                if (DayLog != null && DayLog.Id > 0)
                 {
-                    ShiftLog.DayLog_Id = DayLog.DayLog_Id;
+                    ShiftLog.DayLog_Id = DayLog.Id;
                 }
                 else
                 {
@@ -1993,7 +1993,7 @@
                     var currentDayLog = await DayLogService.GetLastDayLog();
                     if (currentDayLog != null)
                     {
-                        ShiftLog.DayLog_Id = currentDayLog.DayLog_Id;
+                        ShiftLog.DayLog_Id = currentDayLog.Id;
                     }
                     else
                     {

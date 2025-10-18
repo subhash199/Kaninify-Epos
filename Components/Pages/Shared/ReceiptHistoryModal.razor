@@ -48,17 +48,17 @@
                                 {
                                     @foreach (var transaction in Transactions)
                                     {
-                                        <div class="transaction-item p-3 border-bottom @(SelectedTransaction?.SaleTransaction_ID == transaction.SaleTransaction_ID ? "bg-primary text-white" : "")"
+                                        <div class="transaction-item p-3 border-bottom @(SelectedTransaction?.Id == transaction.Id ? "bg-primary text-white" : "")"
                                              style="cursor: pointer;"
                                              @onclick="() => SelectTransaction(transaction)">
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div>
-                                                    <div class="fw-bold">Transaction #@transaction.SaleTransaction_ID</div>
-                                                    <div class="small text-muted @(SelectedTransaction?.SaleTransaction_ID == transaction.SaleTransaction_ID ? "text-white-50" : "")">@transaction.Sale_Date.ToString("dd/MM/yyyy HH:mm")</div>
+                                                    <div class="fw-bold">Transaction #@transaction.Id</div>
+                                                    <div class="small text-muted @(SelectedTransaction?.Id == transaction.Id ? "text-white-50" : "")">@transaction.Sale_Date.ToString("dd/MM/yyyy HH:mm")</div>
                                                 </div>
                                                 <div class="text-end">
                                                     <div class="fw-bold">£@transaction.SaleTransaction_Total_Amount.ToString("F2")</div>
-                                                    <button class="btn btn-sm @(SelectedTransaction?.SaleTransaction_ID == transaction.SaleTransaction_ID ? "btn-light" : "btn-outline-primary") mt-1"
+                                                    <button class="btn btn-sm @(SelectedTransaction?.Id == transaction.Id ? "btn-light" : "btn-outline-primary") mt-1"
                                                             @onclick:stopPropagation="true"
                                                             @onclick="() => PrintTransaction(transaction)">
                                                         <i class="fas fa-print"></i>
@@ -105,7 +105,7 @@
                                         <!-- Transaction Header -->
                                         <div class="receipt-header text-center mb-4 pb-3 border-bottom">
                                             <h5 class="fw-bold">Transaction Receipt</h5>
-                                            <p class="mb-1">Transaction ID: <strong>@SelectedTransaction.SaleTransaction_ID</strong></p>
+                                            <p class="mb-1">Transaction ID: <strong>@SelectedTransaction.Id</strong></p>
                                             <p class="mb-1">Date: <strong>@SelectedTransaction.Sale_Date.ToString("dd/MM/yyyy HH:mm:ss")</strong></p>
                                         </div>
 
@@ -232,7 +232,7 @@
         {
             // Load transaction items with product details
             var items = await SalesItemService.GetByConditionAsync(
-                item => item.SaleTransaction_ID == transaction.SaleTransaction_ID, true);
+                item => item.SaleTransaction_ID == transaction.Id, true);
 
             SelectedTransactionItems = items?.ToList() ?? new List<SalesItemTransaction>();
         }
@@ -266,14 +266,14 @@
 
             // Load transaction items if not already loaded or if different transaction
             List<SalesItemTransaction> itemsToPrint;
-            if (SelectedTransaction?.SaleTransaction_ID == transaction.SaleTransaction_ID && SelectedTransactionItems?.Any() == true)
+            if (SelectedTransaction?.Id == transaction.Id && SelectedTransactionItems?.Any() == true)
             {
                 itemsToPrint = SelectedTransactionItems;
             }
             else
             {
                 var items = await SalesItemService.GetByConditionAsync(
-                    item => item.SaleTransaction_ID == transaction.SaleTransaction_ID, true);
+                    item => item.SaleTransaction_ID == transaction.Id, true);
                 itemsToPrint = items?.ToList() ?? new List<SalesItemTransaction>();
             }
 

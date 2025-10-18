@@ -166,7 +166,7 @@
                         {
                             <div class="table-row">
                                 <div class="table-cell" data-label="Refund ID:">
-                                    <span class="refund-id">@($"RF{refund.SaleTransaction_ID:D4}")</span>
+                                    <span class="refund-id">@($"RF{refund.Id:D4}")</span>
                                 </div>
                                 <div class="table-cell" data-label="Date & Time:">
                                     <div class="datetime-info">
@@ -262,7 +262,7 @@
     <div class="modal-overlay" @onclick="CloseModal">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h3>Refund Details - @($"RF{SelectedRefund.SaleTransaction_ID.ToString("D4")}")</h3>
+                <h3>Refund Details - @($"RF{SelectedRefund.Id.ToString("D4")}")</h3>
                 <button class="close-btn" @onclick="CloseModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -270,7 +270,7 @@
             <div class="modal-body">
                 <div class="detail-row">
                     <span class="label">Refund ID:</span>
-                    <span class="value">@($"RF{SelectedRefund.SaleTransaction_ID.ToString("D4")}")</span>
+                    <span class="value">@($"RF{SelectedRefund.Id.ToString("D4")}")</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Transaction Date:</span>
@@ -406,7 +406,7 @@
             if (!string.IsNullOrEmpty(SearchQuery))
             {
                 filtered = filtered.Where(r =>
-                    r.SaleTransaction_ID.ToString().Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    r.Id.ToString().Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ||
                     (r.Created_By?.First_Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (r.Created_By?.Last_Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (r.SalesItemTransactions?.Any(i => i.Product?.Product_Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ?? false) ||
@@ -595,7 +595,7 @@
 
             html += $@"
                     <tr>
-                        <td>RF{refund.SaleTransaction_ID:D4}</td>
+                        <td>RF{refund.Id:D4}</td>
                         <td>{refund.Sale_Date:dd/MM/yyyy HH:mm}</td>
                         <td>{products}</td>
                         <td>{refund.SaleTransaction_Total_QTY}</td>
@@ -622,7 +622,7 @@
         var html = $@"
         <html>
         <head>
-            <title>Refund Details - RF{refund.SaleTransaction_ID:D4}</title>
+            <title>Refund Details - RF{refund.Id:D4}</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 20px; }}
                 .header {{ text-align: center; margin-bottom: 30px; }}
@@ -637,11 +637,11 @@
         <body>
             <div class='header'>
                 <h1>Refund Transaction Details</h1>
-                <h2>RF{refund.SaleTransaction_ID:D4}</h2>
+                <h2>RF{refund.Id:D4}</h2>
                 <p>Generated on: {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>
             </div>
             <div class='details'>
-                <div class='detail-row'><span class='label'>Refund ID:</span> RF{refund.SaleTransaction_ID:D4}</div>
+                <div class='detail-row'><span class='label'>Refund ID:</span> RF{refund.Id:D4}</div>
                 <div class='detail-row'><span class='label'>Date:</span> {refund.Sale_Date:dd/MM/yyyy HH:mm:ss}</div>
                 <div class='detail-row'><span class='label'>Total Quantity:</span> {refund.SaleTransaction_Total_QTY}</div>
                 <div class='detail-row'><span class='label'>Total Amount:</span> <span class='refund-amount'>-£{refund.SaleTransaction_Total_Amount:F2}</span></div>
@@ -686,7 +686,7 @@
                 ? string.Join("; ", refund.SalesItemTransactions.Select(i => i.Product?.Product_Name ?? "Unknown"))
                 : "No products";
 
-            csv += $"RF{refund.SaleTransaction_ID:D4}," +
+            csv += $"RF{refund.Id:D4}," +
                    $"{refund.Sale_Date:dd/MM/yyyy HH:mm:ss}," +
                    $"\"{products}\"," +
                    $"{refund.SaleTransaction_Total_QTY}," +

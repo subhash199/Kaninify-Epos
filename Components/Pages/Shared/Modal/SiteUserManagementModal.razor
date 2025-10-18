@@ -75,7 +75,7 @@
                                                         <td>
                                                             <div class="d-flex flex-column">
                                                                 <span class="user-name">@user.First_Name @user.Last_Name</span>
-                                                                @if (user.Primary_Site_Id == SelectedSite.Site_Id)
+                                                                @if (user.Primary_Site_Id == SelectedSite.Id)
                                                                 {
                                                                     <span class="badge bg-primary modern-badge mt-1" style="width: fit-content;">
                                                                         <i class="fas fa-star me-1"></i>Primary Site
@@ -216,10 +216,10 @@
             }
             else if (CurrentUser.User_Type == PosUserType.Manager)
             {
-                if (CurrentUser.PrimarySite.Site_Id == SelectedSite.Site_Id || UserSiteAccessServices.HasUserAccessToSiteAsync(CurrentUser.User_ID, SelectedSite.Site_Id).Result)
+                if (CurrentUser.PrimarySite.Id == SelectedSite.Id || UserSiteAccessServices.HasUserAccessToSiteAsync(CurrentUser.Id, SelectedSite.Id).Result)
                 {
                     // Load only users with access to the selected site
-                    AllUsers = (await UserManagementServices.GetUsersForSiteAsync(SelectedSite.Site_Id)).ToList();
+                    AllUsers = (await UserManagementServices.GetUsersForSiteAsync(SelectedSite.Id)).ToList();
                 }
                 else
                 {
@@ -235,11 +235,11 @@
             if (!string.IsNullOrEmpty(ErrorMessage))
             {
                 // Load current site accesses for this site
-                CurrentSiteAccesses = (await UserSiteAccessServices.GetBySiteIdAsync(SelectedSite.Site_Id)).ToList();
+                CurrentSiteAccesses = (await UserSiteAccessServices.GetBySiteIdAsync(SelectedSite.Id)).ToList();
 
                 // Order users: first by whether they have access to this site (active users first), then alphabetically
                 AllUsers = AllUsers
-                    .OrderByDescending(u => CurrentSiteAccesses.Any(sa => sa.User_Id == u.User_ID && sa.Is_Active))
+                    .OrderByDescending(u => CurrentSiteAccesses.Any(sa => sa.User_Id == u.Id && sa.Is_Active))
                     .ThenBy(u => u.First_Name)
                     .ThenBy(u => u.Last_Name)
                     .ToList();
@@ -268,20 +268,20 @@
 
             var newAccess = new UserSiteAccess
             {
-                User_Id = user.User_ID,
-                Site_Id = SelectedSite.Site_Id,
+                User_Id = user.Id,
+                Site_Id = SelectedSite.Id,
                 Is_Active = true,
                 Date_Created = DateTime.UtcNow,
                 Date_Granted = DateTime.UtcNow,
                 Last_Modified = DateTime.UtcNow,
-                Created_By_Id = CurrentUser.User_ID,
-                Last_Modified_By_Id = CurrentUser.User_ID
+                Created_By_Id = CurrentUser.Id,
+                Last_Modified_By_Id = CurrentUser.Id
             };
 
             await UserSiteAccessServices.UpsertAsync(newAccess);
 
             // Refresh the current site accesses
-            CurrentSiteAccesses = (await UserSiteAccessServices.GetBySiteIdAsync(SelectedSite.Site_Id)).ToList();
+            CurrentSiteAccesses = (await UserSiteAccessServices.GetBySiteIdAsync(SelectedSite.Id)).ToList();
 
             SuccessMessage = $"Access granted to {user.First_Name} {user.Last_Name}";
         }
@@ -305,17 +305,17 @@
             SuccessMessage = string.Empty;
             StateHasChanged();
 
-            var existingAccess = CurrentSiteAccesses.FirstOrDefault(sa => sa.User_Id == user.User_ID && sa.Is_Active);
+            var existingAccess = CurrentSiteAccesses.FirstOrDefault(sa => sa.User_Id == user.Id && sa.Is_Active);
             if (existingAccess != null)
             {
                 existingAccess.Is_Active = false;
                 existingAccess.Last_Modified = DateTime.UtcNow;
-                existingAccess.Last_Modified_By_Id = CurrentUser.User_ID;
+                existingAccess.Last_Modified_By_Id = CurrentUser.Id;
 
                 await UserSiteAccessServices.UpdateAsync(existingAccess);
 
                 // Refresh the current site accesses
-                CurrentSiteAccesses = (await UserSiteAccessServices.GetBySiteIdAsync(SelectedSite.Site_Id)).ToList();
+                CurrentSiteAccesses = (await UserSiteAccessServices.GetBySiteIdAsync(SelectedSite.Id)).ToList();
 
                 SuccessMessage = $"Access revoked from {user.First_Name} {user.Last_Name}";
             }
@@ -333,7 +333,7 @@
 
     private bool HasSiteAccess(PosUser user)
     {
-        return CurrentSiteAccesses.Any(sa => sa.User_Id == user.User_ID && sa.Is_Active);
+        return CurrentSiteAccesses.Any(sa => sa.User_Id == user.Id && sa.Is_Active);
     }
 
     private async Task CloseModal()

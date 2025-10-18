@@ -179,7 +179,7 @@
                         {
                             <div class="table-row">
                                 <div class="table-cell" data-label="Transfer ID:">
-                                    <span class="transfer-id">@($"ST{transfer.StockTransactionId:D4}")</span>
+                                    <span class="transfer-id">@($"ST{transfer.Id:D4}")</span>
                                 </div>
                                 <div class="table-cell" data-label="Date & Time:">
                                     <div class="datetime-info">
@@ -376,7 +376,7 @@
                 filtered = filtered.Where(st =>
                     (st.Product?.Product_Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (st.Product?.Product_Barcode?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    st.StockTransactionId.ToString().Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+                    st.Id.ToString().Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
             }
 
             // Apply date range filter
@@ -563,7 +563,7 @@
         {
             html += $@"
                     <tr>
-                        <td>ST{transfer.StockTransactionId:D4}</td>
+                        <td>ST{transfer.Id:D4}</td>
                         <td>{transfer.TransactionDate:dd/MM/yyyy HH:mm}</td>
                         <td>{transfer.Product?.Product_Name}</td>
                         <td>{GetTransferTypeDisplay(transfer.StockTransactionType)}</td>
@@ -591,7 +591,7 @@
         return $@"
         <html>
         <head>
-            <title>Transfer Details - ST{transfer.StockTransactionId:D4}</title>
+            <title>Transfer Details - ST{transfer.Id:D4}</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 20px; }}
                 .header {{ text-align: center; margin-bottom: 30px; }}
@@ -603,11 +603,11 @@
         <body>
             <div class='header'>
                 <h1>Stock Transfer Details</h1>
-                <h2>ST{transfer.StockTransactionId:D4}</h2>
+                <h2>ST{transfer.Id:D4}</h2>
                 <p>Generated on: {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>
             </div>
             <div class='details'>
-                <div class='detail-row'><span class='label'>Transfer ID:</span> ST{transfer.StockTransactionId:D4}</div>
+                <div class='detail-row'><span class='label'>Transfer ID:</span> ST{transfer.Id:D4}</div>
                 <div class='detail-row'><span class='label'>Product:</span> {transfer.Product?.Product_Name}</div>
                 <div class='detail-row'><span class='label'>Barcode:</span> {transfer.Product?.Product_Barcode}</div>
                 <div class='detail-row'><span class='label'>Type:</span> {GetTransferTypeDisplay(transfer.StockTransactionType)}</div>
@@ -631,7 +631,7 @@
 
         foreach (var transfer in transfers)
         {
-            csv += $"ST{transfer.StockTransactionId:D4}," +
+            csv += $"ST{transfer.Id:D4}," +
                    $"{transfer.TransactionDate:dd/MM/yyyy HH:mm:ss}," +
                    $"\"{transfer.Product?.Product_Name ?? "Unknown"}\"," +
                    $"\"{transfer.Product?.Product_Barcode ?? ""}\"," +

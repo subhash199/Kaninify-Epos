@@ -397,7 +397,7 @@ else
 
     private async Task HandleLogin()
     {
-        await supabaseSyncService.SyncUnsyncedDataAsync(retailer);
+        await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(retailer);
         // if (!loginModel.Passcode.All(char.IsDigit))
         // {
         //     await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");

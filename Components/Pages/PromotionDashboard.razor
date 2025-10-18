@@ -470,7 +470,7 @@
                 await PromotionServices.UpdateAsync(currentPromotion);
 
                 // Update the promotion in the local list
-                var index = promotions.FindIndex(p => p.Promotion_ID == currentPromotion.Promotion_ID);
+                var index = promotions.FindIndex(p => p.Id == currentPromotion.Id);
                 if (index >= 0)
                 {
                     promotions[index] = currentPromotion;
@@ -505,7 +505,7 @@
         {
             try
             {
-                await PromotionServices.DeleteAsync(promotion.Promotion_ID);
+                await PromotionServices.DeleteAsync(promotion.Id);
                 promotions.Remove(promotion);
                 await JSRuntime.InvokeVoidAsync("alert", "Promotion deleted successfully!");
                 StateHasChanged();
@@ -522,9 +522,9 @@
         try
         {
             selectedPromotion = promotion;
-            selectedPromotionProducts = (await PromotionServices.GetProductsWithPromotionAsync(promotion.Promotion_ID))?.ToList() ?? new List<Product>();
+            selectedPromotionProducts = (await PromotionServices.GetProductsWithPromotionAsync(promotion.Id))?.ToList() ?? new List<Product>();
             filteredAvailableProducts = allProducts.Where(p =>
-                p.Promotion_Id != promotion.Promotion_ID).ToList();
+                p.Promotion_Id != promotion.Id).ToList();
             showProductsModal = true;
             StateHasChanged();
         }
@@ -547,12 +547,12 @@
         if (string.IsNullOrWhiteSpace(productSearchTerm))
         {
             filteredAvailableProducts = allProducts.Where(p =>
-                p.Promotion_Id != selectedPromotion?.Promotion_ID).ToList();
+                p.Promotion_Id != selectedPromotion?.Id).ToList();
         }
         else
         {
             filteredAvailableProducts = allProducts.Where(p =>
-                p.Promotion_Id != selectedPromotion?.Promotion_ID &&
+                p.Promotion_Id != selectedPromotion?.Id &&
                 (p.Product_Name.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase) ||
                  p.Product_Barcode.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
         }
@@ -563,7 +563,7 @@
     {
         try
         {
-            await PromotionServices.AssignPromotionToProductAsync(selectedPromotion!.Promotion_ID, product.Product_ID);
+            await PromotionServices.AssignPromotionToProductAsync(selectedPromotion!.Id, product.Id);
 
             selectedPromotionProducts.Add(product);
             filteredAvailableProducts.Remove(product);
@@ -579,7 +579,7 @@
     {
         try
         {
-            await PromotionServices.RemovePromotionFromProductAsync(product.Product_ID);
+            await PromotionServices.RemovePromotionFromProductAsync(product.Id);
 
             selectedPromotionProducts.Remove(product);
             filteredAvailableProducts.Add(product);
@@ -598,11 +598,11 @@
             if (selectedPromotion != null)
             {
                 // Reload the promotion data to ensure we have the latest information
-                var updatedPromotion = await PromotionServices.GetByIdAsync(selectedPromotion.Promotion_ID);
+                var updatedPromotion = await PromotionServices.GetByIdAsync(selectedPromotion.Id);
                 if (updatedPromotion != null)
                 {
                     // Update the promotion in the local list
-                    var index = promotions.FindIndex(p => p.Promotion_ID == selectedPromotion.Promotion_ID);
+                    var index = promotions.FindIndex(p => p.Id == selectedPromotion.Id);
                     if (index >= 0)
                     {
                         promotions[index] = updatedPromotion;

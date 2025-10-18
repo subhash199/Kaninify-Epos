@@ -412,7 +412,7 @@ else
                                             <option value="">Select Department</option>
                                             @foreach (var dept in departments)
                                             {
-                                                <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                                    <option value="@dept.Id">@dept.Department_Name</option>
                                             }
                                         </select>
                                     </div>
@@ -424,7 +424,7 @@ else
                                             <option value="">Select Supplier</option>
                                             @foreach (var supplier in suppliers)
                                             {
-                                                <option value="@supplier.Supplier_ID">@supplier.Supplier_Name</option>
+                                                <option value="@supplier.Id">@supplier.Supplier_Name</option>
                                             }
                                         </select>
                                     </div>
@@ -569,7 +569,7 @@ else
                                 <option value="">All Suppliers</option>
                                 @foreach (var supplier in suppliers)
                                 {
-                                    <option value="@supplier.Supplier_ID">@supplier.Supplier_Name</option>
+                                        <option value="@supplier.Id">@supplier.Supplier_Name</option>
                                 }
                             </select>
                         </div>
@@ -579,7 +579,7 @@ else
                                 <option value="">All Departments</option>
                                 @foreach (var dept in departments)
                                 {
-                                    <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                    <option value="@dept.Id">@dept.Department_Name</option>
                                 }
                             </select>
                         </div>
@@ -829,7 +829,7 @@ else
                                 {
                                     @foreach (var dept in departments)
                                     {
-                                        <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                            <option value="@dept.Id">@dept.Department_Name</option>
                                     }
                                 }
                             </select>
@@ -882,7 +882,7 @@ else
                                         <td>
                                             @if (departments != null)
                                             {
-                                                var dept = departments.FirstOrDefault(d => d.Department_ID == product.Department_ID);
+                                                    var dept = departments.FirstOrDefault(d => d.Id == product.Department_ID);
                                                 @(dept?.Department_Name ?? "N/A")
                                             }
                                         </td>
@@ -1005,7 +1005,7 @@ else
                                 {
                                     @foreach (var dept in departments)
                                     {
-                                        <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                            <option value="@dept.Id">@dept.Department_Name</option>
                                     }
                                 }
                             </select>
@@ -1729,9 +1729,9 @@ else
     private List<Supplier>? suppliers = new();
 
     // Supplier Items variables
-    private List<SupplierItems>? supplierItems;
-    private List<SupplierItems>? filteredSupplierItems;
-    private List<SupplierItems>? relevantSupplierItemsCache;
+    private List<SupplierItem>? supplierItems;
+    private List<SupplierItem>? filteredSupplierItems;
+    private List<SupplierItem>? relevantSupplierItemsCache;
     private string selectedSupplierFilter = "";
     private string selectedSupplierItemDepartmentFilter = "";
 
@@ -2318,7 +2318,7 @@ else
     {
         currentSupplier = new Supplier
         {
-            Supplier_ID = supplier.Supplier_ID,
+            Id = supplier.Id,
             Supplier_Name = supplier.Supplier_Name,
             Supplier_Email = supplier.Supplier_Email,
             Supplier_Phone = supplier.Supplier_Phone,
@@ -2433,7 +2433,7 @@ else
             else
             {
                 distinctSuppliers = new List<string>();
-                relevantSupplierItemsCache = new List<SupplierItems>();
+                relevantSupplierItemsCache = new List<SupplierItem>();
             }
 
             // Reset filters and apply current department filter
@@ -2543,7 +2543,7 @@ else
 
 
                 // Load supplier information if available
-                var supplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(product.Product_ID);
+                var supplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(product.Id);
                 if (supplierItem != null)
                 {
                     deliverySupplierId = supplierItem.SupplierId;
@@ -2630,7 +2630,7 @@ else
     {
         try
         {
-            if (product.Product_ID == 0)
+            if (product.Id == 0)
             {
                 await ProductService.AddAsync(product);
                 modalTitle = "Success";
@@ -2730,7 +2730,7 @@ else
             }
 
             // Get department name
-            var department = departments?.FirstOrDefault(d => d.Department_ID == deliveryProduct.Department_ID);
+            var department = departments?.FirstOrDefault(d => d.Id == deliveryProduct.Department_ID);
             string departmentName = department?.Department_Name ?? "Unknown";
 
 
@@ -2818,7 +2818,7 @@ else
             // Collect products to update, stock transactions to create, and supplier items to handle
             var productsToUpdate = new List<Product>();
             var stockTransactionsToCreate = new List<StockTransaction>();
-            var supplierItemsToUpsert = new List<SupplierItems>();
+            var supplierItemsToUpsert = new List<SupplierItem>();
 
             // Process each delivery item
             foreach (var item in deliveryItems)
@@ -2835,18 +2835,18 @@ else
                     // Create stock transaction for delivery
                     var stockTransaction = new StockTransaction
                     {
-                        ProductId = item.Product.Product_ID,
+                        ProductId = item.Product.Id,
                         StockTransactionType = StockTransferType.Delivery,
                         Quantity = item.TotalUnits,
                         TotalAmount = item.Product.Product_Selling_Price * item.TotalUnits,
                         TransactionDate = DateTime.UtcNow,
                         DateCreated = DateTime.UtcNow,
                         LastModified = DateTime.UtcNow,
-                        Created_By_Id = UserSessionService.CurrentUser?.User_ID,
-                        Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID,
-                        Till_Id = UserSessionService.CurrentTill?.Till_Id,
-                        DayLogId = UserSessionService.CurrentDayLog?.DayLog_Id ?? 1,
-                        Shift_Id = UserSessionService.CurrentShift?.Shift_Id
+                        Created_By_Id = UserSessionService.CurrentUser?.Id,
+                        Last_Modified_By_Id = UserSessionService.CurrentUser?.Id,
+                        Till_Id = UserSessionService.CurrentTill?.Id,
+                        DayLogId = UserSessionService.CurrentDayLog?.Id ?? 1,
+                        Shift_Id = UserSessionService.CurrentShift?.Id
                     };
 
                     stockTransactionsToCreate.Add(stockTransaction);
@@ -2855,7 +2855,7 @@ else
                     if (item.SupplierId > 0)
                     {
                         // Check if supplier item already exists
-                        var existingSupplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(item.Product.Product_ID);
+                        var existingSupplierItem = await SupplierItemsService.GetSupplierItemByProductIdAsync(item.Product.Id);
 
                         if (existingSupplierItem != null && existingSupplierItem.SupplierId == item.SupplierId)
                         {
@@ -2864,16 +2864,16 @@ else
                             existingSupplierItem.Cost_Per_Unit = item.CostPerUnit;
                             existingSupplierItem.Unit_Per_Case = item.UnitsPerCase;
                             existingSupplierItem.Last_Modified = DateTime.UtcNow;
-                            existingSupplierItem.Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID ?? 0;
+                            existingSupplierItem.Last_Modified_By_Id = UserSessionService.CurrentUser?.Id ?? 0;
                             supplierItemsToUpsert.Add(existingSupplierItem);
                         }
                         else
                         {
                             // Create new supplier item
-                            var newSupplierItem = new SupplierItems
+                            var newSupplierItem = new SupplierItem
                             {
                                 SupplierId = item.SupplierId,
-                                ProductId = item.Product.Product_ID,
+                                ProductId = item.Product.Id,
                                 Supplier_Product_Code = item.Barcode,
                                 Product_OuterCaseBarcode = item.Product.Product_Case_Barcode ?? "",
                                 Cost_Per_Case = item.CostPerCase,
@@ -2884,10 +2884,10 @@ else
                                 Is_Deleted = false,
                                 Date_Created = DateTime.UtcNow,
                                 Last_Modified = DateTime.UtcNow,
-                                Created_By_Id = UserSessionService.CurrentUser?.User_ID ?? 0,
-                                Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID ?? 0,
-                                Site_Id = UserSessionService.CurrentSite?.Site_Id,
-                                Till_Id = UserSessionService.CurrentTill?.Till_Id
+                                Created_By_Id = UserSessionService.CurrentUser?.Id ?? 0,
+                                Last_Modified_By_Id = UserSessionService.CurrentUser?.Id ?? 0,
+                                Site_Id = UserSessionService.CurrentSite?.Id,
+                                Till_Id = UserSessionService.CurrentTill?.Id
                             };
                             supplierItemsToUpsert.Add(newSupplierItem);
                         }
@@ -2978,15 +2978,15 @@ else
         pendingTransfers.Add(new StockTransaction
         {
             Product = newTransfer.Product,
-            ProductId = newTransfer.Product.Product_ID,
+            ProductId = newTransfer.Product.Id,
             Quantity = quantity,
             TotalAmount = totalAmount,
             StockTransactionType = newTransfer.TransferType,
-            DayLogId = UserSessionService.CurrentDayLog?.DayLog_Id ?? 1,
-            Shift_Id = UserSessionService.CurrentShift?.Shift_Id,
-            Created_By_Id = UserSessionService.CurrentUser?.User_ID,
-            Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID,
-            Till_Id = UserSessionService.CurrentTill?.Till_Id,
+            DayLogId = UserSessionService.CurrentDayLog?.Id ?? 1,
+            Shift_Id = UserSessionService.CurrentShift?.Id,
+            Created_By_Id = UserSessionService.CurrentUser?.Id,
+            Last_Modified_By_Id = UserSessionService.CurrentUser?.Id,
+            Till_Id = UserSessionService.CurrentTill?.Id,
             DateCreated = DateTime.UtcNow,
             LastModified = DateTime.UtcNow,
             TransactionDate = DateTime.UtcNow
@@ -3187,11 +3187,11 @@ else
     {
         selectedProductForModal = new Product
         {
-            Product_ID = 0,
+            Id = 0,
             Is_Activated = true,
             Date_Created = DateTime.Now,
-            Created_By_Id = UserSessionService.CurrentUser?.User_ID,
-            Site_Id = UserSessionService.CurrentSite?.Site_Id ?? 1
+            Created_By_Id = UserSessionService.CurrentUser?.Id,
+            Site_Id = UserSessionService.CurrentSite?.Id ?? 1
         };
         showProductModal = true;
         StateHasChanged();
@@ -3201,7 +3201,7 @@ else
     {
         selectedProductForModal = new Product
         {
-            Product_ID = product.Product_ID,
+            Id = product.Id,
             Product_Name = product.Product_Name,
             Product_Barcode = product.Product_Barcode,
             Product_Selling_Price = product.Product_Selling_Price,
@@ -3225,7 +3225,7 @@ else
             Date_Created = product.Date_Created,
             Last_Modified = DateTime.Now,
             Created_By_Id = product.Created_By_Id,
-            Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID,
+            Last_Modified_By_Id = UserSessionService.CurrentUser?.Id,
             Site_Id = product.Site_Id,
             Till_Id = product.Till_Id
         };
@@ -3246,7 +3246,7 @@ else
         {
             product.Is_Activated = !product.Is_Activated;
             product.Last_Modified = DateTime.Now;
-            product.Last_Modified_By_Id = UserSessionService.CurrentUser?.User_ID;
+            product.Last_Modified_By_Id = UserSessionService.CurrentUser?.Id;
 
             await ProductService.UpdateAsync(product);
             await RefreshProducts();
@@ -3347,7 +3347,7 @@ else
     {
         if (supplierItems == null)
         {
-            filteredSupplierItems = new List<SupplierItems>();
+            filteredSupplierItems = new List<SupplierItem>();
             return;
         }
 
@@ -3376,7 +3376,7 @@ else
         ApplySupplierItemFilters();
     }
 
-    private void EditSupplierItem(SupplierItems item)
+    private void EditSupplierItem(SupplierItem item)
     {
         // TODO: Implement edit supplier item functionality
         modalTitle = "Edit Supplier Item";
@@ -3384,7 +3384,7 @@ else
         showMessageModal = true;
     }
 
-    private void ViewSupplierItemDetails(SupplierItems item)
+    private void ViewSupplierItemDetails(SupplierItem item)
     {
         // TODO: Implement view supplier item details functionality
         modalTitle = "Supplier Item Details";
@@ -3503,7 +3503,7 @@ else
             // Remove from filtered low stock products list
             if (filteredLowStockProducts != null)
             {
-                var productToRemove = filteredLowStockProducts.FirstOrDefault(p => p.Product_ID == product.Product_ID);
+                var productToRemove = filteredLowStockProducts.FirstOrDefault(p => p.Id == product.Id);
                 if (productToRemove != null)
                 {
                     filteredLowStockProducts.Remove(productToRemove);
@@ -3513,7 +3513,7 @@ else
             // Also remove from the main low stock products list
             if (lowStockProducts != null)
             {
-                var productToRemove = lowStockProducts.FirstOrDefault(p => p.Product_ID == product.Product_ID);
+                var productToRemove = lowStockProducts.FirstOrDefault(p => p.Id == product.Id);
                 if (productToRemove != null)
                 {
                     lowStockProducts.Remove(productToRemove);

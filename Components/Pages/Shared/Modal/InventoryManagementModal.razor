@@ -31,7 +31,7 @@
                             {
                                 @foreach (var dept in FilteredDepartments)
                                 {
-                                    <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                    <option value="@dept.Id">@dept.Department_Name</option>
                                 }
                             }
                         </select>
@@ -266,7 +266,7 @@
                                                 <td>@product.UnitsNeeded</td>
                                                 <td>@product.CasesNeeded</td>
                                                 <td>
-                                                    <button class="btn btn-primary btn-sm" @onclick="() => MarkAsOrdered(product.Product.Product_ID)" @onclick:stopPropagation="true">
+                                                    <button class="btn btn-primary btn-sm" @onclick="() => MarkAsOrdered(product.Product.Id)" @onclick:stopPropagation="true">
                                                         Mark as Ordered
                                                     </button>
                                                 </td>
@@ -507,7 +507,7 @@
         var refillDepartmentIds = refillData.Select(r => r.Product.Department_ID).Distinct().ToList();
         // Filter AllDepartments to only those present in the refillDepartmentIds
         FilteredDepartments = AllDepartments
-            ?.Where(d => refillDepartmentIds.Contains(d.Department_ID))
+            ?.Where(d => refillDepartmentIds.Contains(d.Id))
             .ToList() ?? new List<Department>();
 
         return refillProducts.OrderBy(p => p.Product.Product_Name).ToList();
@@ -538,7 +538,7 @@
 
         foreach (var product in products)
         {
-            var productSales = salesData.Where(s => s.Product_ID == product.Product_ID).Sum(s => s.Product_QTY);
+            var productSales = salesData.Where(s => s.Product_ID == product.Id).Sum(s => s.Product_QTY);
             var averageDailySales = productSales / 30.0;
             var totalStock = product.ShelfQuantity + product.StockroomQuantity;
             var daysOfStock = averageDailySales > 0 ? totalStock / averageDailySales : double.MaxValue;
@@ -717,7 +717,7 @@
     // Action methods
     private async Task MarkAsRefilled(ProductRefillDTO refillProduct)
     {
-        var product = AllRefillProducts?.FirstOrDefault(p => p.Product.Product_ID == refillProduct.Product.Product_ID);
+        var product = AllRefillProducts?.FirstOrDefault(p => p.Product.Id == refillProduct.Product.Id);
         if (product != null)
         {
             product.Is_Refill = true;
@@ -741,7 +741,7 @@
             if (product == null) return;
 
             // Check if already marked as expired
-            if (expiredProducts.Any(p => p.Product_ID == product.Product_ID)) return;
+            if (expiredProducts.Any(p => p.Id == product.Id)) return;
 
             // Calculate total quantity to transfer (shelf + stockroom)
             var totalQuantity = product.ShelfQuantity + product.StockroomQuantity;
@@ -759,10 +759,10 @@
             var stockTransaction = new StockTransaction
             {
                 StockTransactionType = StockTransferType.Expired,
-                ProductId = product.Product_ID,
+                ProductId = product.Id,
                 Quantity = totalQuantity,
                 TotalAmount = totalAmount,
-                DayLogId = CurrentDayLog?.DayLog_Id ?? 1,
+                DayLogId = CurrentDayLog?.Id ?? 1,
                 TransactionDate = DateTime.UtcNow,
                 DateCreated = DateTime.UtcNow,
                 LastModified = DateTime.UtcNow,
@@ -803,7 +803,7 @@
         // Remove from current filtered list to show immediate UI feedback
         if (FilteredProducts != null)
         {
-            var productToRemove = FilteredProducts.FirstOrDefault(p => p.Product_ID == product.Product_ID);
+            var productToRemove = FilteredProducts.FirstOrDefault(p => p.Id == product.Id);
             if (productToRemove != null)
             {
                 FilteredProducts.Remove(productToRemove);
@@ -865,7 +865,7 @@
         {
             foreach (var item in stockRefillItems)
             {
-                if (refilledItems.Any(r => r.Product.Product_ID == item.SalesItemTransaction.Product_ID && r.Is_Refill))
+                if (refilledItems.Any(r => r.Product.Id == item.SalesItemTransaction.Product_ID && r.Is_Refill))
                 {
                     item.Stock_Refilled = true;
                     item.Refilled_By = UserSessionService.GetCurrentUserId();
@@ -920,7 +920,7 @@
         // Create a copy of the product to avoid modifying the original
         SelectedProduct = new Product
         {
-            Product_ID = product.Product_ID,
+            Id = product.Id,
             Product_Name = product.Product_Name,
             Product_Barcode = product.Product_Barcode,
             Product_Description = product.Product_Description,
@@ -978,7 +978,7 @@
     private void UpdateProductInCollections(Product savedProduct)
     {
         // Update in AllProducts collection
-        var existingProduct = AllProducts?.FirstOrDefault(p => p.Product_ID == savedProduct.Product_ID);
+        var existingProduct = AllProducts?.FirstOrDefault(p => p.Id == savedProduct.Id);
         if (existingProduct != null)
         {
             // Update all properties
@@ -1010,7 +1010,7 @@
         }
 
         // Update in AllRefillProducts collection if it exists
-        var existingRefillProduct = AllRefillProducts?.FirstOrDefault(rp => rp.Product.Product_ID == savedProduct.Product_ID);
+        var existingRefillProduct = AllRefillProducts?.FirstOrDefault(rp => rp.Product.Id == savedProduct.Id);
         if (existingRefillProduct != null)
         {
             // Update the product reference in the refill DTO

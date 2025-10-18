@@ -58,17 +58,17 @@
                                     <div class="card-body py-2">
                                         <div class="form-check">
                                             <input class="form-check-input" 
-                                                   type="checkbox" 
-                                                   id="site_@(siteAccess.Site.Site_Id)"
+                                                   type="checkbox"
+                                                   id="site_@(siteAccess.Site.Id)"
                                                    @bind="siteAccess.HasAccess"
-                                                   disabled="@(siteAccess.Site.Site_Id == SelectedUser?.Primary_Site_Id)" />
-                                            <label class="form-check-label" for="site_@(siteAccess.Site.Site_Id)">
+                                                   disabled="@(siteAccess.Site.Id == SelectedUser?.Primary_Site_Id)" />
+                                            <label class="form-check-label" for="site_@(siteAccess.Site.Id)">
                                                 <strong>@siteAccess.Site.Site_BusinessName</strong>
                                                 @if (!string.IsNullOrEmpty(siteAccess.Site.Site_AddressLine1))
                                                 {
                                                     <br><small class="text-muted">@siteAccess.Site.Site_AddressLine1</small>
                                                 }
-                                                @if (siteAccess.Site.Site_Id == SelectedUser?.Primary_Site_Id)
+                                                @if (siteAccess.Site.Id == SelectedUser?.Primary_Site_Id)
                                                 {
                                                     <br><span class="badge bg-primary">Primary Site</span>
                                                 }
@@ -149,15 +149,15 @@
                 .ToList();
             
             // Then get user's current site access
-            var userSiteAccess = await UserSiteAccessServices.GetByUserIdAsync(SelectedUser.User_ID);
+            var userSiteAccess = await UserSiteAccessServices.GetByUserIdAsync(SelectedUser.Id);
             
             // Create site access list
             SiteAccessList = new List<SiteAccessItem>();
             
             foreach (var site in allSites)
             {
-                var existingAccess = userSiteAccess.FirstOrDefault(usa => usa.Site_Id == site.Site_Id && usa.Is_Active);
-                var hasAccess = existingAccess != null || site.Site_Id == SelectedUser.Primary_Site_Id;
+                var existingAccess = userSiteAccess.FirstOrDefault(usa => usa.Site_Id == site.Id && usa.Is_Active);
+                var hasAccess = existingAccess != null || site.Id == SelectedUser.Primary_Site_Id;
                 
                 SiteAccessList.Add(new SiteAccessItem
                 {
@@ -199,7 +199,7 @@
             foreach (var siteAccess in SiteAccessList)
             {
                 // Skip primary site - user always has access
-                if (siteAccess.Site.Site_Id == SelectedUser.Primary_Site_Id)
+                if (siteAccess.Site.Id == SelectedUser.Primary_Site_Id)
                     continue;
                     
                 // Check if access status changed
@@ -212,8 +212,8 @@
                         // Grant access - create new UserSiteAccess record
                         var newAccess = new UserSiteAccess
                         {
-                            User_Id = SelectedUser.User_ID,
-                            Site_Id = siteAccess.Site.Site_Id,
+                            User_Id = SelectedUser.Id,
+                            Site_Id = siteAccess.Site.Id,
                             Is_Active = true,
                             Date_Granted = DateTime.UtcNow,
                             Created_By_Id = currentUserId,

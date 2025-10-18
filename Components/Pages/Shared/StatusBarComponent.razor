@@ -288,7 +288,7 @@
             var shortageCount = 0;
             foreach (var product in products)
             {
-                var salesAnalysis = productSalesAnalysis.FirstOrDefault(p => p.ProductId == product.Product_ID);
+                var salesAnalysis = productSalesAnalysis.FirstOrDefault(p => p.ProductId == product.Id);
                 if (salesAnalysis != null)
                 {
                     var totalStock = product.ShelfQuantity + product.StockroomQuantity;

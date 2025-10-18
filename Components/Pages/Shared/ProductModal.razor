@@ -52,7 +52,7 @@
                             <option value="0">-- Select Department --</option>
                             @foreach (var dept in Departments)
                             {
-                                <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                <option value="@dept.Id">@dept.Department_Name</option>
                             }
                         </select>
                     </div>
@@ -63,7 +63,7 @@
                             <option value="0">-- Select VAT --</option>
                             @foreach (var vat in VatRates)
                             {
-                                <option value="@vat.VAT_ID">@vat.VAT_Value.ToString("F2")%</option>
+                                <option value="@vat.Id">@vat.VAT_Value.ToString("F2")%</option>
                             }
                         </select>
                     </div>
@@ -351,8 +351,8 @@
                 return;
             }
            
-            Product.Department_ID = Product.Department_ID ==0 ? (await departmentServices.GetDefaultDepartment()).Department_ID : Product.Department_ID;
-            Product.VAT_ID = Product.VAT_ID == 0 ? (await vatServices.GetDefaultVatAsync()).VAT_ID : Product.VAT_ID;
+            Product.Department_ID = Product.Department_ID == 0 ? (await departmentServices.GetDefaultDepartment()).Id : Product.Department_ID;
+            Product.VAT_ID = Product.VAT_ID == 0 ? (await vatServices.GetDefaultVatAsync()).Id : Product.VAT_ID;
 
             // Check for price changes
             bool priceChanged = Product.Product_Selling_Price != OriginalSellingPrice;
@@ -361,7 +361,7 @@
                 Product.Priced_Changed_On = DateTime.UtcNow;
             }
 
-            if (Product.Product_ID == 0) // If it's a new product
+            if (Product.Id == 0) // If it's a new product
             {
                 // Remove any explicit ID assignment for new products
                 if (!priceChanged)
@@ -430,11 +430,11 @@
             // Create stock transaction
             var stockTransaction = new StockTransaction
             {
-                ProductId = Product.Product_ID,
+                ProductId = Product.Id,
                 Quantity = Math.Abs(quantityDifference),
                 StockTransactionType = quantityDifference > 0 ? StockTransferType.StockIn : StockTransferType.StockOut,
-                DayLogId = currentDayLog.DayLog_Id,
-                Shift_Id = currentShift.Shift_Id,
+                DayLogId = currentDayLog.Id,
+                Shift_Id = currentShift.Id,
                 TransactionDate = DateTime.UtcNow,
                 TotalAmount = Math.Abs(quantityDifference) * Product.Product_Cost,
                 DateCreated = DateTime.UtcNow,

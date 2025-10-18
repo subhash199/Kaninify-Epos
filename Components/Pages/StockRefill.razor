@@ -68,7 +68,7 @@
                             {
                                 @foreach (var dept in AllDepartments)
                                 {
-                                    <option value="@dept.Department_ID">@dept.Department_Name</option>
+                                    <option value="@dept.Id">@dept.Department_Name</option>
                                 }
                             }
                         </select>
@@ -188,7 +188,7 @@
                                     <td>
                                         @if (AllDepartments != null)
                                         {
-                                            var dept = AllDepartments.FirstOrDefault(d => d.Department_ID == product.Product.Department_ID);
+                                            var dept = AllDepartments.FirstOrDefault(d => d.Id == product.Product.Department_ID);
                                             @(dept?.Department_Name ?? "N/A")
                                         }
                                     </td>
@@ -426,7 +426,7 @@
             var salesItemService = scope.ServiceProvider.GetRequiredService<SalesItemTransactionServices>();
 
             // Update sales items for this product to mark as refilled
-            var itemsToUpdate = StockRefillItems?.Where(s => s.SalesItemTransaction.Product_ID == refillProduct.Product.Product_ID).ToList();
+            var itemsToUpdate = StockRefillItems?.Where(s => s.SalesItemTransaction.Product_ID == refillProduct.Product.Id).ToList();
             if (itemsToUpdate?.Any() == true)
             {
                 foreach (var item in itemsToUpdate)

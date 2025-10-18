@@ -538,7 +538,7 @@
 
         try
         {
-            tillModel.Site_Id = createdSite?.Site_Id ?? 0;
+            tillModel.Site_Id = createdSite?.Id ?? 0;
 
             var validation = await TillServices.ValidateAsync(tillModel);
             if (!string.IsNullOrEmpty(validation))
@@ -577,8 +577,8 @@
             userModel.Passcode = userSetupModel.Passcode;
             userModel.User_Type = userSetupModel.User_Type;
 
-            userModel.Primary_Site_Id = createdSite?.Site_Id;
-            userModel.Till_Id = createdTill?.Till_Id;
+            userModel.Primary_Site_Id = createdSite?.Id;
+            userModel.Till_Id = createdTill?.Id;
 
             var validation = await PosUserServices.ValidateAsync(userModel);
             if (!string.IsNullOrEmpty(validation))

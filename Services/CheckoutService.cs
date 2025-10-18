@@ -55,7 +55,7 @@ public class CheckoutService
             // Set the transaction ID for all sales items
             foreach (var salesItem in salesItems)
             {
-                salesItem.SaleTransaction_ID = transaction.SaleTransaction_ID;
+                salesItem.SaleTransaction_ID = transaction.Id;
                 salesItem.SalesTransaction = null;
                 salesItem.Created_By_Id = transaction.Created_By_Id;
                 salesItem.Last_Modified_By_Id = transaction.Last_Modified_By_Id;
@@ -132,7 +132,7 @@ public class CheckoutService
     {
         basket.SalesItemsList ??= new List<SalesItemTransaction>();
 
-        var existingItem = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == product.Product_ID && x.SalesItemTransactionType == transactionType);
+        var existingItem = basket.SalesItemsList.FirstOrDefault(x => x.Product_ID == product.Id && x.SalesItemTransactionType == transactionType);
 
         if (existingItem != null && transactionType != SalesItemTransactionType.Misc
             && transactionType != SalesItemTransactionType.Service && transactionType != SalesItemTransactionType.Payout)
@@ -143,7 +143,7 @@ public class CheckoutService
         {
             basket.SalesItemsList.Add(new SalesItemTransaction
             {
-                Product_ID = product.Product_ID,
+                Product_ID = product.Id,
                 Product = product,
                 Product_QTY = 1,
                 Product_Amount = transactionType == SalesItemTransactionType.Refund ? -(product.Product_Selling_Price) : product.Product_Selling_Price,
@@ -206,7 +206,7 @@ public class CheckoutService
     {
         // Get products in basket that have this promotion assigned
         var eligibleItems = basket.SalesItemsList
-            .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID && item.SalesItemTransactionType == SalesItemTransactionType.Sale || item.SalesItemTransactionType
+            .Where(item => item.Product?.Promotion_Id == promotion.Id && item.SalesItemTransactionType == SalesItemTransactionType.Sale || item.SalesItemTransactionType
             == SalesItemTransactionType.Refund)
             .ToList();
 
@@ -262,7 +262,7 @@ public class CheckoutService
         foreach (var item in eligibleItems)
         {
             item.Promotion = promotion;
-            item.Promotion_ID = promotion.Promotion_ID;
+            item.Promotion_ID = promotion.Id;
 
             decimal discountAmount = 0;
 
@@ -293,7 +293,7 @@ public class CheckoutService
         foreach (var item in eligibleItems)
         {
             item.Promotion = promotion;
-            item.Promotion_ID = promotion.Promotion_ID;
+            item.Promotion_ID = promotion.Id;
             if (item.Product_QTY >= promotion.Buy_Quantity)
             {
                 // Calculate how many complete promotion sets we have
@@ -328,7 +328,7 @@ public class CheckoutService
         foreach (var item in eligibleItems)
         {
             item.Promotion = promotion;
-            item.Promotion_ID = promotion.Promotion_ID;
+            item.Promotion_ID = promotion.Id;
             if (item.Product_QTY >= promotion.Buy_Quantity)
             {
                 // Calculate how many multi-buy sets the customer gets
@@ -370,7 +370,7 @@ public class CheckoutService
     {
         // Get all products in basket that have this promotion assigned
         var bundleItemsInBasket = basket.SalesItemsList
-            .Where(item => item.Product?.Promotion_Id == promotion.Promotion_ID)
+            .Where(item => item.Product?.Promotion_Id == promotion.Id)
             .ToList();
 
         if (!bundleItemsInBasket.Any()) return;
@@ -406,7 +406,7 @@ public class CheckoutService
             decimal remainingTotal = remainingQuantity * originalUnitPrice;
 
             item.Promotion = promotion;
-            item.Promotion_ID = promotion.Promotion_ID;
+            item.Promotion_ID = promotion.Id;
             item.Product_Total_Amount = bundleTotal + remainingTotal;
         }
         else
@@ -437,7 +437,7 @@ public class CheckoutService
             foreach (var basketItem in bundleItemsInBasket)
             {
                 basketItem.Promotion = promotion;
-                basketItem.Promotion_ID = promotion.Promotion_ID;
+                basketItem.Promotion_ID = promotion.Id;
                 // Apply discount to bundle quantities only
                 int bundleQuantity = completeBundles;
                 int remainingQuantity = basketItem.Product_QTY - bundleQuantity;
@@ -609,7 +609,7 @@ public class CheckoutService
                 }
                 var stockRefill = new StockRefill
                 {
-                    SaleTransaction_Item_ID = salesItem.SaleTransaction_Item_ID,
+                    SaleTransaction_Item_ID = salesItem.Id,
                     Shift_ID = _userSessionService.GetCurrentShiftId(),
                     DayLog_ID = _userSessionService.GetCurrentDayLogId(),
                     Refill_Quantity = salesItem.Product_QTY, // Quantity that needs to be refilled
