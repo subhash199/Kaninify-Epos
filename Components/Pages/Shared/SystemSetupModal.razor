@@ -2,11 +2,15 @@
 @using DataHandlerLibrary.Models
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
+@using DataHandlerLibrary.Models.SupabaseModels
 @inject SiteServices SiteServices
 @inject TillServices TillServices
 @inject PosUserServices PosUserServices
 @inject SupabaseSyncService SupabaseSyncService
 @inject RetailerServices RetailerServices
+@inject DepartmentServices DepartmentServices
+@inject VatServices VatServices
+@inject ProductServices ProductServices
 
 
 
@@ -36,6 +40,10 @@
                         else if (currentStep == SetupStep.CloudSetup)
                         {
                             <span>☁️ Cloud Setup</span>
+                        }
+                        else if (currentStep == SetupStep.DataSync)
+                        {
+                            <span>🔄 Data Sync</span>
                         }
                         else if (currentStep == SetupStep.Complete)
                         {
@@ -68,6 +76,10 @@
                                 <div class="step-item">
                                     <span class="step-number">4</span>
                                     <span>Setup cloud sync (optional)</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">5</span>
+                                    <span>Sync departments, VATs, and products</span>
                                 </div>
                             </div>
                         </div>
@@ -347,6 +359,79 @@
                             </div>
                         </EditForm>
                     }
+                    else if (currentStep == SetupStep.DataSync)
+                    {
+                        <div class="mb-3">
+                            <h6>Data Sync Progress</h6>
+                            <div class="progress-item">
+                                <span class="@(isDepartmentSyncing ? "text-primary" : departmentSynced ? "text-success" : "text-muted")">
+                                    @if (isDepartmentSyncing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    else if (departmentSynced)
+                                    {
+                                        <i class="bi bi-check-circle me-2"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-circle me-2"></i>
+                                    }
+                                    Departments (@departmentsInserted synced)
+                                </span>
+                            </div>
+                            <div class="progress-item">
+                                <span class="@(isVatSyncing ? "text-primary" : vatSynced ? "text-success" : "text-muted")">
+                                    @if (isVatSyncing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    else if (vatSynced)
+                                    {
+                                        <i class="bi bi-check-circle me-2"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-circle me-2"></i>
+                                    }
+                                    VAT Rates (@vatsInserted synced)
+                                </span>
+                            </div>
+                            <div class="progress-item">
+                                <span class="@(isProductSyncing ? "text-primary" : productSynced ? "text-success" : "text-muted")">
+                                    @if (isProductSyncing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    else if (productSynced)
+                                    {
+                                        <i class="bi bi-check-circle me-2"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-circle me-2"></i>
+                                    }
+                                    Products (@productsInserted synced)
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(dataSyncSummary))
+                            {
+                                <div class="alert alert-success mt-3">
+                                    @dataSyncSummary
+                                </div>
+                            }
+                        </div>
+                        <button type="button" class="btn btn-primary" @onclick="RunDataSync" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Sync from Cloud & Continue
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="SkipCloudSetup" disabled="@isLoading">
+                            Skip Data Sync
+                        </button>
+                    }
                     else if (currentStep == SetupStep.Complete)
                     {
                         <button type="button" class="btn btn-success" @onclick="CompleteSetup">Start Using POS</button>
@@ -396,6 +481,13 @@
         border-radius: 8px;
         margin-top: 20px;
     }
+    
+    .progress-item {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+    }
 </style>
 
 @code {
@@ -417,6 +509,18 @@
     private Site? createdSite;
     private Till? createdTill;
     private PosUser? createdUser;
+    
+    // Data sync progress tracking
+    private string? dataSyncSummary;
+    private bool isDepartmentSyncing = false;
+    private bool isVatSyncing = false;
+    private bool isProductSyncing = false;
+    private bool departmentSynced = false;
+    private bool vatSynced = false;
+    private bool productSynced = false;
+    private int departmentsInserted = 0;
+    private int vatsInserted = 0;
+    private int productsInserted = 0;
 
     public enum SetupStep
     {
@@ -425,6 +529,7 @@
         Till,
         User,
         CloudSetup,
+        DataSync,
         Complete
     }
 
@@ -746,5 +851,246 @@
         NextStep();
     }
 
+
+
+    private async Task RunDataSync()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        dataSyncSummary = null;
+        departmentsInserted = 0;
+        vatsInserted = 0;
+        productsInserted = 0;
+        departmentSynced = false;
+        vatSynced = false;
+        productSynced = false;
+        StateHasChanged();
+
+        try
+        {
+            // Ensure prerequisites
+            var createdById = createdUser?.Id ?? 0;
+            var siteId = createdSite?.Id;
+            var tillId = createdTill?.Id;
+
+            if (createdById == 0 || siteId == null || tillId == null)
+            {
+                throw new InvalidOperationException("Please complete Site, Till, and User steps before data sync.");
+            }
+
+            // Get saved retailer
+            var retailer = await RetailerServices.GetFirstActiveRetailerAsync();
+            if (retailer == null || string.IsNullOrWhiteSpace(retailer.ApiUrl) || string.IsNullOrWhiteSpace(retailer.ApiKey))
+            {
+                throw new InvalidOperationException("Cloud not configured. Please complete Cloud Setup before Data Sync.");
+            }
+
+            // Preload local caches
+            var localDepartments = (await DepartmentServices.GetAllAsync(false)).ToList();
+            var localVats = (await VatServices.GetAllAsync(false)).ToList();
+            var existingProductBarcodes = (await ProductServices.GetAllAsync(false))
+                .Select(p => p.Product_Barcode)
+                .Where(b => !string.IsNullOrWhiteSpace(b))
+                .ToHashSet();
+
+            // 1) Departments
+            isDepartmentSyncing = true;
+            StateHasChanged();
+
+            var depResult = await SupabaseSyncService.GetDepartments<SupaDepartments>(
+                retailer);
+
+            if (depResult.Error != null)
+            {
+                throw new Exception($"Departments fetch error: {depResult.Error}");
+            }
+
+            var departmentsToAdd = new List<Department>();
+            foreach (var sDept in depResult.Data ?? new List<SupaDepartments>())
+            {
+                if (localDepartments.Any(d => d.Department_Name == sDept.Department_Name))
+                {
+                    continue;
+                }
+
+                var dept = new Department
+                {
+                    Department_Name = sDept.Department_Name,
+                    Department_Description = string.IsNullOrWhiteSpace(sDept.Department_Description) ? null : sDept.Department_Description,
+                    Age_Restricted = sDept.Age_Restricted,
+                    Separate_Sales_In_Reports = sDept.Separate_Sales_In_Reports,
+                    Stock_Refill_Print = sDept.Stock_Refill_Print,
+                    Is_Activated = sDept.Is_Activated,
+                    Is_Deleted = sDept.Is_Deleted,
+                    Allow_Staff_Discount = sDept.Allow_Staff_Discount,
+                    Date_Created = sDept.Date_Created.UtcDateTime,
+                    Last_Modified = sDept.Last_Modified.UtcDateTime,
+                    Created_By_Id = createdById,
+                    Last_Modified_By_Id = createdById,
+                    Site_Id = siteId,
+                    Till_Id = tillId
+                };
+
+                departmentsToAdd.Add(dept);
+                localDepartments.Add(dept);
+                departmentsInserted++;
+            }
+
+            if (departmentsToAdd.Any())
+            {
+                await DepartmentServices.AddRangeAsync(departmentsToAdd);
+            }
+
+            isDepartmentSyncing = false;
+            departmentSynced = true;
+            StateHasChanged();
+
+            // 2) VATs
+            isVatSyncing = true;
+            StateHasChanged();
+
+            var vatResult = await SupabaseSyncService.GetVats<SupaVats>(
+                retailer);
+
+            if (vatResult.Error != null)
+            {
+                throw new Exception($"VATs fetch error: {vatResult.Error}");
+            }
+
+            var vatsToAdd = new List<Vat>();
+            foreach (var sVat in vatResult.Data ?? new List<SupaVats>())
+            {
+                var exists = localVats.Any(v => v.VAT_Name == sVat.VAT_Name && v.VAT_Value == sVat.VAT_Value);
+                if (exists) continue;
+
+                var vat = new Vat
+                {
+                    VAT_Name = sVat.VAT_Name,
+                    VAT_Value = sVat.VAT_Value,
+                    VAT_Description = string.IsNullOrWhiteSpace(sVat.VAT_Description) ? null : sVat.VAT_Description,
+                    Date_Created = sVat.Date_Created.UtcDateTime,
+                    Last_Modified = sVat.Last_Modified.UtcDateTime,
+                    Created_By_Id = createdById,
+                    Last_Modified_By_Id = createdById,
+                    Site_Id = siteId,
+                    Till_Id = tillId
+                };
+
+                vatsToAdd.Add(vat);
+                localVats.Add(vat);
+                vatsInserted++;
+            }
+
+            if (vatsToAdd.Any())
+            {
+                await VatServices.AddRangeAsync(vatsToAdd);
+            }
+
+            isVatSyncing = false;
+            vatSynced = true;
+            StateHasChanged();
+
+            // 3) Products
+            isProductSyncing = true;
+            StateHasChanged();
+
+            var productResult = await SupabaseSyncService.GetGlobalProducts<SupaGlobalProducts>(
+                retailer);
+
+            if (productResult.Error != null)
+            {
+                throw new Exception($"Products fetch error: {productResult.Error}");
+            }
+
+            var productsToAdd = new List<EntityFrameworkDatabaseLibrary.Models.Product>();
+            foreach (var sp in productResult.Data ?? new List<SupaGlobalProducts>())
+            {
+                var barcode = sp.ProductBarcode ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(barcode) || existingProductBarcodes.Contains(barcode))
+                {
+                    continue;
+                }
+
+                // map department by name; fallback to default
+                var deptName = string.IsNullOrWhiteSpace(sp.ProductDepartmentName) ? "Default" : sp.ProductDepartmentName;
+                var department = localDepartments.FirstOrDefault(d => d.Department_Name == deptName)
+                                 ?? await DepartmentServices.GetDefaultDepartment();
+
+                // map VAT by value; fallback to default
+                var vatValueDecimal = (decimal)(sp.ProductVatValue ?? 0.0);
+                var vat = localVats.FirstOrDefault(v => v.VAT_Value == vatValueDecimal)
+                          ?? await VatServices.GetDefaultVatAsync();
+
+                var unitsPerCase = (int)(sp.ProductUnitsPerCase ?? 0);
+                var costPerCase = (decimal)(sp.ProductCostPerCase ?? 0.0);
+                var unitCost = unitsPerCase > 0 ? Math.Round(costPerCase / unitsPerCase, 2) : 0m;
+
+                var product = new EntityFrameworkDatabaseLibrary.Models.Product
+                {
+                    GlobalId = sp.Id,
+                    Product_Name = sp.ProductName ?? barcode,
+                    Product_Description = null,
+                    Product_Barcode = barcode,
+                    Product_Case_Barcode = null,
+                    ShelfQuantity = 0,
+                    StockroomQuantity = 0,
+                    Department_ID = department.Id,
+                    VAT_ID = vat.Id,
+                    Product_Cost = unitCost,
+                    Product_Selling_Price = (decimal)(sp.ProductRetailPrice ?? 0.0),
+                    Profit_On_Return_Percentage = 0,
+                    Product_Size = sp.ProductMeasurement,
+                    Product_Measurement = sp.ProductMeasurementType,
+                    Promotion_Id = null,
+                    Brand_Name = null,
+                    Product_Min_Order = 0,
+                    Product_Low_Stock_Alert_QTY = 0,
+                    Product_Min_Stock_Level = 0,
+                    Product_Unit_Per_Case = unitsPerCase,
+                    Product_Cost_Per_Case = costPerCase,
+                    Expiry_Date = DateTime.UtcNow.AddYears(100),
+                    Is_Activated = sp.Active ?? true,
+                    Is_Deleted = sp.Deleted ?? false,
+                    Priced_Changed_On = DateTime.UtcNow,
+                    Is_Price_Changed = false,
+                    Date_Created = sp.CreatedAt.UtcDateTime,
+                    Last_Modified = sp.LastModified_At.UtcDateTime,
+                    Allow_Discount = true,
+                    Created_By_Id = createdById,
+                    Last_Modified_By_Id = createdById,
+                    Site_Id = siteId,
+                    Till_Id = tillId,
+                    SyncStatus = SyncStatus.Synced
+                };
+
+                productsToAdd.Add(product);
+                existingProductBarcodes.Add(barcode);
+                productsInserted++;
+            }
+
+            if (productsToAdd.Any())
+            {
+                await ProductServices.AddRangeAsync(productsToAdd);
+            }
+
+            isProductSyncing = false;
+            productSynced = true;
+            StateHasChanged();
+
+            dataSyncSummary = $"Synced Departments: {departmentsInserted}, VATs: {vatsInserted}, Products: {productsInserted}.";
+            NextStep();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error during data sync: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
 }
+
 
