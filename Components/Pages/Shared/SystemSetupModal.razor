@@ -11,6 +11,7 @@
 @inject DepartmentServices DepartmentServices
 @inject VatServices VatServices
 @inject ProductServices ProductServices
+@inject ReceiptPrinterServices ReceiptPrinterServices
 
 
 
@@ -36,6 +37,10 @@
                         else if (currentStep == SetupStep.User)
                         {
                             <span>👤 Admin User Setup</span>
+                        }
+                        else if (currentStep == SetupStep.Printer)
+                        {
+                            <span>🖨️ Receipt Printer Setup</span>
                         }
                         else if (currentStep == SetupStep.CloudSetup)
                         {
@@ -71,14 +76,18 @@
                                 </div>
                                 <div class="step-item">
                                     <span class="step-number">3</span>
-                                    <span>Create admin user</span>
+                                    <span>Add receipt printer</span>
                                 </div>
                                 <div class="step-item">
                                     <span class="step-number">4</span>
-                                    <span>Setup cloud sync (optional)</span>
+                                    <span>Create admin user</span>
                                 </div>
                                 <div class="step-item">
                                     <span class="step-number">5</span>
+                                    <span>Setup cloud sync (optional)</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">6</span>
                                     <span>Sync departments, VATs, and products</span>
                                 </div>
                             </div>
@@ -247,6 +256,68 @@
                             </div>
                         </EditForm>
                     }
+                    else if (currentStep == SetupStep.Printer)
+                    {
+                        <EditForm Model="@printerModel" OnValidSubmit="@CreateReceiptPrinter">
+                            <DataAnnotationsValidator />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Printer Name *</label>
+                                        <InputText @bind-Value="printerModel.Printer_Name" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Paper Width (mm) *</label>
+                                        <InputNumber @bind-Value="printerModel.Paper_Width" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">IP Address</label>
+                                        <InputText @bind-Value="printerModel.Printer_IP_Address" class="form-control" placeholder="192.168.1.200" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Port Number</label>
+                                        <InputNumber @bind-Value="printerModel.Printer_Port_Number" class="form-control" placeholder="9100" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Printer Password</label>
+                                        <InputText @bind-Value="printerModel.Printer_Password" class="form-control" type="password" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mt-4">
+                                        <InputCheckbox @bind-Value="printerModel.Is_Primary" class="form-check-input" />
+                                        <label class="form-check-label ms-2">Set as primary printer</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mt-2">
+                                        <InputCheckbox @bind-Value="printerModel.Print_Receipt" class="form-check-input" />
+                                        <label class="form-check-label ms-2">Print Receipts</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mt-2">
+                                        <InputCheckbox @bind-Value="printerModel.Print_Label" class="form-check-input" />
+                                        <label class="form-check-label ms-2">Print Labels</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </EditForm>
+                    }
                     else if (currentStep == SetupStep.Complete)
                     {
                         <div class="text-center">
@@ -260,7 +331,7 @@
                             </div>
                             <h4>Setup Complete!</h4>
                             <p class="lead">Your POS system is now ready to use.</p>
-                            @if (createdSite != null && createdTill != null && CreateUser != null)
+                            @if (createdSite != null && createdTill != null && createdUser != null)
                             {
                                 <div class="setup-summary">
                                     <p><strong>Site:</strong> @createdSite?.Site_BusinessName</p>
@@ -311,6 +382,16 @@
                                 <span class="spinner-border spinner-border-sm me-2"></span>
                             }
                             Create User & Continue
+                        </button>
+                    }
+                    else if (currentStep == SetupStep.Printer)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="CreateReceiptPrinter" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Create Printer & Continue
                         </button>
                     }
                     else if (currentStep == SetupStep.CloudSetup)
@@ -505,11 +586,12 @@
     private UserSetupModel userSetupModel = new();
     private CloudSetupModel cloudSetupModel = new();
     private bool cloudSyncSuccess = false;
+    private ReceiptPrinter printerModel = new();
 
     private Site? createdSite;
     private Till? createdTill;
     private PosUser? createdUser;
-    
+
     // Data sync progress tracking
     private string? dataSyncSummary;
     private bool isDepartmentSyncing = false;
@@ -528,6 +610,7 @@
         Site,
         Till,
         User,
+        Printer,
         CloudSetup,
         DataSync,
         Complete
@@ -563,6 +646,14 @@
         tillModel.Till_Name = "Main Till";
         userModel.Is_Activated = true;
         userModel.Is_Deleted = false;
+
+        // Defaults for printer
+        printerModel.Printer_Name = "Receipt Printer";
+        printerModel.Paper_Width = 58;
+        printerModel.Print_Receipt = true;
+        printerModel.Print_Label = true;
+        printerModel.Is_Active = true;
+        printerModel.Is_Primary = true;
 
         // Set all permissions to true for admin user
         SetAdminPermissions();
@@ -708,6 +799,57 @@
         catch (Exception ex)
         {
             errorMessage = $"Error creating user: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateReceiptPrinter()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // Ensure prerequisites (site, till, user)
+            var siteId = createdSite?.Id;
+            var tillId = createdTill?.Id;
+            var createdById = createdUser?.Id ?? 0;
+
+            if (siteId == null || tillId == null || createdById == 0)
+            {
+                throw new InvalidOperationException("Please complete Site, Till, and User steps before adding a printer.");
+            }
+
+            printerModel.Site_Id = siteId;
+            printerModel.Till_Id = tillId;
+            printerModel.Created_By_Id = createdById;
+            printerModel.Last_Modified_By_Id = createdById;
+
+            // Default port if IP is provided but port is missing
+            if (!string.IsNullOrWhiteSpace(printerModel.Printer_IP_Address) && printerModel.Printer_Port_Number <= 0)
+            {
+                printerModel.Printer_Port_Number = 9100;
+            }
+
+            var validation = await ReceiptPrinterServices.ValidateAsync(printerModel);
+            if (!string.IsNullOrEmpty(validation))
+            {
+                errorMessage = validation;
+                return;
+            }
+
+            await ReceiptPrinterServices.AddAsync(printerModel);
+
+            NextStep();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating receipt printer: {ex.Message}";
         }
         finally
         {
@@ -897,7 +1039,7 @@
             isDepartmentSyncing = true;
             StateHasChanged();
 
-            var depResult = await SupabaseSyncService.GetDepartments<SupaDepartments>(
+            var depResult = await SupabaseSyncService.GetDepartments(
                 retailer);
 
             if (depResult.Error != null)
@@ -949,7 +1091,7 @@
             isVatSyncing = true;
             StateHasChanged();
 
-            var vatResult = await SupabaseSyncService.GetVats<SupaVats>(
+            var vatResult = await SupabaseSyncService.GetVats(
                 retailer);
 
             if (vatResult.Error != null)
@@ -994,7 +1136,7 @@
             isProductSyncing = true;
             StateHasChanged();
 
-            var productResult = await SupabaseSyncService.GetGlobalProducts<SupaGlobalProducts>(
+            var productResult = await SupabaseSyncService.GetGlobalProducts(
                 retailer);
 
             if (productResult.Error != null)
@@ -1070,6 +1212,7 @@
 
             if (productsToAdd.Any())
             {
+                productsToAdd.ForEach(p => p.Is_Activated = false);
                 await ProductServices.AddRangeAsync(productsToAdd);
             }
 

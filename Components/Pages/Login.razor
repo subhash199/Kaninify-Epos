@@ -196,7 +196,8 @@ else
         try
         {
 
-            var users = await PosuserService.GetAllAsync(false);
+            // Add: retry helper to handle transient DB handshake/startup issues
+            var users = await GetUsersWithRetryAsync();
             if (users == null || !users.Any())
             {
                 showSetupModal = true;
@@ -207,7 +208,6 @@ else
             // Check for retailer record
             retailer = await RetailerService.GetFirstActiveRetailerAsync();
 
-            // await supabaseSyncService.SyncDatabaseToCloudAsync(retailer, 10000);
             if (retailer == null)
             {
                 showSetupModal = true;
@@ -223,23 +223,20 @@ else
                 // Retailer exists, use access token to fetch any updates
                 try
                 {
+                    // Refresh token if needed
+                    retailer = await supabaseSyncService.CheckIfRetailerAccessTokenNeedsRefreshedAsync(retailer);
                     UserSession.SetRetailer(retailer);
+
+                    await supabaseSyncService.SyncDatabaseToCloudAsync(UserSession.CurrentRetailer, 10000);
                     // First, fetch current server time to verify local PC datetime accuracy
                     DateTime? serverTime;
                     DateTime localTime = DateTime.Now;
                     bool isTimeAccurate = true;
 
                     // Initialize the Supabase connection with the retailer's ID
-                    await supabaseSyncService.InitializeForRetailerAsync(retailer);
+                    await supabaseSyncService.InitializeForRetailerAsync(UserSession.CurrentRetailer);
 
-                    // Refresh token if needed
-                    bool tokenRefreshed = await supabaseSyncService.RefreshTokenIfNeededAsync(retailer.RetailerId);
-
-                    if (tokenRefreshed)
-                    {
-                        // Get the updated retailer information after token refresh
-                        retailer = await RetailerService.GetByGuidAsync(retailer.RetailerId);
-                    }
+                    
 
                     // Enhanced license validation with server time verification and decryption
                     bool isLicenseValid = false;
@@ -250,8 +247,7 @@ else
                         // ... existing code ...
                         try
                         {
-
-                            var result = await supabaseSyncService.GetServerDateTimeAlternativeAsync(retailer);
+                            var result = await supabaseSyncService.GetServerDateTimeAlternativeAsync(UserSession.CurrentRetailer);
                             if (result.IsSuccess)
                             {
                                 serverTime = result.Data.ToLocalTime();
@@ -344,7 +340,7 @@ else
                     }
                     catch (Exception ex)
                     {
-                        licenseErrorMessage = "Failed to validate license. Please contact technical support for assistance.";
+                        licenseErrorMessage += " Failed to validate license. Please contact technical support for assistance.";
                         isLicenseValid = false;
                         // Log the exception for debugging
                         Console.WriteLine($"License validation error: {ex.Message}");
@@ -382,6 +378,31 @@ else
         }
     }
 
+    private async Task<List<PosUser>> GetUsersWithRetryAsync(int maxAttempts = 5, int initialDelayMs = 1000)
+    {
+        var attempt = 0;
+        var delay = initialDelayMs;
+
+        while (true)
+        {
+            attempt++;
+            try
+            {
+                var users = await PosuserService.GetAllAsync(false);
+                return users.ToList();
+            }
+            catch (Exception)
+            {
+                if (attempt >= maxAttempts)
+                {
+                    throw;
+                }
+                await Task.Delay(delay);
+                delay = Math.Min(delay * 2, 8000); // exponential backoff, capped
+            }
+        }
+    }
+
     private async Task GenerateQRCode()
     {
         try
@@ -397,76 +418,76 @@ else
 
     private async Task HandleLogin()
     {
-        await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(retailer);
-        // if (!loginModel.Passcode.All(char.IsDigit))
-        // {
-        //     await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");
-        //     return;
-        // }
+       // await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(retailer);
+        if (!loginModel.Passcode.All(char.IsDigit))
+        {
+            await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");
+            return;
+        }
 
-        // try
-        // {
-        //     isLoading = true;
-        //     StateHasChanged();
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
 
-        //     await Task.Delay(500); // Simulate loading delay
+            await Task.Delay(500); // Simulate loading delay
 
-        //     // Check if passcode exists
-        //     var user = await PosuserService.GetByPasscodeAsync(int.Parse(loginModel.Passcode));
+            // Check if passcode exists
+            var user = await PosuserService.GetByPasscodeAsync(int.Parse(loginModel.Passcode));
 
-        //     if (user != null)
-        //     {
-        //         // User found, check if activated
-        //         if (!user.Is_Activated)
-        //         {
-        //             isLoading = false;
-        //             StateHasChanged();
-        //             await ShowErrorModalAsync("Account Not Activated", "Your account is not activated. Please contact an administrator.");
-        //             return;
-        //         }
-        //         else
-        //         {
-        //             var till = await TillService.GetFirstTillRecord();
-        //             var site = await SiteService.GetFirstSiteRecord();
+            if (user != null)
+            {
+                // User found, check if activated
+                if (!user.Is_Activated)
+                {
+                    isLoading = false;
+                    StateHasChanged();
+                    await ShowErrorModalAsync("Account Not Activated", "Your account is not activated. Please contact an administrator.");
+                    return;
+                }
+                else
+                {
+                    var till = await TillService.GetFirstTillRecord();
+                    var site = await SiteService.GetFirstSiteRecord();
 
-        //             // Set session using UserSessionService
-        //             UserSession.SetSession(user, site, till);
+                    // Set session using UserSessionService
+                    UserSession.SetSession(user, site, till);
 
-        //             // Keep loading state true during navigation to prevent glitch
-        //             NavigationManager.NavigateTo("/checkout");
-        //             return;
-        //         }
-        //     }
-        //     else
-        //     {
-        //         // Passcode doesn't exist, check if any users exist
-        //         bool anyUsersExist = await PosuserService.CheckIfAnyUsersExist();
+                    // Keep loading state true during navigation to prevent glitch
+                    NavigationManager.NavigateTo("/checkout");
+                    return;
+                }
+            }
+            else
+            {
+                // Passcode doesn't exist, check if any users exist
+                bool anyUsersExist = await PosuserService.CheckIfAnyUsersExist();
 
-        //         if (!anyUsersExist)
-        //         {
-        //             // No users exist - new system setup
-        //             isLoading = false;
-        //             StateHasChanged();
-        //             showSetupModal = true;
-        //             StateHasChanged();
-        //         }
-        //         else
-        //         {
-        //             // Users exist but passcode is wrong
-        //             isLoading = false;
-        //             StateHasChanged();
-        //             await ShowErrorModalAsync("Login Failed", "Invalid passcode. Please try again.");
-        //             return;
-        //         }
-        //     }
-        // }
-        // catch (Exception ex)
-        // {
-        //     isLoading = false;
-        //     StateHasChanged();
-        //     await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleLogin), "Processing user login");
-        //     await ShowErrorModalAsync("Error", $"An error occurred during login: {ex.Message}");
-        // }
+                if (!anyUsersExist)
+                {
+                    // No users exist - new system setup
+                    isLoading = false;
+                    StateHasChanged();
+                    showSetupModal = true;
+                    StateHasChanged();
+                }
+                else
+                {
+                    // Users exist but passcode is wrong
+                    isLoading = false;
+                    StateHasChanged();
+                    await ShowErrorModalAsync("Login Failed", "Invalid passcode. Please try again.");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            isLoading = false;
+            StateHasChanged();
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleLogin), "Processing user login");
+            await ShowErrorModalAsync("Error", $"An error occurred during login: {ex.Message}");
+        }
     }
 
 

@@ -24,6 +24,7 @@
 @inject UserSessionService UserSession
 @inject DrawerLogServices DrawerLogServices
 @inject GlobalErrorLogService GlobalErrorLogService
+@inject UnknownProductServices UnknownProductServices
 
 @inject IJSRuntime JS
 
@@ -367,6 +368,29 @@
 
         if (product == null)
         {
+            try
+            {
+                var unknown = new UnknownProduct
+                {
+                    ProductBarcode = _state.SearchText,
+                    IsResolved = false,
+                    DateCreated = DateTime.UtcNow,
+                    LastModified = DateTime.UtcNow,
+                    DaylogId = await UserSession.GetValidDayLogIdAsync(),
+                    ShiftId = await UserSession.GetValidShiftIdAsync(),
+                    SiteId = await UserSession.GetValidSiteIdAsync(),
+                    TillId = await UserSession.GetValidTillIdAsync(),
+                    CreatedById = UserSession.GetValidUserIdAsync(),
+                    SyncStatus = SyncStatus.Pending
+                };
+
+                await UnknownProductServices.AddAsync(unknown);
+            }
+            catch (Exception ex)
+            {
+                await GlobalErrorLogService.LogErrorAsync(ex, nameof(ProcessSearchInputAsync), "Recording unknown product");
+            }
+
             await ShowProductNotFoundModalAsync();
             return;
         }
