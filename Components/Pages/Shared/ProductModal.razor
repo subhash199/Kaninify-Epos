@@ -350,7 +350,7 @@
                 JSRuntime.InvokeVoidAsync("alert", error);
                 return;
             }
-           
+
             Product.Department_ID = Product.Department_ID == 0 ? (await departmentServices.GetDefaultDepartment()).Id : Product.Department_ID;
             Product.VAT_ID = Product.VAT_ID == 0 ? (await vatServices.GetDefaultVatAsync()).Id : Product.VAT_ID;
 
@@ -370,11 +370,13 @@
                 }
                 Product.Is_Activated = true;
                 Product.Last_Modified = DateTime.UtcNow;
+                Product.SyncStatus = SyncStatus.Pending;
                 await productServices.AddAsync(Product);
             }
             else // If it's an existing product
             {
                 Product.Last_Modified = DateTime.UtcNow;
+                Product.SyncStatus = SyncStatus.Pending;
                 await productServices.UpdateAsync(Product);
 
                 // Record stock transaction if quantity changed
@@ -439,6 +441,7 @@
                 TotalAmount = Math.Abs(quantityDifference) * Product.Product_Cost,
                 DateCreated = DateTime.UtcNow,
                 LastModified = DateTime.UtcNow
+               
             };
 
             await stockTransactionServices.AddAsync(stockTransaction);
