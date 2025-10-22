@@ -1,8 +1,10 @@
 ﻿@page "/business-management"
 @using EposDataHandler.Models
+@using EposRetail.Components.Pages.Shared
 @using EposRetail.Components.Pages.Shared.Modal
 @using DataHandlerLibrary.Services
 @using EposRetail.Components.Pages.Shared.Modal
+@using EposRetail.Models
 @using EposRetail.Services
 @inject IJSRuntime JSRuntime
 @inject UserManagementServices UserManagementServices
@@ -11,6 +13,7 @@
 @inject UserSessionService UserSessionService
 @inject NavigationManager NavigationManager
 @inject GlobalErrorLogService GlobalErrorLogService
+@inject UserSessionService UserSession
 
 <PageTitle>Business Management</PageTitle>
 
@@ -707,22 +710,47 @@
                   Sites="@sites"
                   Tills="@tills" />
 }
+@if (MessageModel.IsVisible)
+{
+    <GenericMessageModal Title="@(MessageModel.Title)"
+                         Message="@(MessageModel.Message)"
+                         IsVisible="@(MessageModel.IsVisible)"
+                         PrimaryButtonText="@(MessageModel.primaryButtonText)"
+                         PrimaryAction="PrimaryModalActionAsync"
+                         SecondaryAction="SecondaryModalActionAsync"
+                         OnClose="OnModalClose" />
+}
 
 @code {
-    private void SetUsersTab()
+    private async void SetUsersTab()
     {
+        if (UserSession.CurrentUser?.Allowed_Manage_Users != true)
+        {
+            await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to manage users!");
+            return;
+        }
         activeTab = "users";
         StateHasChanged();
     }
 
-    private void SetSitesTab()
+    private async void SetSitesTab()
     {
+        if (UserSession.CurrentUser?.Allowed_Manage_Sites != true)
+        {
+            await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to manage sites!");
+            return;
+        }
         activeTab = "sites";
         StateHasChanged();
     }
 
-    private void SetTillsTab()
+    private async void SetTillsTab()
     {
+        if (UserSession.CurrentUser?.Allowed_Manage_Tills != true)
+        {
+            await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to manage tills!");
+            return;
+        }
         activeTab = "tills";
         StateHasChanged();
     }
@@ -795,14 +823,22 @@
     private string selectedPrinterSiteFilter = string.Empty;
     private string selectedPrinterStatusFilter = string.Empty;
 
-
+    private MessageModel MessageModel = new MessageModel();
 
     // Update your existing OnInitializedAsync to include:
     protected override async Task OnInitializedAsync()
     {
+
         try
         {
-            SetUsersTab();
+            if (UserSession.CurrentUser?.Allowed_Manage_Users == true)
+            {
+                SetUsersTab();
+            }
+            else
+            {
+                SetPrintersTab();
+            }
             await LoadUsers();
             await LoadSites();
             await LoadTills();
@@ -1802,6 +1838,31 @@
         {
             await GlobalErrorLogService.LogErrorAsync(ex, "NavigateToCheckout", "Navigating to checkout page");
         }
+    }
+
+    private async Task ShowErrorModalAsync(string title, string message)
+    {
+        MessageModel = new MessageModel
+        {
+            Title = title,
+            Message = message,
+            IsVisible = true,
+        };
+        StateHasChanged();
+    }
+    private void PrimaryModalActionAsync()
+    {
+        MessageModel.IsVisible = false;
+    }
+    private void SecondaryModalActionAsync()
+    {
+        MessageModel.IsVisible = false;
+        // No secondary action defined
+
+    }
+    private void OnModalClose()
+    {
+        MessageModel.IsVisible = false;
     }
 
 }

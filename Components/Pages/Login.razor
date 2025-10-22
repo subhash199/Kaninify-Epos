@@ -227,7 +227,8 @@ else
                     retailer = await supabaseSyncService.CheckIfRetailerAccessTokenNeedsRefreshedAsync(retailer);
                     UserSession.SetRetailer(retailer);
 
-                    await supabaseSyncService.SyncDatabaseToCloudAsync(UserSession.CurrentRetailer, 10000);
+
+
                     // First, fetch current server time to verify local PC datetime accuracy
                     DateTime? serverTime;
                     DateTime localTime = DateTime.Now;
@@ -236,7 +237,7 @@ else
                     // Initialize the Supabase connection with the retailer's ID
                     await supabaseSyncService.InitializeForRetailerAsync(UserSession.CurrentRetailer);
 
-                    
+
 
                     // Enhanced license validation with server time verification and decryption
                     bool isLicenseValid = false;
@@ -418,7 +419,7 @@ else
 
     private async Task HandleLogin()
     {
-       // await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(retailer);
+        // await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(retailer);
         if (!loginModel.Passcode.All(char.IsDigit))
         {
             await ShowErrorModalAsync("Invalid Input", "Please enter a valid numeric passcode.");
@@ -447,11 +448,24 @@ else
                 }
                 else
                 {
-                    var till = await TillService.GetFirstTillRecord();
-                    var site = await SiteService.GetFirstSiteRecord();
+                    var till = await TillService.GetPrimaryTill();
+                    var site = await SiteService.GetPrimarySite();
 
-                    // Set session using UserSessionService
-                    UserSession.SetSession(user, site, till);
+                    // Set session using UserSessionService, preserving the existing retailer
+                    UserSession.SetSession(user, site, till, retailer: UserSession.CurrentRetailer);
+
+                    // Data synchronization before navigating to checkout
+                    var supaSyncCloudResult = await supabaseSyncService.SyncDatabaseToCloudAsync(UserSession.CurrentRetailer, 10000);
+                    if (!supaSyncCloudResult.IsSuccess)
+                    {
+                        GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncCloudResult.ErrorMessage), nameof(CheckForExistingUsers), $"Error syncing data: {supaSyncCloudResult.ErrorMessage} Total records failed: {supaSyncCloudResult.TotalRecordsFailed}");
+                    }
+
+                    var supaSyncLocalResult = await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(UserSession.CurrentRetailer);
+                    if (!supaSyncLocalResult.IsSuccess)
+                    {
+                        GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncLocalResult.Error), nameof(CheckForExistingUsers), $"Error syncing data: {supaSyncLocalResult.Error}");
+                    }
 
                     // Keep loading state true during navigation to prevent glitch
                     NavigationManager.NavigateTo("/checkout");

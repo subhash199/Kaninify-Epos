@@ -8,7 +8,10 @@
 @inject DataHandlerLibrary.Services.TillServices TillService
 @inject DataHandlerLibrary.Services.ErrorLogServices ErrorLogService
 @inject GlobalErrorLogService GlobalErrorLog
+@inject UserSessionService UserSession
 @using DataHandlerLibrary.Models
+@using EposRetail.Components.Pages.Shared
+@using EposRetail.Models
 @using EposRetail.Services
 
 <!-- Modern Header Section -->
@@ -248,10 +251,24 @@
         </div>
     </div>
 }
+@if (MessageModel.IsVisible)
+{
+    <GenericMessageModal Title="@(MessageModel.Title)"
+                         Message="@(MessageModel.Message)"
+                         IsVisible="@(MessageModel.IsVisible)"
+                         PrimaryButtonText="@(MessageModel.primaryButtonText)"
+                         PrimaryAction="PrimaryModalActionAsync"
+                         SecondaryAction="SecondaryModalActionAsync"
+                         OnClose="OnModalClose" />
+}
+
+
+
 
 @code {
 
     private bool showDrawerModal = false;
+    private MessageModel MessageModel = new MessageModel();
 
     private async Task NavigateToCheckout()
     {
@@ -281,6 +298,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Manage_Products != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to void sales!");
+                return;
+            }
             NavigationManager.NavigateTo("/inventory-management");
         }
         catch (Exception ex)
@@ -305,6 +327,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Manage_Reports != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to manage reports or view history!");
+                return;
+            }
             NavigationManager.NavigateTo("/history");
         }
         catch (Exception ex)
@@ -317,6 +344,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Manage_Departments != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to manage departments!");
+                return;
+            }
             NavigationManager.NavigateTo("/department-management");
         }
         catch (Exception ex)
@@ -341,6 +373,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Manage_Settings != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to settings or business management!");
+                return;
+            }
             NavigationManager.NavigateTo("/business-management");
         }
         catch (Exception ex)
@@ -365,6 +402,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_No_Sale != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to open drawer!");
+                return;
+            }
             showDrawerModal = true;
             StateHasChanged();
         }
@@ -509,6 +551,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Manage_Promotions != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to manage promotions!");
+                return;
+            }
             NavigationManager.NavigateTo("/promotional-dashboard");
         }
         catch (Exception ex)
@@ -517,4 +564,28 @@
         }
     }
 
+    private async Task ShowErrorModalAsync(string title, string message)
+    {
+        MessageModel = new MessageModel
+        {
+            Title = title,
+            Message = message,
+            IsVisible = true,
+        };
+        StateHasChanged();
+    }
+    private void PrimaryModalActionAsync()
+    {
+        MessageModel.IsVisible = false;
+    }
+    private void SecondaryModalActionAsync()
+    {
+        MessageModel.IsVisible = false;
+        // No secondary action defined
+
+    }
+    private void OnModalClose()
+    {
+        MessageModel.IsVisible = false;
+    }
 }

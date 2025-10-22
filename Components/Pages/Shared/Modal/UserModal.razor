@@ -465,7 +465,10 @@
             {
                 AvailableSites.Add(new Site { Id = -1, Site_BusinessName = "-- Create New Site --", Site_AddressLine1 = "" });
             }
-            RoleChangedAsync();
+            if (string.IsNullOrEmpty(CurrentUser.First_Name))
+            {
+                RoleChangedAsync();
+            }
             StateHasChanged();
         }
     }
@@ -656,7 +659,7 @@
                 CurrentUser.Last_Modified = DateTime.UtcNow;
                 CurrentUser.Is_Activated = true;
                 CurrentUser.Is_Deleted = false;
-                
+
                 ErrorMessage = await UserManagementServices.CreateUserAsync(CurrentUser);
                 if (string.IsNullOrEmpty(ErrorMessage))
                 {

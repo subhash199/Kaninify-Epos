@@ -970,6 +970,17 @@
                          OnClose="OnDiscrepancyCancel" />
 }
 
+@if (MessageModel.IsVisible)
+{
+    <GenericMessageModal Title="@(MessageModel.Title)"
+                         Message="@(MessageModel.Message)"
+                         IsVisible="@(MessageModel.IsVisible)"
+                         PrimaryButtonText="@(MessageModel.primaryButtonText)"
+                         PrimaryAction="PrimaryModalActionAsync"
+                         SecondaryAction="SecondaryModalActionAsync"
+                         OnClose="OnModalClose" />
+}
+
 
 
 @code {
@@ -1007,6 +1018,8 @@
     private decimal pendingClosingBalance = 0;
     private decimal pendingCashVariance = 0;
     private decimal pendingExpectedCash = 0;
+
+    private MessageModel MessageModel = new MessageModel();
 
     // Computed property for dynamic dashboard title
     private string DashboardTitle
@@ -1967,6 +1980,10 @@
 
     private async Task UpdateDayLogClosingBalance(decimal closingBalance)
     {
+        if(UserSessionService.CurrentUser?.Allowed_Day_End != true)
+        {
+            await ShowErrorModalAsync($"Authorization", "{UserSession.CurrentUser.First_Name} not authorized to day end!");
+        }
         if (DayLog != null)
         {
             DayLog.Closing_Cash_Amount = closingBalance;
@@ -2163,6 +2180,31 @@
             .Select(dl => dl.DrawerLogType)
             .Distinct()
             .OrderBy(logType => GetDrawerLogTypeDisplayName(logType));
+    }
+
+    private async Task ShowErrorModalAsync(string title, string message)
+    {
+        MessageModel = new MessageModel
+        {
+            Title = title,
+            Message = message,
+            IsVisible = true,
+        };
+        StateHasChanged();
+    }
+    private void PrimaryModalActionAsync()
+    {
+        MessageModel.IsVisible = false;
+    }
+    private void SecondaryModalActionAsync()
+    {
+        MessageModel.IsVisible = false;
+        // No secondary action defined
+
+    }
+    private void OnModalClose()
+    {
+        MessageModel.IsVisible = false;
     }
 }
 

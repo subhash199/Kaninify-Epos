@@ -170,6 +170,10 @@
                                 <label class="form-label">VAT Number</label>
                                 <InputText @bind-Value="siteModel.Site_VatNumber" class="form-control" />
                             </div>
+                            <div class="form-check form-switch mt-2">
+                                <InputCheckbox @bind-Value="siteModel.Is_Primary" class="form-check-input" />
+                                <label class="form-check-label ms-2">Set as primary site</label>
+                            </div>
                         </EditForm>
                     }
                     else if (currentStep == SetupStep.Till)
@@ -207,6 +211,10 @@
                                         <ValidationMessage For="@(() => tillModel.Till_Port_Number)" />
                                     </div>
                                 </div>
+                            </div>
+                            <div class="form-check form-switch mt-2">
+                                <InputCheckbox @bind-Value="tillModel.Is_Primary" class="form-check-input" />
+                                <label class="form-check-label ms-2">Set as primary till</label>
                             </div>
                         </EditForm>
                     }
@@ -569,6 +577,45 @@
         border-radius: 4px;
         background-color: #f8f9fa;
     }
+
+    /* Ensure primary buttons in the modal keep contrast on hover */
+    .modal-content .btn.btn-primary {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+
+    .modal-content .btn.btn-primary:hover,
+    .modal-content .btn.btn-primary:focus,
+    .modal-content .btn.btn-primary:active {
+        background-color: #0b5ed7 !important;
+        border-color: #0a58ca !important;
+        color: #fff !important;
+    }
+
+    /* Keep outline-secondary readable on hover */
+    .modal-content .btn.btn-outline-secondary:hover,
+    .modal-content .btn.btn-outline-secondary:focus,
+    .modal-content .btn.btn-outline-secondary:active {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        color: #fff !important;
+    }
+
+    /* Keep success readable on hover */
+    .modal-content .btn.btn-success:hover,
+    .modal-content .btn.btn-success:focus,
+    .modal-content .btn.btn-success:active {
+        background-color: #157347 !important;
+        border-color: #146c43 !important;
+        color: #fff !important;
+    }
+
+    /* Subtle focus ring for accessibility */
+    .modal-content .btn:hover,
+    .modal-content .btn:focus {
+        box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+    }
 </style>
 
 @code {
@@ -646,6 +693,10 @@
         tillModel.Till_Name = "Main Till";
         userModel.Is_Activated = true;
         userModel.Is_Deleted = false;
+
+        // Default primary flags
+        siteModel.Is_Primary = true;
+        tillModel.Is_Primary = true;
 
         // Defaults for printer
         printerModel.Printer_Name = "Receipt Printer";

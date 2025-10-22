@@ -525,7 +525,7 @@
         try
         {
             await UserSession.EnsureCompleteSessionAsync();
-            
+
             bool dayLogNeedsOpeningBalance = UserSession.CurrentDayLog?.Opening_Cash_Amount == 0;
             bool shiftNeedsOpeningBalance = !(UserSession.CurrentShift?.Opening_Cash_Amount.HasValue ?? false) ||
                                            (UserSession.CurrentShift?.Opening_Cash_Amount ?? 0) == 0;
@@ -586,7 +586,7 @@
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PaymentButtonClickedAsync), "Processing payment button click");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PaymentButtonClickedAsync), "Handling payment click");
             await ShowErrorModalAsync("Payment Error", ex.Message);
         }
     }
@@ -918,14 +918,23 @@
 
     private async Task OnTransactionConfirmAsync((decimal Amount, PaymentType PaymentType) transactionData)
     {
-        // Set the amount in search text for processing
-        _state.SearchText = transactionData.Amount.ToString("F2");
-        _state.PaymentType = transactionData.PaymentType;
+        try
+        {
+            // Set the amount in search text for processing
+            _state.SearchText = transactionData.Amount.ToString("F2");
+            _state.PaymentType = transactionData.PaymentType;
 
-        // Process the payment
-        await ProcessPaymentAsync(transactionData.PaymentType);
+            // Process the payment
+            await ProcessPaymentAsync(transactionData.PaymentType);
 
-        StateHasChanged();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnTransactionConfirmAsync), "Confirming transaction");
+            await ShowErrorModalAsync("Transaction Error", ex.Message);
+            StateHasChanged();
+        }
     }
 
     private async void HandleDepartmentClick(string departmentClickName)
@@ -973,6 +982,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Void_Line != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name}  is not authorized to void sales!");
+                return;
+            }
             // Validate basket state
             if (!IsValidBasketForVoiding())
             {
@@ -1002,8 +1016,9 @@
         }
         catch (Exception ex)
         {
-            await ShowErrorModalAsync("Void Error", $"Failed to void item: {ex.Message}");
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleVoidLineButtonClicked), "Voiding selected basket item");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleVoidLineButtonClicked), "Voiding line item");
+            await ShowErrorModalAsync("Void Line Error", ex.Message);
+            StateHasChanged();
         }
         finally
         {
@@ -1037,20 +1052,34 @@
         // Refresh UI
         StateHasChanged();
     }
-    private void HandleVoidBasketClicked()
+    private async Task HandleVoidBasketClicked()
     {
-        if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
-            _state.SalesBaskets[_state.HoldBasketIndex] != null &&
-            _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.Count > 0)
+        try
         {
-            // Show confirmation modal
-            _state.ModalSettings = new ModalSettings
+            if (UserSession.CurrentUser?.Allowed_Void_Sale != true)
             {
-                ModalTitle = "Void Basket",
-                ModalMessage = "Are you sure you want to void the basket? This action cannot be undone.",
-                ShowModal = true,
-                ModalEnum = ModalEnum.Confirmation
-            };
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to void sales!");
+                return;
+            }
+            if (_state.SalesBaskets?.Count > _state.HoldBasketIndex &&
+                _state.SalesBaskets[_state.HoldBasketIndex] != null &&
+                _state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList.Count > 0)
+            {
+                // Show confirmation modal
+                _state.ModalSettings = new ModalSettings
+                {
+                    ModalTitle = "Void Basket",
+                    ModalMessage = "Are you sure you want to void the basket? This action cannot be undone.",
+                    ShowModal = true,
+                    ModalEnum = ModalEnum.Confirmation
+                };
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleVoidBasketClicked), "Voiding basket");
+            await ShowErrorModalAsync("Void Basket Error", ex.Message);
             StateHasChanged();
         }
     }
@@ -1079,64 +1108,73 @@
 
     private async Task HandleHoldButtonClicked()
     {
-        // Check if there are held baskets (more than one basket)
-        if (_state.SalesBaskets?.Count > 1)
+        try
         {
-            // Recall functionality - switch to the first held basket
-            int currentIndex = _state.HoldBasketIndex;
-
-            // Find the next basket with items
-            for (int i = 0; i < _state.SalesBaskets.Count; i++)
+            // Check if there are held baskets (more than one basket)
+            if (_state.SalesBaskets?.Count > 1)
             {
-                if (i != currentIndex && _state.SalesBaskets[i].SalesItemsList?.Count > 0)
+                // Recall functionality - switch to the first held basket
+                int currentIndex = _state.HoldBasketIndex;
+
+                // Find the next basket with items
+                for (int i = 0; i < _state.SalesBaskets.Count; i++)
                 {
-                    _state.HoldBasketIndex = i;
-                    StateHasChanged();
-                    return;
+                    if (i != currentIndex && _state.SalesBaskets[i].SalesItemsList?.Count > 0)
+                    {
+                        _state.HoldBasketIndex = i;
+                        StateHasChanged();
+                        return;
+                    }
+                }
+
+                // If no held baskets with items found, create a new basket
+                _state.HoldBasketIndex = 0;
+            }
+            else
+            {
+                if (_state.SalesBaskets.Count == 0 || _state.SalesBaskets[_state.HoldBasketIndex] == null)
+                {
+                    return; // No baskets to hold
+                }
+                // Hold functionality - put current basket on hold and create new one
+
+                // Only hold if current basket has items
+                if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
+                {
+                    await UserSession.EnsureCompleteSessionAsync();
+                    // Add a new empty basket and switch to it
+                    _state.SalesBaskets.Add(new SalesBasket
+                    {
+                        Transaction = new SalesTransaction
+                        {
+                            DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
+                            Created_By_Id = UserSession.GetValidUserIdAsync(),
+                            Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
+                            SaleTransaction_Total_Amount = 0,
+                            SaleTransaction_Cash = 0,
+                            SaleTransaction_Card = 0,
+                            SaleTransaction_Change = 0,
+                            Date_Created = DateTime.UtcNow,
+                            Sale_Start_Date = DateTime.UtcNow
+                        },
+                        SalesItemsList = new List<SalesItemTransaction>()
+                    });
+
+                    _state.HoldBasketIndex = _state.SalesBaskets.Count - 1;
+                    _state.SelectedItemIndex = -1;
+                    _state.SearchText = "";
+                    UpdateCashSuggestions(0);
                 }
             }
-
-            // If no held baskets with items found, create a new basket
-            _state.HoldBasketIndex = 0;
+            await SetFocusOnSearchBoxAsync();
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            if (_state.SalesBaskets.Count == 0 || _state.SalesBaskets[_state.HoldBasketIndex] == null)
-            {
-                return; // No baskets to hold
-            }
-            // Hold functionality - put current basket on hold and create new one
-
-            // Only hold if current basket has items
-            if (_state.SalesBaskets[_state.HoldBasketIndex]?.SalesItemsList?.Count > 0)
-            {
-                await UserSession.EnsureCompleteSessionAsync();
-                // Add a new empty basket and switch to it
-                _state.SalesBaskets.Add(new SalesBasket
-                {
-                    Transaction = new SalesTransaction
-                    {
-                        DayLog_Id = await UserSession.GetValidDayLogIdAsync(),
-                        Created_By_Id = UserSession.GetValidUserIdAsync(),
-                        Last_Modified_By_Id = UserSession.GetValidUserIdAsync(),
-                        SaleTransaction_Total_Amount = 0,
-                        SaleTransaction_Cash = 0,
-                        SaleTransaction_Card = 0,
-                        SaleTransaction_Change = 0,
-                        Date_Created = DateTime.UtcNow,
-                        Sale_Start_Date = DateTime.UtcNow
-                    },
-                    SalesItemsList = new List<SalesItemTransaction>()
-                });
-
-                _state.HoldBasketIndex = _state.SalesBaskets.Count - 1;
-                _state.SelectedItemIndex = -1;
-                _state.SearchText = "";
-                UpdateCashSuggestions(0);
-            }
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleHoldButtonClicked), "Holding basket");
+            await ShowErrorModalAsync("Hold Basket Error", ex.Message);
+            StateHasChanged();
         }
-        await SetFocusOnSearchBoxAsync();
-        StateHasChanged();
     }
 
     private async Task TrackVoidedItemAsync(List<SalesItemTransaction> voidedItems)
@@ -1169,8 +1207,7 @@
             }
             catch (Exception ex)
             {
-                // Log error but don't prevent the void operation
-                Console.WriteLine($"Error tracking voided item: {ex.Message}");
+                await GlobalErrorLogService.LogErrorAsync(ex, nameof(TrackVoidedItemAsync), "Building voided product entry");
             }
         }
         if (voidedProducts.Count > 0)
@@ -1181,16 +1218,29 @@
             }
             catch (Exception ex)
             {
-                // Log error but don't prevent the void operation
-                Console.WriteLine($"Error saving voided products: {ex.Message}");
+                await GlobalErrorLogService.LogErrorAsync(ex, nameof(TrackVoidedItemAsync), "Saving voided products batch");
             }
         }
     }
     private async Task HandleRefundClick()
     {
-        await HandleRefundMode();
-        await SetFocusOnSearchBoxAsync();
-        StateHasChanged();
+        try
+        {
+            if (UserSession.CurrentUser?.Allowed_Refund != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name}  is not authorized to refund sales!");
+                return;
+            }
+            await HandleRefundMode();
+            await SetFocusOnSearchBoxAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleRefundClick), "Starting refund mode");
+            await ShowErrorModalAsync("Refund Error", ex.Message);
+            StateHasChanged();
+        }
     }
 
     private async Task HandleRefundMode()
@@ -1325,30 +1375,49 @@
             // Set specific barcode for payout products
             newProduct.Product_Barcode = $"PAYOUT-{payoutDescription.ToUpper()}";
             await productServices.AddAsync(newProduct);
-
             return newProduct;
         }
         catch (Exception ex)
         {
-            throw new Exception($"Failed to get or create payout product: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(GetOrCreatePayoutProduct), $"Creating payout product for '{payoutDescription}'");
+            await ShowErrorModalAsync("Payout Error", $"Failed to get or create payout product: {ex.Message}");
+            return null;
         }
     }
 
     private async Task OnPayoutSelected(Payout payout)
     {
-        selectedPayout = payout;
-        isCreatingNewPayout = false;
-        payoutErrorMessage = string.Empty;
-        StateHasChanged();
+        try
+        {
+            selectedPayout = payout;
+            isCreatingNewPayout = false;
+            payoutErrorMessage = string.Empty;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnPayoutSelected), $"Selecting payout Id={payout?.Id}");
+            payoutErrorMessage = ex.Message;
+            StateHasChanged();
+        }
     }
 
-    private void ToggleCreateNewPayout()
+    private async Task ToggleCreateNewPayout()
     {
-        isCreatingNewPayout = !isCreatingNewPayout;
-        selectedPayout = null;
-        newPayoutDescription = string.Empty;
-        payoutErrorMessage = string.Empty;
-        StateHasChanged();
+        try
+        {
+            isCreatingNewPayout = !isCreatingNewPayout;
+            selectedPayout = null;
+            newPayoutDescription = string.Empty;
+            payoutErrorMessage = string.Empty;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ToggleCreateNewPayout), "Toggling payout creation mode");
+            payoutErrorMessage = ex.Message;
+            StateHasChanged();
+        }
     }
 
     private async Task ConfirmPayoutSelection()
@@ -1392,7 +1461,8 @@
         }
         catch (Exception ex)
         {
-            payoutErrorMessage = $"Error: {ex.Message}";
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ConfirmPayoutSelection), "Confirming payout selection");
+            payoutErrorMessage = ex.Message;
             StateHasChanged();
         }
     }
@@ -1416,7 +1486,8 @@
         }
         catch (Exception ex)
         {
-            throw new Exception($"Failed to execute payout: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ExecutePayout), $"Executing payout '{payout?.Payout_Description}' amount={payoutAmount}");
+            await ShowErrorModalAsync("Payout Error", $"Failed to execute payout: {ex.Message}");
         }
     }
 
@@ -1445,6 +1516,11 @@
     // Discount-related methods
     private async Task HandleDiscountClick()
     {
+        if (UserSession.CurrentUser?.Allowed_Discount != true)
+        {
+            await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to discount sales!");
+            return;
+        }
         var currentBasket = _state.SalesBaskets?.Count > _state.HoldBasketIndex ? _state.SalesBaskets[_state.HoldBasketIndex] : null;
 
         if (currentBasket?.SalesItemsList?.Count == 0 || currentBasket?.SalesItemsList == null)
@@ -1582,6 +1658,11 @@
     {
         try
         {
+            if (UserSession.CurrentUser?.Allowed_Payout != true)
+            {
+                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to payout!");
+                return;
+            }
             currentPayoutType = data.payoutType;
             payoutAmount = data.amount;
             payoutAmountText = data.amount.ToString("F2");
