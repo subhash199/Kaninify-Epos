@@ -55,7 +55,8 @@
                                      OnRefundClicked="HandleRefundClick"
                                      OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
                                      OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"
-                                     OnPayoutWithAmountSelected="HandlePayoutWithAmountFromModal"></CheckoutButtons>
+                                     OnPayoutWithAmountSelected="HandlePayoutWithAmountFromModal"
+                                     OnMoreSalesClicked="HandleOnMoreSalesClicked"></CheckoutButtons>
 
                     <StatusBarComponent @ref="statusBarComponent" />
                 </div>
@@ -131,7 +132,9 @@
                                 <h6>Create new payout type:</h6>
                                 <div class="mb-3">
                                     <label class="form-label">Payout Description:</label>
-                                    <input type="text" class="form-control" @bind="newPayoutDescription"
+                                    <input @ref="payoutBox" type="text" class="form-control"
+                                           @bind-value="newPayoutDescription"
+                                           @bind-value:event="oninput"
                                            placeholder="Enter payout description" maxlength="100" />
                                 </div>
                                 <button type="button" class="btn btn-secondary" @onclick="ToggleCreateNewPayout">
@@ -184,6 +187,7 @@
 
 @code {
     ElementReference searchBox;
+    ElementReference payoutBox;
     CheckoutState _state = new CheckoutState();
     StatusBarComponent statusBarComponent; // Add this reference
 
@@ -248,6 +252,7 @@
         }
 
         StateHasChanged();
+        await SetFocusOnSearchBoxAsync();
     }
 
     private async Task CheckShiftStatusAsync(bool newDayLogCreated)
@@ -1412,6 +1417,12 @@
             newPayoutDescription = string.Empty;
             payoutErrorMessage = string.Empty;
             StateHasChanged();
+            if (isCreatingNewPayout)
+            {
+                newPayoutDescription = "";
+                await payoutBox.FocusAsync();
+            }
+
         }
         catch (Exception ex)
         {
@@ -1492,7 +1503,7 @@
         }
     }
 
-    private void ClosePayoutModal()
+    private async void ClosePayoutModal()
     {
         showPayoutModal = false;
         selectedPayout = null;
@@ -1500,6 +1511,7 @@
         isCreatingNewPayout = false;
         payoutErrorMessage = string.Empty;
         StateHasChanged();
+        await SetFocusOnSearchBoxAsync();
     }
 
     private async Task ShowSuccessMessage(string message)
@@ -1730,5 +1742,9 @@
             await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleOpenDrawerLogAsync), "Creating drawer log entry");
             throw; // Re-throw since this method returns a value that's needed
         }
+    }
+    private async void HandleOnMoreSalesClicked(bool args)
+    {
+        await SetFocusOnSearchBoxAsync();
     }
 }

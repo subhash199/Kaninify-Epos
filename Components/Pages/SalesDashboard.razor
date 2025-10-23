@@ -7,9 +7,11 @@
 @using DataHandlerLibrary.Services
 @using System.Web
 @using EposRetail.Components.Pages.Shared
+@using EposRetail.Components.Pages.Shared.Modal
 @using EposRetail.Models
 @using EposRetail.Models.Enum
 @using EposRetail.Services
+@inject IServiceScopeFactory ServiceScopeFactory
 @inject DayLogServices DayLogService
 @inject SalesTransactionServices SalesService
 @inject SalesItemTransactionServices SalesItemService
@@ -30,6 +32,7 @@
 @inject PayoutServices PayoutService
 @inject DrawerLogServices DrawerLogServices
 @inject GlobalErrorLogService GlobalErrorLogService
+@inject SupabaseSyncService supabaseSyncService
 
 <PageTitle>Sales Dashboard</PageTitle>
 
@@ -980,6 +983,10 @@
                          SecondaryAction="SecondaryModalActionAsync"
                          OnClose="OnModalClose" />
 }
+@if (showRefillModal)
+{
+    <InventoryManagementModal ModalType=_currentModalType OnDataChanged="OnModalDataChanged" OnClose="HandleInventoryModalClose" />
+}
 
 
 
@@ -996,10 +1003,20 @@
     private SalesDashboardData SalesData = new();
     private List<DrawerLog> DrawerLogs = new();
     private List<DrawerLog> FilteredDrawerLogs = new();
+    private DrawerLog currentDrawerLog = new();
     private string selectedDrawerLogType = "";
     private DateTime StartDate = DateTime.Today;
     private DateTime EndDate = DateTime.Today;
     private bool IsLoading = false;
+
+    // Confirm action workflow steps
+    public enum ConfirmActionStep
+    {
+        ShowRefillModal,
+        CreateDrawerLog,
+        SetupClosingBalanceModal,
+        SetupPrinterAndOpenDrawer
+    }
 
     // Modal state variables
     private ModalState modalState = new ModalState();
@@ -1020,6 +1037,11 @@
     private decimal pendingExpectedCash = 0;
 
     private MessageModel MessageModel = new MessageModel();
+
+    private int endingStep = 0;
+    private bool showRefillModal = false;
+    private InventoryManagementType _currentModalType = InventoryManagementType.Refill;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     // Computed property for dynamic dashboard title
     private string DashboardTitle
@@ -1701,6 +1723,7 @@
 
     private void HandleDayEnd()
     {
+
         // Show confirmation modal
         string entityName = pendingActionType == ActionType.DayEnd ? "day" : "shift";
         modalState.ShowConfirmation(
@@ -1713,48 +1736,105 @@
 
     private async void HandleConfirmAction()
     {
-
-        var DrawerLog = new DrawerLog
-        {
-            OpenedById = UserSessionService.GetValidUserIdAsync(),
-            DrawerOpenDateTime = DateTime.UtcNow,
-            Created_By_Id = UserSessionService.GetValidUserIdAsync(),
-            Date_Created = DateTime.UtcNow,
-            Last_Modified = DateTime.UtcNow,
-            Last_Modified_By_Id = UserSessionService.GetValidUserIdAsync(),
-            Site_Id = await UserSessionService.GetValidSiteIdAsync(),
-            Till_Id = await UserSessionService.GetValidTillIdAsync(),
-            Shift_Id = await UserSessionService.GetValidShiftIdAsync(),
-            DayLog_Id = await UserSessionService.GetValidDayLogIdAsync()
-        };
-
-        if (isDayLog)
-        {
-            closingBalanceModalTitle = "Record Day End Closing Balance";
-            pendingActionType = ActionType.DayEnd;
-            showClosingBalanceModal = true;
-            DrawerLog.DrawerLogType = DrawerLogType.DayEnd;
-        }
-        else if (isShiftLog)
-        {
-            closingBalanceModalTitle = "Record Shift End Closing Balance";
-            pendingActionType = ActionType.ShiftEnd;
-            showClosingBalanceModal = true;
-            DrawerLog.DrawerLogType = DrawerLogType.ShiftEnd;
-        }
-        // Reset pending action type
+        // Start the step-based workflow
         modalState.ShowConfirmModal = false;
         StateHasChanged();
+        await ExecuteConfirmActionSteps();
+    }
 
-        await SetupPrinter();
-        if (printerServices == null)
+    private async Task ExecuteConfirmActionSteps()
+    {
+        try
         {
-            Console.WriteLine("Printer service is null.");
-            return;
-        }
+            switch (endingStep)
+            {
+                case 0:
+                    // Step 1: Show refill modal and wait for completion
+                    await ExecuteStep(ConfirmActionStep.ShowRefillModal);
+                    break;
+                case 1:
+                    // Step 2: Create drawer log
+                    await ExecuteStep(ConfirmActionStep.CreateDrawerLog);
+                    break;
+                case 2:
+                    // Step 3: Setup closing balance modal
+                    await ExecuteStep(ConfirmActionStep.SetupClosingBalanceModal);
+                    break;
+                case 3:
+                    // Step 4: Setup printer and open drawer
+                    await ExecuteStep(ConfirmActionStep.SetupPrinterAndOpenDrawer);
+                    string title = "Print Report";
+                    string message = $"Would you like to print the {(modalState.ActionType == ActionType.DayEnd ? "day end" : "shift")} report?";
+                    modalState.ShowPrintDialog(title, message, modalState.ActionType);
+                    StateHasChanged();
+                    break;
+                default:
+                    break;
+            }
 
-        printerServices.OpenDrawer();
-        await DrawerLogServices.AddAsync(DrawerLog);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in confirm action workflow: {ex.Message}");
+        }
+    }
+
+    private async Task ExecuteStep(ConfirmActionStep step)
+    {
+        switch (step)
+        {
+            case ConfirmActionStep.ShowRefillModal:
+                await ShowRefillModal();
+                break;
+
+            case ConfirmActionStep.CreateDrawerLog:
+                currentDrawerLog = new DrawerLog
+                {
+                    OpenedById = UserSessionService.GetValidUserIdAsync(),
+                    DrawerOpenDateTime = DateTime.UtcNow,
+                    Created_By_Id = UserSessionService.GetValidUserIdAsync(),
+                    Date_Created = DateTime.UtcNow,
+                    Last_Modified = DateTime.UtcNow,
+                    Last_Modified_By_Id = UserSessionService.GetValidUserIdAsync(),
+                    Site_Id = await UserSessionService.GetValidSiteIdAsync(),
+                    Till_Id = await UserSessionService.GetValidTillIdAsync(),
+                    Shift_Id = await UserSessionService.GetValidShiftIdAsync(),
+                    DayLog_Id = await UserSessionService.GetValidDayLogIdAsync()
+                };
+                await NextStep();
+                await ExecuteConfirmActionSteps();
+                break;
+
+            case ConfirmActionStep.SetupClosingBalanceModal:
+                if (isDayLog)
+                {
+                    closingBalanceModalTitle = "Record Day End Closing Balance";
+                    pendingActionType = ActionType.DayEnd;
+                    showClosingBalanceModal = true;
+                    currentDrawerLog.DrawerLogType = DrawerLogType.DayEnd;
+                }
+                else if (isShiftLog)
+                {
+                    closingBalanceModalTitle = "Record Shift End Closing Balance";
+                    pendingActionType = ActionType.ShiftEnd;
+                    showClosingBalanceModal = true;
+                    currentDrawerLog.DrawerLogType = DrawerLogType.ShiftEnd;
+                }
+                // Reset pending action type
+                StateHasChanged();
+                break;
+
+            case ConfirmActionStep.SetupPrinterAndOpenDrawer:
+                await SetupPrinter();
+                if (printerServices == null)
+                {
+                    Console.WriteLine("Printer service is null.");
+                    return;
+                }
+                printerServices.OpenDrawer();
+                await DrawerLogServices.AddAsync(currentDrawerLog);
+                break;
+        }
     }
 
     private void HandlePrintAction()
@@ -1771,6 +1851,7 @@
                 ResetNavigate();
                 break;
         }
+        endingStep = 0;
         modalState.CloseAll();
         StateHasChanged();
     }
@@ -1833,14 +1914,19 @@
 
     }
 
-    private void BackupDatabase()
+    private async void BackupDatabase()
     {
-        // TODO: Database backup logic
+        var supaSyncCloudResult = await supabaseSyncService.SyncDatabaseToCloudAsync(UserSessionService?.CurrentRetailer, 10000);
+        if (!supaSyncCloudResult.IsSuccess)
+        {
+            GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncCloudResult.ErrorMessage), nameof(BackupDatabase), $"Error syncing data: {supaSyncCloudResult.ErrorMessage} Total records failed: {supaSyncCloudResult.TotalRecordsFailed}");
+        }
+
     }
 
     private void ClearSessionMemory()
     {
-        // TODO: Clear session memory logic
+        UserSessionService.ClearSession();
     }
 
     private void CloseModal()
@@ -1928,7 +2014,6 @@
     {
         showDiscrepancyModal = false;
         StateHasChanged();
-
         // Proceed with the closing balance and record the variance
         await ProcessClosingBalance(pendingClosingBalance, pendingCashVariance, pendingExpectedCash);
     }
@@ -1961,11 +2046,9 @@
             {
                 await UpdateShiftClosingBalance(closingBalance, cashVariance, expectedCash);
             }
+            await NextStep();
+            await ExecuteConfirmActionSteps();
 
-            string title = "Print Report";
-            string message = $"Would you like to print the {(modalState.ActionType == ActionType.DayEnd ? "day end" : "shift")} report?";
-            modalState.ShowPrintDialog(title, message, modalState.ActionType);
-            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1980,7 +2063,7 @@
 
     private async Task UpdateDayLogClosingBalance(decimal closingBalance)
     {
-        if(UserSessionService.CurrentUser?.Allowed_Day_End != true)
+        if (UserSessionService.CurrentUser?.Allowed_Day_End != true)
         {
             await ShowErrorModalAsync($"Authorization", "{UserSession.CurrentUser.First_Name} not authorized to day end!");
         }
@@ -2175,7 +2258,7 @@
     {
         if (DrawerLogs == null || !DrawerLogs.Any())
             return new List<DataHandlerLibrary.Models.DrawerLogType>();
-        
+
         return DrawerLogs
             .Select(dl => dl.DrawerLogType)
             .Distinct()
@@ -2205,6 +2288,56 @@
     private void OnModalClose()
     {
         MessageModel.IsVisible = false;
+    }
+
+    private async Task OnModalDataChanged(InventoryManagementType type)
+    {
+        // do nothing for now
+        int i = 0;
+    }
+
+    private async void HandleInventoryModalClose()
+    {
+        await ShowRefillModal();
+    }
+
+    private async Task ShowRefillModal()
+    {
+        if ((await CalculateRefillCountAsync()) > 0)
+        {
+            showRefillModal = true;
+        }
+        else
+        {
+            showRefillModal = false;
+            await NextStep();
+            await ExecuteConfirmActionSteps();
+        }
+        StateHasChanged();
+
+    }
+
+    private async Task<int> CalculateRefillCountAsync()
+    {
+        try
+        {
+            using var scope = ServiceScopeFactory.CreateScope();
+            var stockRefillServices = scope.ServiceProvider.GetRequiredService<StockRefillServices>();
+
+            var StockRefillItems = await stockRefillServices.GetByConditionAsync(
+               s => s.Stock_Refilled == false && s.DayLog_ID == UserSessionService.GetCurrentDayLogId(), false);
+
+            return StockRefillItems.Sum(x => x.Remaining_Quantity);
+        }
+        catch (Exception)
+        {
+            return 0;
+        }
+    }
+
+    private async Task NextStep()
+    {
+        endingStep++;
     }
 }
 

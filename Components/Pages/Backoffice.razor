@@ -298,11 +298,6 @@
     {
         try
         {
-            if (UserSession.CurrentUser?.Allowed_Manage_Products != true)
-            {
-                await ShowErrorModalAsync("Authorization", $"{UserSession.CurrentUser?.First_Name} is not authorized to void sales!");
-                return;
-            }
             NavigationManager.NavigateTo("/inventory-management");
         }
         catch (Exception ex)

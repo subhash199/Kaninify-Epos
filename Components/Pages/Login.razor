@@ -454,13 +454,7 @@ else
                     // Set session using UserSessionService, preserving the existing retailer
                     UserSession.SetSession(user, site, till, retailer: UserSession.CurrentRetailer);
 
-                    // Data synchronization before navigating to checkout
-                    var supaSyncCloudResult = await supabaseSyncService.SyncDatabaseToCloudAsync(UserSession.CurrentRetailer, 10000);
-                    if (!supaSyncCloudResult.IsSuccess)
-                    {
-                        GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncCloudResult.ErrorMessage), nameof(CheckForExistingUsers), $"Error syncing data: {supaSyncCloudResult.ErrorMessage} Total records failed: {supaSyncCloudResult.TotalRecordsFailed}");
-                    }
-
+                  
                     var supaSyncLocalResult = await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(UserSession.CurrentRetailer);
                     if (!supaSyncLocalResult.IsSuccess)
                     {
