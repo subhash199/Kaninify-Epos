@@ -5,7 +5,7 @@
 @inject SalesTransactionServices SalesTransactionService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
-
+@inject GlobalErrorLogService GlobalErrorLogService
 <PageTitle>Refund History</PageTitle>
 
 <div class="refund-history-container">
@@ -34,7 +34,7 @@
                         <i class="fas fa-arrow-left"></i>
                         <span>Back to History</span>
                     </a>
-                   
+
                 </div>
             </div>
         </div>
@@ -388,7 +388,7 @@
     private DateTime? FromDate;
     private DateTime? ToDate;
     private bool IsLoading = true;
-    
+
     // Modal variables for error handling
     private bool showMessageModal = false;
     private string modalTitle = string.Empty;
@@ -443,7 +443,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading refunds: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadAllRefunds), "Failed to load all refunds");
         }
         finally
         {
@@ -464,9 +464,16 @@
         StateHasChanged();
     }
 
-    private void OnDateRangeChanged()
+    private async Task OnDateRangeChanged()
     {
-        StateHasChanged();
+        try
+        {
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnDateRangeChanged), "Failed to data range change");
+        }
     }
 
     private void ClearDateRange()
@@ -508,6 +515,9 @@
             modalTitle = "Print Error";
             modalMessage = $"Failed to print: {ex.Message}";
             showMessageModal = true;
+
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintRefundReport), "Failed to print refund report");
+
         }
     }
 
@@ -523,7 +533,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing refund details: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintRefundDetails), "Failed to print refund details");
         }
     }
 
@@ -537,7 +547,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error exporting data: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ExportRefundData), "Failed to export refund data");
         }
     }
 
@@ -702,13 +712,27 @@
         return csv;
     }
 
-    private void NavigateToHistory()
+    private async Task NavigateToHistory()
     {
-        Navigation.NavigateTo("/history");
+        try
+        {
+            Navigation.NavigateTo("/history");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToHistory), "Failed to navigate to history");
+        }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        Navigation.NavigateTo("/checkout");
+        try
+        {
+            Navigation.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Failed to navigate to checkout");
+        }
     }
 }

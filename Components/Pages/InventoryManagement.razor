@@ -1920,6 +1920,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintStockOrders), "Failed to print stock orders");
             modalTitle = "Print Error";
             modalMessage = $"Failed to print: {ex.Message}";
             showMessageModal = true;
@@ -2179,6 +2180,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadProductByBarcode), "Error loading product by barcode");
             transferError = "Error loading product: " + ex.Message;
         }
 
@@ -2283,6 +2285,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(BulkUpdateTransfers), "Error bulk updating transfers");
             transferError = "Error updating transfers: " + ex.Message;
         }
         isLoading = false;
@@ -2435,6 +2438,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SaveSupplier), "Error saving supplier");
             modalTitle = "Error";
             modalMessage = $"Failed to save supplier: {ex.Message}";
             showMessageModal = true;
@@ -2497,6 +2501,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(GenerateStockOrder), "Failed to generate stock order");
             modalTitle = "Error";
             modalMessage = $"Failed to generate stock order: {ex.Message}";
             showMessageModal = true;
@@ -2603,6 +2608,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SearchProductByBarcode), "Error searching product by barcode");
             modalTitle = "Error";
             modalMessage = "Error searching product: " + ex.Message;
             showMessageModal = true;
@@ -2689,6 +2695,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SaveProductModal), "Error saving product via modal");
             modalTitle = "Error";
             modalMessage = $"Error saving product: {ex.Message}";
             showMessageModal = true;
@@ -2805,6 +2812,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(AddDeliveryProduct), "Failed to add delivery item");
             modalTitle = "Error";
             modalMessage = $"Failed to add delivery: {ex.Message}";
             showMessageModal = true;
@@ -2969,9 +2977,15 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ConfirmDelivery), "Failed to confirm delivery");
             modalTitle = "Error";
             modalMessage = $"Failed to confirm delivery: {ex.Message}";
             showMessageModal = true;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -3117,6 +3131,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadProducts), "Failed to load products");
             await InvokeAsync(() =>
             {
                 modalTitle = "Error";
@@ -3297,6 +3312,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ToggleProductStatus), "Failed to toggle product status");
             modalTitle = "Error";
             modalMessage = $"Failed to update product status: {ex.Message}";
             showMessageModal = true;
@@ -3362,6 +3378,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(RefreshSupplierItems), "Failed to load supplier items");
             modalTitle = "Error";
             modalMessage = $"Failed to load supplier items: {ex.Message}";
             showMessageModal = true;
@@ -3566,6 +3583,7 @@ else
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(RemoveProductFromAlert), "Error removing product from alert list");
             modalTitle = "Error";
             modalMessage = $"Error removing product from alert list: {ex.Message}";
             showMessageModal = true;

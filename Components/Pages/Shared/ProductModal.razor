@@ -8,6 +8,7 @@
 @inject UserSessionService userSessionService
 @inject DataHandlerLibrary.Services.ShiftServices shiftServices
 @inject IJSRuntime JSRuntime
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <div class="modal modern-modal @(IsVisible ? "show d-block" : "d-none")" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -336,8 +337,16 @@
 
     private async Task LoadDepartmentsAndVat()
     {
-        Departments = (await departmentServices.GetAllAsync(false)).OrderBy(d => d.Department_Name).ToList();
-        VatRates = (await vatServices.GetAllAsync(false)).OrderBy(v => v.VAT_Value).ToList();
+        try
+        {
+            Departments = (await departmentServices.GetAllAsync(false)).OrderBy(d => d.Department_Name).ToList();
+            VatRates = (await vatServices.GetAllAsync(false)).OrderBy(v => v.VAT_Value).ToList();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadDepartmentsAndVat), "Failed to load department in product modal");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading departments/VAT: {ex.Message}");
+        }
     }
 
     private async Task SaveChanges()
@@ -354,16 +363,14 @@
             Product.Department_ID = Product.Department_ID == 0 ? (await departmentServices.GetDefaultDepartment()).Id : Product.Department_ID;
             Product.VAT_ID = Product.VAT_ID == 0 ? (await vatServices.GetDefaultVatAsync()).Id : Product.VAT_ID;
 
-            // Check for price changes
             bool priceChanged = Product.Product_Selling_Price != OriginalSellingPrice;
             if (priceChanged)
             {
                 Product.Priced_Changed_On = DateTime.UtcNow;
             }
 
-            if (Product.Id == 0) // If it's a new product
+            if (Product.Id == 0)
             {
-                // Remove any explicit ID assignment for new products
                 if (!priceChanged)
                 {
                     Product.Priced_Changed_On = DateTime.UtcNow;
@@ -373,13 +380,12 @@
                 Product.SyncStatus = SyncStatus.Pending;
                 await productServices.AddAsync(Product);
             }
-            else // If it's an existing product
+            else
             {
                 Product.Last_Modified = DateTime.UtcNow;
                 Product.SyncStatus = SyncStatus.Pending;
                 await productServices.UpdateAsync(Product);
 
-                // Record stock transaction if quantity changed
                 await RecordStockTransactionIfNeeded();
             }
 
@@ -387,6 +393,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SaveChanges), "Failed to save changes in product modal");
             await JSRuntime.InvokeVoidAsync("alert", $"Error saving product: {ex.Message}");
             return;
         }
@@ -410,18 +417,16 @@
     {
         try
         {
-            // Check if total stock quantity has changed
-             int quantityDifference = Product.ProductTotalQuantity - OriginalTotalQuantity;
-             if (quantityDifference == 0)
-                 return; // No change in quantity
+            int quantityDifference = Product.ProductTotalQuantity - OriginalTotalQuantity;
+            if (quantityDifference == 0)
+                return;
 
-            // Get current daylog and shift
             var currentDayLog = userSessionService.CurrentDayLog;
             if (currentDayLog == null)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "No active day log found. Cannot record stock transaction.");
                 return;
-            }          
+            }
 
             var currentShift = userSessionService.CurrentShift;
             if (currentShift == null)
@@ -429,7 +434,7 @@
                 await JSRuntime.InvokeVoidAsync("alert", "No active shift log found. Cannot record stock transaction.");
                 return;
             }
-            // Create stock transaction
+
             var stockTransaction = new StockTransaction
             {
                 ProductId = Product.Id,
@@ -441,13 +446,13 @@
                 TotalAmount = Math.Abs(quantityDifference) * Product.Product_Cost,
                 DateCreated = DateTime.UtcNow,
                 LastModified = DateTime.UtcNow
-               
             };
 
             await stockTransactionServices.AddAsync(stockTransaction);
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(RecordStockTransactionIfNeeded), "Failed to record stock transaction");
             await JSRuntime.InvokeVoidAsync("alert", $"Error recording stock transaction: {ex.Message}");
         }
     }

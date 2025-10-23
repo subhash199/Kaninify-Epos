@@ -177,14 +177,13 @@ else
             await CheckForExistingUsers();
             isLoading = false;
             StateHasChanged();
-            // Set focus on the passcode input field
             try
             {
                 await passcodeInputRef.FocusAsync();
-
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnAfterRenderAsync), "Failed to focus passcode input");
                 // Ignore focus errors
             }
 
@@ -221,162 +220,138 @@ else
             else
             {
                 // Retailer exists, use access token to fetch any updates
-                try
+                // Refresh token if needed
+                retailer = await supabaseSyncService.CheckIfRetailerAccessTokenNeedsRefreshedAsync(retailer);
+                UserSession.SetRetailer(retailer);
+
+
+
+                // First, fetch current server time to verify local PC datetime accuracy
+                DateTime? serverTime;
+                DateTime localTime = DateTime.Now;
+                bool isTimeAccurate = true;
+
+                // Initialize the Supabase connection with the retailer's ID
+                await supabaseSyncService.InitializeForRetailerAsync(UserSession.CurrentRetailer);
+
+
+
+                // Enhanced license validation with server time verification and decryption
+                bool isLicenseValid = false;
+                string licenseErrorMessage = string.Empty;
+
+
+                var result = await supabaseSyncService.GetServerDateTimeAlternativeAsync(UserSession.CurrentRetailer);
+                if (result.IsSuccess)
                 {
-                    // Refresh token if needed
-                    retailer = await supabaseSyncService.CheckIfRetailerAccessTokenNeedsRefreshedAsync(retailer);
-                    UserSession.SetRetailer(retailer);
+                    serverTime = result.Data.ToLocalTime();
+                    var localDateTime = DateTime.Now;
+                    var timeDifference = Math.Abs((serverTime.Value - localDateTime).TotalMinutes);
 
-
-
-                    // First, fetch current server time to verify local PC datetime accuracy
-                    DateTime? serverTime;
-                    DateTime localTime = DateTime.Now;
-                    bool isTimeAccurate = true;
-
-                    // Initialize the Supabase connection with the retailer's ID
-                    await supabaseSyncService.InitializeForRetailerAsync(UserSession.CurrentRetailer);
-
-
-
-                    // Enhanced license validation with server time verification and decryption
-                    bool isLicenseValid = false;
-                    string licenseErrorMessage = string.Empty;
-
-                    try
+                    if (timeDifference > 5) // Allow 5 minutes difference
                     {
-                        // ... existing code ...
-                        try
-                        {
-                            var result = await supabaseSyncService.GetServerDateTimeAlternativeAsync(UserSession.CurrentRetailer);
-                            if (result.IsSuccess)
-                            {
-                                serverTime = result.Data.ToLocalTime();
-                                var localDateTime = DateTime.Now;
-                                var timeDifference = Math.Abs((serverTime.Value - localDateTime).TotalMinutes);
+                        licenseErrorMessage = "Your system time appears to be incorrect. Please sync your computer's clock and try again.";
+                        isLicenseValid = false;
+                        isTimeAccurate = false;
+                    }
+                }
+                else
+                {
+                    serverTime = null;
+                }
+                if (isTimeAccurate)
+                {
+                    if (!string.IsNullOrEmpty(retailer.LicenseKey) && !string.IsNullOrEmpty(retailer.SecretKey))
+                    {
+                        // Decrypt the license key using the secret key
+                        var aesService = new AESEncryptDecryptServices();
+                        string decryptedLicenseData = aesService.Decrypt(retailer.LicenseKey, retailer.SecretKey);
 
-                                if (timeDifference > 5) // Allow 5 minutes difference
-                                {
-                                    licenseErrorMessage = "Your system time appears to be incorrect. Please sync your computer's clock and try again.";
-                                    isLicenseValid = false;
-                                    isTimeAccurate = false;
-                                }
+                        // Deserialize the decrypted license data
+                        var licenseInfo = JsonSerializer.Deserialize<LicenseKey>(decryptedLicenseData);
+
+                        if (licenseInfo != null)
+                        {
+                            // Convert issue date from UTC to local time
+                            DateTime localIssueDate = licenseInfo.IssueDate.ToLocalTime();
+                            DateTime currentDateTime = DateTime.Now;
+
+                            // Check if issue date is greater than current datetime (additional clock sync check)
+                            if (localIssueDate > currentDateTime)
+                            {
+                                licenseErrorMessage = "Your system clock appears to be incorrect. The license issue date is in the future. Please sync your date and time settings and try again.";
+                                isLicenseValid = false;
                             }
                             else
                             {
-                                serverTime = null;
-                            }
+                                // Check if current datetime is less than expiry date
+                                DateTime localExpiryDate = licenseInfo.ExpiryDate.ToLocalTime();
 
-                        }
-                        catch (Exception ex)
-                        {
-                            // If server time check fails, log warning but continue with local validation
-                            Console.WriteLine($"Warning: Server time check failed: {ex.Message}");
-                        }
-
-                        if (isTimeAccurate)
-                        {
-                            if (!string.IsNullOrEmpty(retailer.LicenseKey) && !string.IsNullOrEmpty(retailer.SecretKey))
-                            {
-                                // Decrypt the license key using the secret key
-                                var aesService = new AESEncryptDecryptServices();
-                                string decryptedLicenseData = aesService.Decrypt(retailer.LicenseKey, retailer.SecretKey);
-
-                                // Deserialize the decrypted license data
-                                var licenseInfo = JsonSerializer.Deserialize<LicenseKey>(decryptedLicenseData);
-
-                                if (licenseInfo != null)
+                                if (currentDateTime < localExpiryDate)
                                 {
-                                    // Convert issue date from UTC to local time
-                                    DateTime localIssueDate = licenseInfo.IssueDate.ToLocalTime();
-                                    DateTime currentDateTime = DateTime.Now;
+                                    isLicenseValid = true;
+                                    // Update retailer license properties with decrypted values
+                                    retailer.LicenseIssueDate = licenseInfo.IssueDate;
+                                    retailer.LicenseExpiryDate = licenseInfo.ExpiryDate;
+                                    retailer.IsLicenseValid = true;
+                                    retailer.LastLicenseCheck = DateTime.UtcNow;
 
-                                    // Check if issue date is greater than current datetime (additional clock sync check)
-                                    if (localIssueDate > currentDateTime)
-                                    {
-                                        licenseErrorMessage = "Your system clock appears to be incorrect. The license issue date is in the future. Please sync your date and time settings and try again.";
-                                        isLicenseValid = false;
-                                    }
-                                    else
-                                    {
-                                        // Check if current datetime is less than expiry date
-                                        DateTime localExpiryDate = licenseInfo.ExpiryDate.ToLocalTime();
-
-                                        if (currentDateTime < localExpiryDate)
-                                        {
-                                            isLicenseValid = true;
-                                            // Update retailer license properties with decrypted values
-                                            retailer.LicenseIssueDate = licenseInfo.IssueDate;
-                                            retailer.LicenseExpiryDate = licenseInfo.ExpiryDate;
-                                            retailer.IsLicenseValid = true;
-                                            retailer.LastLicenseCheck = DateTime.UtcNow;
-
-                                            // Save the updated retailer information
-                                            await RetailerService.UpdateAsync(retailer);
-                                        }
-                                        else
-                                        {
-                                            licenseErrorMessage = "Your license has expired. Please contact technical support to renew your license.";
-                                            isLicenseValid = false;
-                                        }
-                                    }
+                                    // Save the updated retailer information
+                                    await RetailerService.UpdateAsync(retailer);
                                 }
                                 else
                                 {
-                                    licenseErrorMessage = "Invalid license data. Please contact technical support for assistance.";
+                                    licenseErrorMessage = "Your license has expired. Please contact technical support to renew your license.";
                                     isLicenseValid = false;
                                 }
-                            }
-                            else
-                            {
-                                licenseErrorMessage = "License key or secret key is missing. Please contact technical support for assistance.";
-                                isLicenseValid = false;
                             }
                         }
                         else
                         {
-                            // Time accuracy check failed, use the error message set above
+                            licenseErrorMessage = "Invalid license data. Please contact technical support for assistance.";
                             isLicenseValid = false;
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        licenseErrorMessage += " Failed to validate license. Please contact technical support for assistance.";
-                        isLicenseValid = false;
-                        // Log the exception for debugging
-                        Console.WriteLine($"License validation error: {ex.Message}");
-                    }
-
-                    if (!isLicenseValid)
-                    {
-                        // Show license error in GenericMessageModal
-                        modalSettings.ModalTitle = "License Error";
-                        modalSettings.ModalMessage = licenseErrorMessage;
-                        modalSettings.ShowModal = true;
-                        modalSettings.ModalEnum = ModalEnum.Error;
-
-                        // Update UI to show modal
-                        StateHasChanged();
-                    }
                     else
                     {
-                        // License is valid, proceed with normal flow
-                        // Clear any previous modal settings
-                        modalSettings.ShowModal = false;
+                        licenseErrorMessage = "License key or secret key is missing. Please contact technical support for assistance.";
+                        isLicenseValid = false;
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    await GlobalErrorLogService.LogErrorAsync(ex, nameof(CheckForExistingUsers), $"Error fetching retailer data: {ex.Message}");
+                    // Time accuracy check failed, use the error message set above
+                    isLicenseValid = false;
+                    await GlobalErrorLogService.LogErrorAsync(new Exception("Time is not accurate"), nameof(CheckForExistingUsers), "Checking for existing users during login: Time is not accurate");
+
+                }
+
+
+                if (!isLicenseValid)
+                {
+                    // Show license error in GenericMessageModal
+                    modalSettings.ModalTitle = "License Error";
+                    modalSettings.ModalMessage = licenseErrorMessage;
+                    modalSettings.ShowModal = true;
+                    modalSettings.ModalEnum = ModalEnum.Error;
+
+                    // Update UI to show modal
                     StateHasChanged();
+                }
+                else
+                {
+                    // License is valid, proceed with normal flow
+                    // Clear any previous modal settings
+                    modalSettings.ShowModal = false;
                 }
             }
         }
         catch (Exception ex)
         {
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CheckForExistingUsers), "Checking for existing users");
-            Console.WriteLine($"Error checking for existing users: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CheckForExistingUsers), "Checking for existing users during login");
+            await ShowErrorModalAsync("Error", $"An error occurred while checking for existing users: {ex.Message}");
         }
+
     }
 
     private async Task<List<PosUser>> GetUsersWithRetryAsync(int maxAttempts = 5, int initialDelayMs = 1000)
@@ -454,11 +429,15 @@ else
                     // Set session using UserSessionService, preserving the existing retailer
                     UserSession.SetSession(user, site, till, retailer: UserSession.CurrentRetailer);
 
-                  
+
                     var supaSyncLocalResult = await supabaseSyncService.SyncUnsyncedDataFromCloudAsync(UserSession.CurrentRetailer);
                     if (!supaSyncLocalResult.IsSuccess)
                     {
-                        GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncLocalResult.Error), nameof(CheckForExistingUsers), $"Error syncing data: {supaSyncLocalResult.Error}");
+                        await GlobalErrorLogService.LogErrorAsync(
+                            new Exception(supaSyncLocalResult.Error),
+                            nameof(HandleLogin),
+                            $"Error syncing data: {supaSyncLocalResult.Error}"
+                        );
                     }
 
                     // Keep loading state true during navigation to prevent glitch

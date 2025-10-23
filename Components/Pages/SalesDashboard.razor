@@ -1711,14 +1711,28 @@
         }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Navigation to checkout");
+        }
     }
 
-    private void NavigateToBackoffice()
+    private async Task NavigateToBackoffice()
     {
-        NavigationManager.NavigateTo("/backoffice");
+        try
+        {
+            NavigationManager.NavigateTo("/backoffice");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToBackoffice), "Navigation to backoffice");
+        }
     }
 
     private void HandleDayEnd()
@@ -1775,7 +1789,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in confirm action workflow: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ExecuteConfirmActionSteps), "Confirm action workflow execution");
         }
     }
 
@@ -1880,38 +1894,51 @@
     // Helper methods for different actions
     private async Task PrintDayEndReport()
     {
-        // Print day end report logic
-        await SetupPrinter();
-
-        if (printerServices == null)
+        try
         {
-            Console.WriteLine("Printer service is null.");
-            return;
-        }
-        if (printerServices.IsInitialized)
-        {
-            await printerServices.PrintEndOfDayReport(DayLog, salesTransactions.ToList(),
-            allDepartments, vats.ToList(), payouts.ToList(),
-                stockTransactions.ToList(), voidedProducts.ToList());
-        }
+            // Print day end report logic
+            await SetupPrinter();
 
+            if (printerServices == null)
+            {
+                await GlobalErrorLogService.LogErrorAsync(new Exception("Printer is null"), nameof(PrintDayEndReport), "Printer service is null.");
+
+                return;
+            }
+            if (printerServices.IsInitialized)
+            {
+                await printerServices.PrintEndOfDayReport(DayLog, salesTransactions.ToList(),
+                allDepartments, vats.ToList(), payouts.ToList(),
+                    stockTransactions.ToList(), voidedProducts.ToList());
+            }
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintDayEndReport), "Printing end of day report");
+        }
     }
 
     private async Task PrintShiftReport()
     {
-        await SetupPrinter();
-        if (printerServices == null)
+        try
         {
-            Console.WriteLine("Printer service is null.");
-            return;
-        }
-        if (printerServices.IsInitialized)
-        {
-            await printerServices.PrintShiftEndReport(ShiftLog, salesTransactions.ToList(),
-            allDepartments, vats.ToList(), payouts.ToList(),
+            await SetupPrinter();
+            if (printerServices == null)
+            {
+                await GlobalErrorLogService.LogErrorAsync(new Exception("Printer is null"), nameof(PrintShiftReport), "Printer service is null.");
+                return;
+            }
+            if (printerServices.IsInitialized)
+            {
+                await printerServices.PrintShiftEndReport(ShiftLog, salesTransactions.ToList(),
+                allDepartments, vats.ToList(), payouts.ToList(),
                 stockTransactions.ToList(), voidedProducts.ToList());
+            }
         }
-
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintShiftReport), "Printing shift end report");
+        }
     }
 
     private async void BackupDatabase()
@@ -1919,7 +1946,7 @@
         var supaSyncCloudResult = await supabaseSyncService.SyncDatabaseToCloudAsync(UserSessionService?.CurrentRetailer, 10000);
         if (!supaSyncCloudResult.IsSuccess)
         {
-            GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncCloudResult.ErrorMessage), nameof(BackupDatabase), $"Error syncing data: {supaSyncCloudResult.ErrorMessage} Total records failed: {supaSyncCloudResult.TotalRecordsFailed}");
+            await GlobalErrorLogService.LogErrorAsync(new Exception(supaSyncCloudResult.ErrorMessage), nameof(BackupDatabase), $"Error syncing data: {supaSyncCloudResult.ErrorMessage} Total records failed: {supaSyncCloudResult.TotalRecordsFailed}");
         }
 
     }
@@ -2000,6 +2027,8 @@
             discrepancyModalMessage = $"Error calculating cash variance: {ex.Message}";
             showDiscrepancyModal = true;
             StateHasChanged();
+
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(HandleClosingBalanceConfirm), "Calculating cash variance and handling confirmation");
         }
     }
 
@@ -2058,6 +2087,8 @@
             discrepancyModalMessage = $"Error updating closing balance: {ex.Message}";
             showDiscrepancyModal = true;
             StateHasChanged();
+
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ProcessClosingBalance), "Updating closing balance and executing next steps");
         }
     }
 
@@ -2329,8 +2360,9 @@
 
             return StockRefillItems.Sum(x => x.Remaining_Quantity);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CalculateRefillCountAsync), "Calculating pending stock refill count");
             return 0;
         }
     }

@@ -193,17 +193,25 @@
         {
             await searchBox.FocusAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SetFocusOnSearchBoxAsync), "Failed to focus search box");
             // Ignore focus errors
         }
     }
 
     private async Task SearchKeyDownAsync(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        try
         {
-            await SearchProducts();
+            if (e.Key == "Enter")
+            {
+                await SearchProducts();
+            }
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SearchKeyDownAsync), "Error handling search key press");
         }
     }
 
@@ -257,13 +265,20 @@
 
     private async Task SearchHistory()
     {
-        if (selectedProduct != null)
+        try
         {
-            await LoadSalesHistory();
+            if (selectedProduct != null)
+            {
+                await LoadSalesHistory();
+            }
+            else
+            {
+                await SearchProducts();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await SearchProducts();
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SearchHistory), "Error dispatching search/history load");
         }
     }
 
@@ -288,7 +303,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading sales history: {ex.Message}");
+                await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadSalesHistory), "Error loading sales history");
                 salesItems = new List<SalesItemTransaction>();
             }
             finally
@@ -301,9 +316,20 @@
 
     private async Task OnDateRangeChanged()
     {
-        if (selectedProduct != null)
+        try
         {
-            await LoadSalesHistory();
+            if (selectedProduct != null)
+            {
+                await LoadSalesHistory();
+            }
+            else
+            {
+                await SearchProducts();
+            }
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnDateRangeChanged), "Error handling date range change");
         }
     }
 

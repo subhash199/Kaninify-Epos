@@ -322,7 +322,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading transactions: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadCurrentDayLogTransactions), "Error loading transactions");
         }
         finally
         {
@@ -375,29 +375,36 @@
 
     private async Task OnDateRangeChanged()
     {
-        // Validate date range and trigger UI update
-        if (FromDate.HasValue && ToDate.HasValue)
+        try
         {
-            var toDate = ToDate.Value.Date.AddDays(1).AddTicks(-1).ToUniversalTime(); // Include the entire end date
-            var fromDate = FromDate.Value.Date.ToUniversalTime();
-
-            if (FromDate.Value.Date <= ToDate.Value.Date)
+            // Validate date range and trigger UI update
+            if (FromDate.HasValue && ToDate.HasValue)
             {
-                AllTransactions.Clear();
-                // Get all transactions to support date range filtering
-                AllTransactions = (await SalesService.GetByConditionAsync(t => t.Sale_Date >= fromDate && t.Sale_Date <= toDate, false)).ToList();
+                var toDate = ToDate.Value.Date.AddDays(1).AddTicks(-1).ToUniversalTime(); // Include the entire end date
+                var fromDate = FromDate.Value.Date.ToUniversalTime();
 
-                // Sort by most recent first
-                AllTransactions = AllTransactions.OrderByDescending(t => t.Sale_Date).ToList();
+                if (FromDate.Value.Date <= ToDate.Value.Date)
+                {
+                    AllTransactions.Clear();
+                    // Get all transactions to support date range filtering
+                    AllTransactions = (await SalesService.GetByConditionAsync(t => t.Sale_Date >= fromDate && t.Sale_Date <= toDate, false)).ToList();
+
+                    // Sort by most recent first
+                    AllTransactions = AllTransactions.OrderByDescending(t => t.Sale_Date).ToList();
+                }
+                else
+                {
+                    // Invalid date range - show validation error
+                    Console.WriteLine("Invalid date range: Start date is greater than end date");
+                }
             }
-            else
-            {
-                // Invalid date range - show validation error
-                Console.WriteLine("Invalid date range: Start date is greater than end date");
-            }
+
+            StateHasChanged();
         }
-
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnDateRangeChanged), "Error handling date range change");
+        }
     }
 
     private void ClearDateRange()
@@ -407,14 +414,28 @@
         StateHasChanged();
     }
 
-    private void NavigateToHistory()
+    private async Task NavigateToHistory()
     {
-        NavigationManager.NavigateTo("/history");
+        try
+        {
+            NavigationManager.NavigateTo("/history");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToHistory), "Navigating to history");
+        }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Navigating to checkout");
+        }
     }
 
     private async Task PrintSelectedReceipt()
@@ -429,7 +450,7 @@
         {
             // Print the receipt using the printer service
             PrinterService = await PrinterManagementService.GetPrinterServicesAsync();
-            if(PrinterService == null)
+            if (PrinterService == null)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "No printer configured. Please set up a printer first.");
                 return;
@@ -439,8 +460,8 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintSelectedReceipt), "Error printing receipt");
             await JSRuntime.InvokeVoidAsync("alert", $"Error printing receipt: {ex.Message}");
-            Console.WriteLine($"Error printing receipt: {ex.Message}");
         }
     }
 }

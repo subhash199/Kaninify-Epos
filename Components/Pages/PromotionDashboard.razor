@@ -8,6 +8,7 @@
 @inject GeneralServices generalServices
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject GlobalErrorLogService GlobalErrorLogService
 <PageTitle>Promotion Management</PageTitle>
 
 <div class="container-fluid mt-2">
@@ -416,6 +417,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadData), "Error loading data");
             await JSRuntime.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
         }
     }
@@ -494,6 +496,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SavePromotion), "Error saving promotion");
             await JSRuntime.InvokeVoidAsync("alert", $"Error saving promotion: {ex.Message}");
         }
     }
@@ -512,6 +515,7 @@
             }
             catch (Exception ex)
             {
+                await GlobalErrorLogService.LogErrorAsync(ex, nameof(DeletePromotion), $"Error deleting promotion: {promotion?.Promotion_Name}");
                 await JSRuntime.InvokeVoidAsync("alert", $"Error deleting promotion: {ex.Message}");
             }
         }
@@ -530,6 +534,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ManagePromotionProducts), "Error loading promotion products");
             await JSRuntime.InvokeVoidAsync("alert", $"Error loading promotion products: {ex.Message}");
         }
     }
@@ -571,6 +576,11 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(
+                ex,
+                nameof(AddProductToPromotion),
+                $"Error adding product '{product?.Product_Name}' to promotion '{selectedPromotion?.Promotion_Name}'"
+            );
             await JSRuntime.InvokeVoidAsync("alert", $"Error adding product to promotion: {ex.Message}");
         }
     }
@@ -587,6 +597,11 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(
+                ex,
+                nameof(RemoveProductFromPromotion),
+                $"Error removing product '{product?.Product_Name}' from promotion '{selectedPromotion?.Promotion_Name}'"
+            );
             await JSRuntime.InvokeVoidAsync("alert", $"Error removing product from promotion: {ex.Message}");
         }
     }
@@ -616,6 +631,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SavePromotionProducts), "Error saving promotion products");
             await JSRuntime.InvokeVoidAsync("alert", $"Error saving promotion products: {ex.Message}");
         }
     }
@@ -666,11 +682,25 @@
 
     private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Navigating to checkout");
+        }
     }
 
-    private void NavigateToBackoffice()
+    private async Task NavigateToBackoffice()
     {
-        NavigationManager.NavigateTo("/backoffice");
+        try
+        {
+            NavigationManager.NavigateTo("/backoffice");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToBackoffice), "Navigating to backoffice");
+        }
     }
 }

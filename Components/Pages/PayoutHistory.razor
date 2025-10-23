@@ -8,6 +8,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IPrinterService PrinterService
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Payout History</PageTitle>
 
@@ -266,6 +267,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadPayouts), "Loading payout history data");
             Console.WriteLine($"Error loading payouts: {ex.Message}");
         }
         finally
@@ -327,6 +329,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintReport), "Printing payout history report");
             modalTitle = "Print Error";
             modalMessage = $"Failed to print: {ex.Message}";
             showMessageModal = true;
@@ -364,6 +367,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ExportData), "Exporting payout history CSV");
             modalTitle = "Export Error";
             modalMessage = $"Failed to export data: {ex.Message}";
             showMessageModal = true;
@@ -385,14 +389,28 @@
         // }
     }
 
-    private void NavigateToHistory()
+    private async Task NavigateToHistory()
     {
-        NavigationManager.NavigateTo("/history");
+        try
+        {
+            NavigationManager.NavigateTo("/history");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToHistory), "Navigating to history");
+        }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Navigating to checkout");
+        }
     }
 }
 

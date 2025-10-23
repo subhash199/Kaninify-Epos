@@ -10,6 +10,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IPrinterService PrinterService
+@inject GlobalErrorLogService GlobalErrorLogService 
 
 <PageTitle>Voided Products</PageTitle>
 
@@ -291,9 +292,19 @@
 
     private async Task OnDateRangeChanged()
     {
-        await GetVoidedProductByDates();
-        await Task.Delay(1);
-        StateHasChanged();
+        try
+        {
+            await GetVoidedProductByDates();
+            await Task.Delay(1);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(OnDateRangeChanged), "Failed to date range changed in voided products");
+            modalTitle = "Error";
+            modalMessage = "An error occurred while updating date range.";
+            showMessageModal = true;
+        }
     }
 
     private async Task GetVoidedProductByDates()

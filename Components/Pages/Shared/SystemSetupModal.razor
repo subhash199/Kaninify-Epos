@@ -12,6 +12,7 @@
 @inject VatServices VatServices
 @inject ProductServices ProductServices
 @inject ReceiptPrinterServices ReceiptPrinterServices
+@inject GlobalErrorLogService GlobalErrorLogService
 
 
 
@@ -769,6 +770,7 @@
         catch (Exception ex)
         {
             errorMessage = $"Error creating site: {ex.Message}";
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CreateSite), "Failed to create site during setup");
         }
         finally
         {
@@ -802,6 +804,7 @@
         catch (Exception ex)
         {
             errorMessage = $"Error creating till: {ex.Message}";
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CreateTill), "Failed to create till during setup");
         }
         finally
         {
@@ -850,6 +853,7 @@
         catch (Exception ex)
         {
             errorMessage = $"Error creating user: {ex.Message}";
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CreateUser), "Failed to create user during setup");
         }
         finally
         {
@@ -901,6 +905,7 @@
         catch (Exception ex)
         {
             errorMessage = $"Error creating receipt printer: {ex.Message}";
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(CreateReceiptPrinter), "Failed to create receipt printer during setup");
         }
         finally
         {
@@ -1030,6 +1035,7 @@
         catch (Exception ex)
         {
             errorMessage = $"Error setting up cloud sync: {ex.Message}";
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SetupCloudSync), "Failed to setup cloud sync during system setup");
         }
         finally
         {

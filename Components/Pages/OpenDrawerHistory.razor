@@ -8,6 +8,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IPrinterService PrinterService
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Open Drawer History</PageTitle>
 
@@ -358,7 +359,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading drawer logs: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(LoadAllDrawerLogs), "Loading drawer logs");
             await JSRuntime.InvokeVoidAsync("alert", $"Error loading drawer logs: {ex.Message}");
         }
         finally
@@ -417,11 +418,12 @@
                 showMessageModal = true;
                 return;
             }
-
+    
             await JSRuntime.InvokeVoidAsync("window.print");
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintDrawerReport), "Printing drawer history report");
             modalTitle = "Print Error";
             modalMessage = $"Failed to print: {ex.Message}";
             showMessageModal = true;
@@ -456,7 +458,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error exporting drawer data: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(ExportDrawerData), "Exporting drawer history CSV");
             await JSRuntime.InvokeVoidAsync("alert", $"Error exporting data: {ex.Message}");
         }
     }
@@ -495,13 +497,27 @@
         return sb.ToString();
     }
 
-    private void NavigateToHistory()
+    private async Task NavigateToHistory()
     {
-        NavigationManager.NavigateTo("/history");
+        try
+        {
+            NavigationManager.NavigateTo("/history");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToHistory), "Navigating to history");
+        }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        NavigationManager.NavigateTo("/checkout");
+        try
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Navigating to checkout");
+        }
     }
 }

@@ -5,8 +5,8 @@
 @using EposRetail.Models
 @inject ProductServices _productServices
 @inject NavigationManager _navigationManager
-
 @inject PrinterManagementService _printerManagementService
+@inject GlobalErrorLogService GlobalErrorLogService
 
 <PageTitle>Equiry</PageTitle>
 
@@ -146,6 +146,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SearchKeyDownAsync), "Processing search input on Enter key press");
             await ShowErrorModalAsync("Search Error", ex.Message);
         }
     }
@@ -316,6 +317,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintSingleLabelAsync), "Printing single label");
             await ShowErrorModalAsync("Print Error", $"Failed to print label: {ex.Message}");
         }
     }
@@ -335,6 +337,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintAllLabelsAsync), "Printing all labels for enquiry results");
             await ShowErrorModalAsync("Print Error", $"Failed to print labels: {ex.Message}");
         }
     }

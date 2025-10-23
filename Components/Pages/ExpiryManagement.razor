@@ -403,7 +403,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error marking product as expired: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(MarkAsExpired), "Marking product as expired");
             await JSRuntime.InvokeVoidAsync("alert", "Error marking product as expired.");
         }
     }

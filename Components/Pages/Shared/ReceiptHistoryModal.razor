@@ -240,7 +240,7 @@
         catch (Exception ex)
         {
             SelectedTransactionItems = new List<SalesItemTransaction>();
-            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SelectTransaction), "Loading transaction items");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SelectTransaction), "Failed to load transaction items");
         }
         finally
         {
@@ -289,7 +289,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error printing receipt: {ex.Message}");
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(PrintTransaction), "Failed to print receipt");
             await JSRuntime.InvokeVoidAsync("alert", $"Error printing receipt: {ex.Message}");
         }
     }

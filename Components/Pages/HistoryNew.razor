@@ -10,6 +10,7 @@
 @inject DataHandlerLibrary.Services.DepartmentServices DepartmentService
 @inject DataHandlerLibrary.Services.ShiftServices ShiftService
 @inject DataHandlerLibrary.Services.SalesItemTransactionServices SalesItemTransactionService
+@inject GlobalErrorLogService GlobalErrorLogService
 @using DataHandlerLibrary.Models
 
 <style>
@@ -447,69 +448,160 @@
 </div>
 
 @code {
-    private void NavigateToReceiptHistory()
+    private async Task NavigateToReceiptHistory()
     {
-        Navigation.NavigateTo("/receipthistory");
+        try
+        {
+            Navigation.NavigateTo("/receipthistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToReceiptHistory), "Navigating to receipt history");
+        }
     }
 
-    private void NavigateToDayEndHistory()
+    private async Task NavigateToDayEndHistory()
     {
-        Navigation.NavigateTo("/DayEndHistory");
+        try
+        {
+            Navigation.NavigateTo("/DayEndHistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToDayEndHistory), "Navigating to day end history");
+        }
     }
 
-    private void NavigateToDrawerHistory()
+    private async Task NavigateToRefundHistory()
     {
-        Navigation.NavigateTo("/OpenDrawerHistory");
+        try
+        {
+            Navigation.NavigateTo("/RefundHistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToRefundHistory), "Navigating to refund history");
+        }
     }
 
-    private void NavigateToVoidedProducts()
+    private async Task NavigateToDrawerHistory()
     {
-        Navigation.NavigateTo("/VoidedProducts");
+        try
+        {
+            Navigation.NavigateTo("/OpenDrawerHistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToDrawerHistory), "Navigating to open drawer history");
+        }
     }
 
-    private void NavigateToStockTransfer()
+    private async Task NavigateToVoidedProducts()
     {
-        Navigation.NavigateTo("/StockTransferReport");
+        try
+        {
+            Navigation.NavigateTo("/VoidedProducts");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToVoidedProducts), "Navigating to voided products");
+        }
     }
 
-    private void NavigateToRefundHistory()
+    private async Task NavigateToStockTransfer()
     {
-        Navigation.NavigateTo("/RefundHistory");
+        try
+        {
+            Navigation.NavigateTo("/StockTransferReport");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToStockTransfer), "Navigating to stock transfer report");
+        }
     }
 
-    private void NavigateToDepartmentSales()
+    private async Task NavigateToDepartmentSales()
     {
-        Navigation.NavigateTo("/DepartmentSalesHistory");
+        try
+        {
+            Navigation.NavigateTo("/DepartmentSalesHistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToDepartmentSales), "Navigating to department sales history");
+        }
     }
 
-    private void NavigateToShiftEnd()
+    private async Task NavigateToShiftEnd()
     {
-        Navigation.NavigateTo("/shifthistory");
+        try
+        {
+            Navigation.NavigateTo("/shifthistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToShiftEnd), "Navigating to shift end history");
+        }
     }
 
-    private void NavigateToPayoutHistory()
+    private async Task NavigateToPayoutHistory()
     {
-        Navigation.NavigateTo("/payouthistory");
+        try
+        {
+            Navigation.NavigateTo("/payouthistory");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToPayoutHistory), "Navigating to payout history");
+        }
     }
 
-    private void NavigateToItemSoldHistory()
+    private async Task NavigateToItemSoldHistory()
     {
-        Navigation.NavigateTo("/itemsalehistory?backurl=/history");
+        try
+        {
+            Navigation.NavigateTo("/itemsalehistory?backurl=/history");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToItemSoldHistory), "Navigating to item sold history");
+        }
     }
 
-    private void NavigateToBackoffice()
+    private async Task NavigateToBackoffice()
     {
-        Navigation.NavigateTo("/backoffice");
+        try
+        {
+            Navigation.NavigateTo("/backoffice");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToBackoffice), "Navigating to backoffice");
+        }
     }
 
-    private void NavigateToCheckout()
+    private async Task NavigateToCheckout()
     {
-        Navigation.NavigateTo("/checkout");
+        try
+        {
+            Navigation.NavigateTo("/checkout");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToCheckout), "Navigating to checkout");
+        }
     }
 
-    private void NavigateToSalesDashboard()
+    private async Task NavigateToSalesDashboard()
     {
-        Navigation.NavigateTo("/sales-dashboard?filter=today");
+        try
+        {
+            Navigation.NavigateTo("/sales-dashboard?filter=today");
+        }
+        catch (Exception ex)
+        {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(NavigateToSalesDashboard), "Navigating to sales dashboard");
+        }
     }
 
     private string GetQuickStatsText()
