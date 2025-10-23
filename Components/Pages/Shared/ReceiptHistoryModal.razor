@@ -5,6 +5,7 @@
 @using EposRetail.Services
 @inject PrinterManagementService PrinterManagementService
 @inject SalesItemTransactionServices SalesItemService
+@inject SalesTransactionServices _salesTransactionServices
 @inject IJSRuntime JSRuntime
 @inject GlobalErrorLogService GlobalErrorLogService
 
@@ -279,6 +280,12 @@
 
             // Print the receipt using the PrinterService
             await PrinterService.PrintSalesReceipt(transaction, itemsToPrint);
+            if (SelectedTransaction != null)
+            {
+                SelectedTransaction.Is_Printed = true;
+                await _salesTransactionServices.UpdateAsync(SelectedTransaction);
+            }
+
         }
         catch (Exception ex)
         {

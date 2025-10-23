@@ -858,6 +858,7 @@
         }
         catch (Exception ex)
         {
+            await GlobalErrorLogService.LogErrorAsync(ex, nameof(SaveTransactionInBackgroundAsync), "Checked out, transaction is getting save on the background");
             await InvokeAsync(async () =>
             {
                 await ShowErrorModalAsync("Background Save Error",
