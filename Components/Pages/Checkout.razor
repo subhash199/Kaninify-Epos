@@ -132,9 +132,8 @@
                                 <h6>Create new payout type:</h6>
                                 <div class="mb-3">
                                     <label class="form-label">Payout Description:</label>
-                                    <input @ref="payoutBox" type="text" class="form-control"
-                                           @bind-value="newPayoutDescription"
-                                           @bind-value:event="oninput"
+                                    <input autofocus type="text" class="form-control"
+                                           @bind="newPayoutDescription"
                                            placeholder="Enter payout description" maxlength="100" />
                                 </div>
                                 <button type="button" class="btn btn-secondary" @onclick="ToggleCreateNewPayout">
@@ -187,7 +186,6 @@
 
 @code {
     ElementReference searchBox;
-    ElementReference payoutBox;
     CheckoutState _state = new CheckoutState();
     StatusBarComponent statusBarComponent; // Add this reference
 
@@ -1417,12 +1415,6 @@
             newPayoutDescription = string.Empty;
             payoutErrorMessage = string.Empty;
             StateHasChanged();
-            if (isCreatingNewPayout)
-            {
-                newPayoutDescription = "";
-                await payoutBox.FocusAsync();
-            }
-
         }
         catch (Exception ex)
         {
