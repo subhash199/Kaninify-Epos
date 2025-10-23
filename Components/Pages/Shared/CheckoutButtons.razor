@@ -116,6 +116,7 @@
     [Parameter] public EventCallback OnDiscountClicked { get; set; }
     [Parameter] public string ButtonWidthAdjustClass { get; set; }
     [Parameter] public EventCallback<decimal> OnAmountEntered { get; set; }
+    [Parameter] public EventCallback OnDepartmentSalesModalClosed { get; set; }
 
     bool RefundMode = false;
     bool IsCollapsed = true;
@@ -177,6 +178,7 @@
     {
         showAmountModal = false;
         StateHasChanged();
+        await OnDepartmentSalesModalClosed.InvokeAsync();
     }
 
     private async Task HandleRefundClick()

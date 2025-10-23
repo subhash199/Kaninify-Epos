@@ -56,7 +56,8 @@
                                      OnEnquiryClicked="HandleOnEnquiryClick" OnDiscountClicked="HandleDiscountClick"
                                      OnDepartmentWithAmountSelected="HandleDepartmentWithAmountFromModal"
                                      OnPayoutWithAmountSelected="HandlePayoutWithAmountFromModal"
-                                     OnMoreSalesClicked="HandleOnMoreSalesClicked"></CheckoutButtons>
+                                     OnMoreSalesClicked="HandleOnMoreSalesClicked"
+                                     OnDepartmentSalesModalClosed="SetFocusOnSearchBoxAsync"></CheckoutButtons>
 
                     <StatusBarComponent @ref="statusBarComponent" />
                 </div>
@@ -486,7 +487,7 @@
         StateHasChanged();
     }
 
-    private void QtyButtonClick()
+    private async void QtyButtonClick()
     {
         if (HasItemsInBasket())
         {
@@ -497,7 +498,10 @@
             _state.ShowQuantityBox = true;
             StateHasChanged();
         }
-
+        else
+        {
+            await SetFocusOnSearchBoxAsync();
+        }
     }
     protected override async Task OnInitializedAsync()
     {
@@ -571,7 +575,11 @@
 
     private async Task PaymentButtonClickedAsync(PaymentType paymentType)
     {
-        if (!HasItemsInBasket()) return;
+        if (!HasItemsInBasket())
+        {
+            await SetFocusOnSearchBoxAsync();
+            return;
+        }
 
         try
         {
