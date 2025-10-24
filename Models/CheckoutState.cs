@@ -5,7 +5,6 @@ using EposRetail.Models;
 public class CheckoutState
 {
     public string SearchText { get; set; } = "";
-    public string TableStyle { get; set; } = CheckoutConstants.TableHeights.Default;
     public string LeftPanelLabel { get; set; } = "More";
     public string MoreSalesButtonsClass { get; set; } = CheckoutConstants.CssClasses.Hidden;
     public string LeftCollapseButtonPanel { get; set; } = CheckoutConstants.Images.AddIcon;

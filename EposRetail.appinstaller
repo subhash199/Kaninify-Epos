@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller
+    Uri="https://github.com/subhash199/Kaninify-Epos/releases/latest/download/Retail_Epos.appinstaller"
+    Version="1.0.17.0"
+    xmlns="http://schemas.microsoft.com/appx/appinstaller/2018">
+
+  <MainPackage
+      Name="com.companyname.eposretail"
+      Publisher="CN=Kaninify"
+      Version="1.0.17.0"
+      ProcessorArchitecture="x64"
+      Uri="https://github.com/subhash199/Kaninify-Epos/releases/latest/download/EposRetail_1.0.17.0_x86_Debug.msix" />
+
+  <UpdateSettings>
+    <!-- Checks for updates every time app launches -->
+    <OnLaunch HoursBetweenUpdateChecks="0" ShowPrompt="true" UpdateBlocksActivation="true" />
+  </UpdateSettings>
+</AppInstaller>

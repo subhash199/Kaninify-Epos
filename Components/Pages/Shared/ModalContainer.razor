@@ -4,14 +4,23 @@
 
 <!-- Generic Message Modal -->
 @if (State.ModalSettings.ModalEnum == ModalEnum.ProductActivate ||
-State.ModalSettings.ModalEnum == ModalEnum.ProductNotFound)
+State.ModalSettings.ModalEnum == ModalEnum.ProductNotFound || State.ModalSettings.ModalEnum == ModalEnum.GenericProduct)
 {
     <ProductModal IsVisible="@(State.ModalSettings.ShowModal)"
                   Title="@State.ModalSettings.ModalTitle"
                   Product="@State.ModalProduct"
                   OnSave="OnProductSave"
-                  OnClose="OnModalClose"
-                   />
+                  OnClose="OnModalClose" />
+}
+else if (State.ModalSettings.ModalEnum == ModalEnum.Transaction)
+{
+    <TransactionModal IsVisible="@(State.ModalSettings.ShowModal)"
+                      Title="@State.ModalSettings.ModalTitle"
+                      Message="@State.ModalSettings.ModalMessage"
+                      CheckoutAmount="@GetCurrentBasketTotal()"
+                      PaymentType="@State.PaymentType"
+                      OnClose="OnModalClose"
+                      OnConfirm="OnTransactionConfirm" />
 }
 else
 {
@@ -31,6 +40,7 @@ else
     [Parameter] public EventCallback OnModalOk { get; set; }
     [Parameter] public EventCallback OnModalClose { get; set; }
     [Parameter] public EventCallback<Product> OnProductSave { get; set; }
+    [Parameter] public EventCallback<(decimal Amount, PaymentType PaymentType)> OnTransactionConfirm { get; set; }
 
     private string GetPrimaryButtonText()
     {
@@ -38,8 +48,11 @@ else
         {
             ModalEnum.ProductActivate => "Activate",
             ModalEnum.ProductNotFound => "Add Product",
+            ModalEnum.GenericProduct => "Add Product",
             ModalEnum.Error => "OK",
             ModalEnum.Payment => "Confirm",
+            ModalEnum.Confirmation => "Yes",
+            ModalEnum.Transaction => "Confirm Payment",
             ModalEnum.Default => "OK",
             _ => "OK"
         };
@@ -53,8 +66,21 @@ else
             ModalEnum.ProductNotFound => "Cancel",
             ModalEnum.Error => "Cancel",
             ModalEnum.Payment => "Cancel",
+            ModalEnum.Confirmation => "No",
+            ModalEnum.Transaction => "Cancel",
             ModalEnum.Default => "Cancel",
             _ => "Cancel"
         };
+    }
+
+    private decimal GetCurrentBasketTotal()
+    {
+        if (State?.SalesBaskets != null && State.SalesBaskets.Count > State.HoldBasketIndex)
+        {
+            return (State.SalesBaskets[State.HoldBasketIndex]?.Transaction?.SaleTransaction_Total_Amount -
+            (State.SalesBaskets[State.HoldBasketIndex]?.Transaction.SaleTransaction_Cash +
+            State.SalesBaskets[State.HoldBasketIndex]?.Transaction.SaleTransaction_Card)) ?? 0;
+        }
+        return 0;
     }
 }

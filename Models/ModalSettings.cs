@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,9 +17,13 @@ namespace EposRetail.Models
     {
         ProductActivate,
         ProductNotFound,
+        GenericProduct,
         Error,
         Payment,
-        Default
+        Default,
+        Confirmation,
+        Refund,
+        Transaction
     }
 
 }
