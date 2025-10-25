@@ -55,7 +55,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- App Icon -->
-    <MauiIcon Include="icon.jpg" ForegroundFile="icon.jpg" Color="#512BD4" />
+    <MauiIcon Include="wwwroot\images\icons\icon.jpg" ForegroundFile="icon.jpg" Color="#512BD4" />
     <!-- Splash Screen -->
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
     <!-- Images -->
@@ -72,20 +72,14 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.10" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="wwwroot\images\" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\EposDataHandler\DataHandlerLibrary.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Appsettings.json" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\Pictures\Epos Pictures\EposIcon.jpg">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
     <None Include=".github\workflows\release.yml" />
+    <None Include="wwwroot\images\icons\icon.jpg" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.120" />
