@@ -85,6 +85,7 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include=".github\workflows\release.yml" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.120" />
