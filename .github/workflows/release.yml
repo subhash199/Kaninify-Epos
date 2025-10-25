@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      PROJECT_PATH: EposRetail\EposRetail.csproj
+      PROJECT_PATH: EposRetail.csproj
       APPINSTALLER_PATH: EposRetail\EposRetail.appinstaller
       BUILD_CONFIGURATION: Release
       CERTIFICATE_PATH: EposRetail\KaninifyCert.pfx  # certificate stored inside the project
